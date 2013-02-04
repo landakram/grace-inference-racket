@@ -120,6 +120,7 @@
   (parser
    (start code-sequence)
    (end EOF)
+   (debug "errordump")
    (error
     (lambda (tok-ok? tok-name tok-val start-pos end-pos)
       (raise-syntax-error 'grace
