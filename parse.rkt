@@ -1,8 +1,7 @@
 #lang racket
-(require parser-tools/lex
-         (prefix-in : parser-tools/lex-sre)
-         parser-tools/yacc)
-(provide (all-defined-out))
+(require parser-tools/yacc
+         "lex.rkt")
+(provide simple-grace-parser)
 
 (define (make-srcloc orig-stx start-pos end-pos)
   (list (if (syntax? orig-stx) orig-stx 'no-syntax-available)
@@ -44,66 +43,6 @@
                               (- (position-offset end-pos-syn) (position-offset start-pos-syn)))))]))
 
 (define current-source-name (make-parameter #f))
-
-(define-tokens value-tokens (NUM STRING IDENTIFIER))
-(define-empty-tokens op-tokens (EOF 
-                                + - = := : DOT -> \;
-                                LBRACE RBRACE 
-                                LPAREN RPAREN 
-                                LBRACKET RBRACKET
-                                COMMA
-                                ARROW
-                                SEMICOLON
-                                < >
-                                NEWLINE
-                                OBJECT METHOD VAR TYPE IMPORT CLASS
-                                RETURN DEF INHERITS IS DIALECT
-                                ))
-
-(define-lex-abbrevs
-  (CR #\015)
-  (LF #\012)
-  (FF #\014)
-  (TAB #\011)
-  (my-whitespace (:or #\space TAB FF))
-  (my-newline (:or (:: CR) (:: LF) (:seq CR LF)))
-  (letter (:or (:/ "a" "z") (:/ #\A #\Z) ))
-  (digit (:/ #\0 #\9))
-  (number (:+ digit))
-  ; TODO: handle punctuation and escaped quotes
-  (string (:: "\"" (:* (:or letter digit whitespace)) "\""))
-  (identifier (:: letter (:* (:or letter digit #\_ #\?))))
-  (keyword (:or "object" "method" "var" "type" "import" "class"
-                "return" "def" "inherits" "is" "dialect")))
-
-(define simple-grace-lexer
-  (lexer-src-pos
-   ((eof) (token-EOF))
-   (whitespace (return-without-pos (simple-grace-lexer input-port)))
-   ;(my-newline (token-NEWLINE))
-   ("-" (token--))
-   ("+" (token-+))
-   ("=" (token-=))
-   (":=" (token-:=))
-   ("{" (token-LBRACE))
-   ("}" (token-RBRACE))
-   ("(" (token-LPAREN))
-   (")" (token-RPAREN))
-   ("[" (token-LBRACKET))
-   ("]" (token-RBRACKET))
-   ("," (token-COMMA))
-   (":" (token-:))
-   ("." (token-DOT))
-   ("->" (token-ARROW))
-   (";" (token-SEMICOLON))
-   ("<" (token-<))
-   (">" (token->))
-   (keyword (string->symbol (string-upcase lexeme)))
-   ; The call to call-with-input-string interprets the quoted string literally.
-   ; Otherwise, the string is represented in racket as "\"theString\""
-   (string (token-STRING (call-with-input-string lexeme read))) 
-   (identifier (token-IDENTIFIER (string->symbol lexeme)))
-   (number (token-NUM (string->number lexeme)))))
 
 (struct var-decl (name value))
 (struct def-decl (name value))
@@ -210,8 +149,6 @@
     
    )
   ))
-
-(define (lex-this lexer input) (lambda () (lexer input)))
 
 (let ((input (open-input-string "var a := \"hello\"")))
   (simple-grace-parser (lex-this simple-grace-lexer input)))
