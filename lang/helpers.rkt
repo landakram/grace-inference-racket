@@ -4,7 +4,7 @@
          parser-tools/lex
          syntax/readerr)
 
-(provide raise-parse-error at-src)
+(provide raise-parse-error at-src current-source)
 
 (define (make-srcloc orig-stx start-pos end-pos)
   (list (if (syntax? orig-stx) orig-stx 'no-syntax-available)
