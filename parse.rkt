@@ -1,5 +1,6 @@
 #lang racket
 (require parser-tools/yacc
+         parser-tools/lex
          "lex.rkt")
 (provide simple-grace-parser)
 
