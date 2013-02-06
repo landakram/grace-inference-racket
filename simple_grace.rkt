@@ -120,6 +120,7 @@
   (parser
    (start code-sequence)
    (end EOF)
+   (suppress )
    (debug "errordump")
    (error
     (lambda (tok-ok? tok-name tok-val start-pos end-pos)
@@ -133,12 +134,15 @@
    (precs 
     (left - +)
     ;(left * / %)
-    (left DOT))
+    (left DOT)
+    (nonassoc LPAREN))
    (grammar
     (code-sequence 
      (() empty)
      ;((statement) $1)
-     ((statement code-sequence) (cons $1 $2)))
+     ((method-declaration code-sequence) (cons $1 $2))
+     ((statement code-sequence) (cons $1 $2))
+     )
      
     (statement
      ((declaration) $1)
@@ -148,39 +152,41 @@
      )
     (declaration 
      ((var-declaration) $1)
-     ((def-declaration) $1)
-     ((method-declaration) $1))
+     ((def-declaration) $1))
     
     (var-declaration 
-     ((VAR IDENTIFIER) (b-syn #f `(var-decl ,$2 #f) 1 2))
-     ((VAR IDENTIFIER := expression) (b-syn #f `(var-decl ,$2 ,$4) 1 4)))
+     ((VAR identifier) (b-syn #f `(var-decl ,$2 #f) 1 2))
+     ((VAR identifier := expression) (b-syn #f `(var-decl ,$2 ,$4) 1 4)))
     (def-declaration
-     ((DEF IDENTIFIER = expression) (b-syn #f `(def-decl ,$2 ,$4) 1 4)))
+     ((DEF identifier = expression) (b-syn #f `(def-decl ,$2 ,$4) 1 4)))
     (method-declaration
-     ((METHOD IDENTIFIER LBRACE method-body RBRACE) (b-syn #f `(method ,$2 $4) 1 5)))
+     ((METHOD identifier LBRACE method-body RBRACE) (b-syn #f `(method ,$2 $4) 1 5)))
     (method-body
      ((statement method-body) (cons $1 $2))
      (() empty))
     (expression
-                ((dotcall) $1)
-                ((callrest) $1)
-                ; multi-part method names
-                ; unparenthesized method call
-                ;((postfixsquare) $1)
-                ((parenthesis-expr) $1)
-                ((expression + expression) (b-syn #f `(arith-exp ,+ ,$1 ,$3) 1 3))
-                ((expression - expression) (b-syn #f `(arith-exp ,- ,$1 ,$3) 1 3))
-                ((term) $1))
+     ((identifier dotrest) (b-syn #f `(member ,$1 ,$2) 1 2))
+     ((identifier callrest) (b-syn #f `(method-call ,$1 ,$2) 1 2))
+     ((expression + expression) (b-syn #f `(arith-exp ,+ ,$1 ,$3) 1 3))
+     ((expression - expression) (b-syn #f `(arith-exp ,- ,$1 ,$3) 1 3))
+     ((term) $1)
+     ; multi-part method names
+     ; unparenthesized method call
+     ;((postfixsquare) $1)
+     ((parenthesis-expr) $1))
     (parenthesis-expr ((LPAREN expression RPAREN) $2))
-    (callrest ((identifier LPAREN method-list RPAREN) (b-syn #f `(method-call ,$1 ,$3) 1 4)))
-    (dotcall
-     ((identifier DOT identifier) (b-syn #f `(member ,$1 ,$3) 1 3)) 
-     ((identifier DOT dotcall) (b-syn #f `(member ,$1 ,$3) 1 3))
-     ((identifier DOT callrest) (b-syn #f `(member ,$1 ,$3) 1 3)))
+    (callrest 
+     ((LPAREN method-list RPAREN) $2)
+     ((callrest dotrest) `(member ,$1 ,$2))
+     ((LPAREN RPAREN) empty))
+    (dotrest
+     ((DOT identifier) $2) 
+     ((DOT identifier dotrest) `(member ,$2 ,$3))
+     ((DOT identifier callrest) `(method-call ,$2 ,$3))
+     )
     (method-list 
      ((expression COMMA method-list) (b-syn #f `(cons ,$1 ,$3) 1 3))
-                 ((expression) $1)
-                 (() empty))
+     ((expression) (list $1)))
     (term ((NUM) (b-syn #f `(num-exp ,$1) 1 1))
           ((STRING) (b-syn #f $1 1 1))
           ((identifier) $1)
@@ -193,14 +199,17 @@
           ; prefixop
     (identifier ((IDENTIFIER) (b-syn #f `(var-exp ,$1) 1 1)))
           
-    (object-decl ((OBJECT LBRACE object-body RBRACE) (b-syn #f `(object-node ,$3) 1 4)))
+    (object-decl ((OBJECT LBRACE object-body RBRACE) (b-syn #f `(object-node ,$3) 1 4))
+                 ((OBJECT LBRACE RBRACE) (b-syn #f `(object-node empty) 1 3)))
               ;extends, etc.
     (object-body 
-     ((declaration object-body) $1)
-     ((declaration) $1))
-    )
+     ((method-declaration object-body) `(cons ,$1 ,$2))
+     ((statement object-body) `(cons ,$1 ,$2))
+     ((method-declaration) $1)
+     ((statement) $1))
+    
    )
-   )
+  ))
 
 (define (lex-this lexer input) (lambda () (lexer input)))
 
