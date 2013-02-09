@@ -14,13 +14,13 @@
                       (provide (struct-out grace:struct) ...))))]))
 
 (define-grace-structs
-  (var-decl (name value))
-  (def-decl (name value))
+  (var-decl (name type value))
+  (def-decl (name type value))
   
   (bind (name value))
   
   (num-exp (n))
-  (variable (i))
+  (identifier (value type))
   
   (arith-exp (op e1 e2))
   (method-call (name args))
@@ -29,4 +29,6 @@
   (member (parent name))
   
   (code-seq (code))
-  (str (s)))
+  (str (s))
+  
+  )

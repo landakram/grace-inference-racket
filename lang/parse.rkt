@@ -45,10 +45,13 @@
      ((def-declaration) $1))
     
     (var-declaration 
-     ((VAR identifier) (at-src `(grace:var-decl ,$2 #f)))
-     ((VAR identifier := expression) (at-src `(grace:var-decl ,$2 ,$4))))
+     ((VAR identifier type-ref) (at-src `(grace:var-decl ,$2 ,$3 #f)))
+     ((VAR identifier type-ref := expression) (at-src `(grace:var-decl ,$2 ,$3 ,$5))))
+    (type-ref
+     ((: identifier) $2)
+     (() #f))
     (def-declaration
-     ((DEF identifier = expression) (at-src `(grace:def-decl ,$2 ,$4))))
+     ((DEF identifier type-ref = expression) (at-src `(grace:def-decl ,$2 ,$3 ,$5))))
     (method-declaration
      ((METHOD identifier LBRACE method-body RBRACE) (at-src `(grace:method ,$2 ,$4))))
     (method-body
@@ -87,7 +90,7 @@
           ; block
           ; array
           ; prefixop
-    (identifier ((IDENTIFIER) (at-src `(grace:variable (symbol->string (quote ,$1))))))
+    (identifier ((IDENTIFIER) (at-src `(grace:identifier (symbol->string (quote ,$1)) #f))))
           
     (object-decl ((OBJECT LBRACE object-body RBRACE) (at-src `(grace:object ,$3)))
                  ((OBJECT LBRACE RBRACE) (at-src `(grace:object empty))))
