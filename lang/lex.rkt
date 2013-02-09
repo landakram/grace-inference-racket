@@ -6,7 +6,7 @@
 
 (define-tokens value-tokens (NUM STRING IDENTIFIER))
 (define-empty-tokens op-tokens (EOF 
-                                + - = := : DOT -> \;
+                                + - = := : DOT \;
                                 LBRACE RBRACE 
                                 LPAREN RPAREN 
                                 LBRACKET RBRACKET
