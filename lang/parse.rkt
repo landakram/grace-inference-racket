@@ -53,13 +53,26 @@
     (def-declaration
      ((DEF identifier type-ref = expression) (at-src `(grace:def-decl ,$2 ,$3 ,$5))))
     (method-declaration
-     ((METHOD identifier LBRACE method-body RBRACE) (at-src `(grace:method ,$2 ,$4))))
+     ((METHOD identifier method-return-type LBRACE method-body RBRACE) (at-src `(grace:method ,$2 empty ,$5 ,$3)))
+     ((METHOD identifier method-signature method-return-type LBRACE method-body RBRACE) (at-src `(grace:method ,$2 ,$3 ,$6 ,$4)))
+     )
+    (method-signature
+     ((LPAREN RPAREN) `empty) 
+     ((LPAREN signature-list RPAREN) $2))
+    (signature-list
+     ((identifier) `(list ,$1))
+     ((IDENTIFIER : identifier) `(list (at-src `(grace:identifier (symbol->string (quote ,$1)) ,$3))))
+     ((identifier COMMA signature-list) `(append (list,$1) ,$3))
+     ((IDENTIFIER : identifier COMMA signature-list) `(append (list ,(at-src `(grace:identifier (symbol->string (quote ,$1)) ,$3))) ,$5)))
+    (method-return-type
+     ((ARROW identifier) $2)
+     (() `#f))
     (method-body
      ((statement method-body) `(cons ,$1 ,$2))
      (() `empty))
     (expression
      ((identifier dotrest) (at-src `(grace:member ,$1 ,$2)))
-     ((identifier callrest) (at-src `(grace:method-call $1 $2)))
+     ((identifier callrest) (at-src `(grace:method-call ,$1 ,$2)))
      ((expression + expression) (at-src `(grace:arith-exp + ,$1 ,$3)))
      ((expression - expression) (at-src `(grace:arith-exp - ,$1 ,$3)))
      ((term) $1)

@@ -25,7 +25,7 @@
   (arith-exp (op e1 e2))
   (method-call (name args))
   (object (body))
-  (method (name body))
+  (method (name signature body type))
   (member (parent name))
   
   (code-seq (code))
