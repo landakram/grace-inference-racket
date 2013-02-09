@@ -1,13 +1,16 @@
 #lang racket
 (require "parse.rkt"
-         syntax/strip-context
          parser-tools/lex)
 
 (provide read-syntax
          read
          get-info)
 
-;; To read a module:
+;; Parses the grace syntax for a module
+;; 
+;; Without a backend for Grace, this function simply creates
+;; a fresh racket module, requires all grace AST structures, 
+;; and provides the root of the parsed AST.
 (define (read-syntax src-name in)
   (let* ([p-name (object-name in)]
          (stx (parse src-name in))
@@ -19,18 +22,7 @@
     (display (syntax->datum stx))
     (datum->syntax #f `(module ,name racket 
                          (provide data)
-                         (struct var-decl (name value))
-                         (struct def-decl (name value))
-                         (struct bind (name value))
-                         (struct num-exp (n))
-                         (struct var-exp (i))
-                         (struct arith-exp (op e1 e2))
-                         (struct method-call (name args))
-                         (struct object-node (body))
-                         (struct method (name body))
-                         (struct member (parent name))
-                         (struct code-seq (c))
-                         (struct str (s))
+                         (require grace/lang/ast)
                          (define data ,(syntax->datum stx))))))
 
 ;; In case `read' is used, instead of `read-syntax':

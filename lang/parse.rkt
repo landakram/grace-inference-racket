@@ -1,26 +1,15 @@
 #lang racket
 (require parser-tools/yacc
+         syntax/readerr
          "lex.rkt"
-         "helpers.rkt")
+         "helpers.rkt"
+         "ast.rkt")
 (provide parse)
 
 (define (parse src-name in)
   (parameterize ((current-source src-name))
     (simple-grace-parser (lambda () (simple-grace-lexer in)))))
-
-(struct var-decl (name value))
-(struct def-decl (name value))
-(struct bind (name value))
-(struct num-exp (n))
-(struct var-exp (i))
-(struct arith-exp (op e1 e2))
-(struct method-call (name args))
-(struct object-node (body))
-(struct method (name body))
-(struct member (parent name))
-(struct code-seq (c))
-(struct str (s))
-
+ 
 (define simple-grace-parser
   (parser
    (start code-sequence)
@@ -37,7 +26,7 @@
     (left DOT)
     (nonassoc LPAREN))
    (grammar
-    (code-sequence ((_code-sequence) (at-src `(code-seq ,$1))))
+    (code-sequence ((_code-sequence) (at-src `(grace:code-seq ,$1))))
     (_code-sequence 
      (() `empty)
      ;((statement) $1)
@@ -48,28 +37,28 @@
     (statement
      ((declaration) $1)
      ((expression) $1)                
-     ((identifier := expression) (at-src `(bind ,$1 ,$3)))
+     ((identifier := expression) (at-src `(grace:bind ,$1 ,$3))))
   ;   ((return-stmt) $1)
-     )
+     
     (declaration 
      ((var-declaration) $1)
      ((def-declaration) $1))
     
     (var-declaration 
-     ((VAR identifier) (at-src `(var-decl ,$2 #f)))
-     ((VAR identifier := expression) (at-src `(var-decl ,$2 ,$4))))
+     ((VAR identifier) (at-src `(grace:var-decl ,$2 #f)))
+     ((VAR identifier := expression) (at-src `(grace:var-decl ,$2 ,$4))))
     (def-declaration
-     ((DEF identifier = expression) (at-src `(def-decl ,$2 ,$4))))
+     ((DEF identifier = expression) (at-src `(grace:def-decl ,$2 ,$4))))
     (method-declaration
-     ((METHOD identifier LBRACE method-body RBRACE) (at-src `(method ,$2 ,$4))))
+     ((METHOD identifier LBRACE method-body RBRACE) (at-src `(grace:method ,$2 ,$4))))
     (method-body
      ((statement method-body) `(cons ,$1 ,$2))
      (() `empty))
     (expression
-     ((identifier dotrest) (at-src `(member ,$1 ,$2)))
-     ((identifier callrest) (at-src `(method-call ,$1 ,$2)))
-     ((expression + expression) (at-src `(arith-exp ,+ ,$1 ,$3)))
-     ((expression - expression) (at-src `(arith-exp ,- ,$1 ,$3)))
+     ((identifier dotrest) (at-src `(grace:member ,$1 ,$2)))
+     ((identifier callrest) (at-src `(grace:method-call $1 $2)))
+     ((expression + expression) (at-src `(grace:arith-exp + ,$1 ,$3)))
+     ((expression - expression) (at-src `(grace:arith-exp - ,$1 ,$3)))
      ((term) $1)
      ; multi-part method names
      ; unparenthesized method call
@@ -78,18 +67,18 @@
     (parenthesis-expr ((LPAREN expression RPAREN) $2))
     (callrest 
      ((LPAREN method-list RPAREN) $2)
-     ((callrest dotrest) `(member ,$1 ,$2))
+     ((callrest dotrest) (at-src `(grace:member ,$1 ,$2)))
      ((LPAREN RPAREN) `empty))
     (dotrest
      ((DOT identifier) $2) 
-     ((DOT identifier dotrest) `(member ,$2 ,$3))
-     ((DOT identifier callrest) `(method-call ,$2 ,$3))
+     ((DOT identifier dotrest) (at-src `(grace:member ,$2 ,$3)))
+     ((DOT identifier callrest) (at-src `(grace:method-call ,$2 ,$3)))
      )
     (method-list 
      ((expression COMMA method-list) `(append ,$1 ,$3))
      ((expression) `(list ,$1)))
-    (term ((NUM) (at-src `(num-exp ,$1)))
-          ((STRING) (at-src `(str ,$1)))
+    (term ((NUM) (at-src `(grace:num-exp ,$1)))
+          ((STRING) (at-src `(grace:str ,$1)))
           ((identifier) $1)
           ; matchcase
           ; catchcase
@@ -98,16 +87,14 @@
           ; block
           ; array
           ; prefixop
-    (identifier ((IDENTIFIER) (at-src `(var-exp ',$1))))
+    (identifier ((IDENTIFIER) (at-src `(grace:variable (symbol->string (quote ,$1))))))
           
-    (object-decl ((OBJECT LBRACE object-body RBRACE) (at-src `(object-node ,$3)))
-                 ((OBJECT LBRACE RBRACE) (at-src `(object-node empty))))
+    (object-decl ((OBJECT LBRACE object-body RBRACE) (at-src `(grace:object ,$3)))
+                 ((OBJECT LBRACE RBRACE) (at-src `(grace:object empty))))
               ;extends, etc.
     (object-body 
      ((method-declaration object-body) `(cons ,$1 ,$2))
      ((statement object-body) `(cons ,$1 ,$2))
      ((method-declaration) $1)
      ((statement) $1))
-    
-   )
-  ))
+   )))
