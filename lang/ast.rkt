@@ -10,7 +10,7 @@
                                                (string->symbol
                                                 (format "grace:~a" (syntax-e id)))))
                                             (syntax->list (syntax (struct-name ...))))])
-       (syntax (begin (define-struct grace:struct (field ...)) ...
+       (syntax (begin (define-struct grace:struct (field ...) #:transparent) ...
                       (provide (struct-out grace:struct) ...))))]))
 
 (define-grace-structs
@@ -19,10 +19,10 @@
   
   (bind (name value))
   
-  (num-exp (n))
+  (number (n))
   (identifier (value type))
   
-  (arith-exp (op e1 e2))
+  (expression (op e1 e2))
   (method-call (name args))
   (object (body))
   (method (name signature body type))

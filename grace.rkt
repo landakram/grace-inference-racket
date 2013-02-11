@@ -1,16 +1,16 @@
 #lang grace
+a.b.c()
+(a.b.c)()
 
-var a := 4
-var b := 4
+a.b().c
+(a.b()).c
 
-def t = "hello"
+a().c
+(a()).c
 
-var c := object {
-   var v := "foo"
-}
+a.b.c
+(a.b).c
 
-a.e()
+a.b().d()().c
+a()()()
 
-method foo { 
-    a + 3 + 5 + b
-}

@@ -6,17 +6,18 @@
 
 (define-tokens value-tokens (NUM STRING IDENTIFIER))
 (define-empty-tokens op-tokens (EOF 
-                                + - = := : DOT \;
+                                + - * / % ^ ++ ! && OR == < > <= >=
+                                = := : DOT \;
                                 LBRACE RBRACE 
                                 LPAREN RPAREN 
                                 LBRACKET RBRACKET
                                 COMMA
                                 ARROW
                                 SEMICOLON
-                                < >
                                 NEWLINE
                                 OBJECT METHOD VAR TYPE IMPORT CLASS
                                 RETURN DEF INHERITS IS DIALECT
+                                UNARY METHODCALL
                                 ))
 
 (define-lex-abbrevs
@@ -38,10 +39,22 @@
 (define simple-grace-lexer
   (lexer-src-pos
    ((eof) (token-EOF))
-   (whitespace (return-without-pos (simple-grace-lexer input-port)))
-   ;(my-newline (token-NEWLINE))
+   (my-whitespace (return-without-pos (simple-grace-lexer input-port)))
+   (my-newline (token-NEWLINE))
    ("-" (token--))
    ("+" (token-+))
+   ("*" (token-*))
+   ("/" (token-/))
+   ("%" (token-%))
+   ("^" (token-^))
+   ("!" (token-!))
+   ("&&" (token-&&))
+   ("||" (token-OR))
+   ("==" (token-==))
+   ("<" (token-<))
+   (">" (token->))
+   ("<=" (token-<=))
+   (">=" (token->=))
    ("=" (token-=))
    (":=" (token-:=))
    ("{" (token-LBRACE))
@@ -55,8 +68,6 @@
    ("." (token-DOT))
    ("->" (token-ARROW))
    (";" (token-SEMICOLON))
-   ("<" (token-<))
-   (">" (token->))
    (keyword (string->symbol (string-upcase lexeme)))
    ; The call to call-with-input-string interprets the quoted string literally.
    ; Otherwise, the string is represented in racket as "\"theString\""
