@@ -77,11 +77,6 @@
      ((statement method-body) `(cons ,$1 ,$2))
      (() `empty))
     (expression
-     ((any-members-or-calls) $1)
-    ; ((identifier dotrest) (at-src `(grace:member ,$1 ,$2)))
- ;    ((identifier callrest dotrest) (at-src `(grace:member ,(at-src `(grace:method-call ,$1 ,$2)) ,$3)))
- ;    ((identifier dotrest) (at-src `(grace:member ,$1 ,$2)))
- ;    ((identifier dotrest callrest) (at-src `(grace:method-call ,(at-src `(grace:member ,$1 ,$2)) ,$3)))
      ((expression + expression) (at-src `(grace:expression + ,$1 ,$3)))
      ((expression - expression) (at-src `(grace:expression - ,$1 ,$3)))
      ((expression * expression) (at-src `(grace:expression * ,$1 ,$3)))
@@ -97,61 +92,32 @@
      ((expression > expression) (at-src `(grace:expression > ,$1 ,$3)))
      ((expression <= expression) (at-src `(grace:expression <= ,$1 ,$3)))
      ((expression >= expression) (at-src `(grace:expression >= ,$1 ,$3)))
-     
-
-          
+         
      ((term) $1)
      ; multi-part method names
      ;((postfixsquare) $1)
-     ((parenthesis-expr) $1))
+     ;((parenthesis-expr) $1))
+     )
     (parenthesis-expr ((LPAREN expression RPAREN) $2))
-   ; (id-callrest
-   ;  ((identifier callrest) (at-src `(grace:method-call ,$1 ,$2)))
-   ;  ((id-callrest callrest) (at-src `(grace:method-call ,$1 ,$2))))
     
-    ;; Handle arbitrarily many member accesses
-    ;; i.e. a.b.c.d.e...z
-    (member
-     ((identifier DOT identifier) (at-src `(grace:member ,$1 ,$3)))
-     ((parenthesis-expr DOT identifier) (at-src `(grace:member ,$1 ,$3)))
-     ((member DOT identifier) (at-src `(grace:member ,$1 ,$3))))
-    ;; Handle arbitrarily many method calls
-    ;; i.e. a()()()()()...()
+    (id-or-member 
+     ((identifier) $1)
+     ((parenthesis-expr) $1)
+     ((id-or-member DOT identifier) (prec METHODCALL) (at-src `(grace:member ,$1 ,$3))))
     (call
-     ((identifier callrest) (at-src `(grace:method-call ,$1 ,$2)))
-     ((parenthesis-expr callrest) (at-src `(grace:method-call ,$1 ,$2)))
-     ((call callrest) (at-src `(grace:method-call ,$1 ,$2))))
-    ;; Handle arbitrarily many member method calls
-    ;; i.e. a.b.c.d.e...z()()()()()()...()
-    (member-call 
-     ((member callrest) (at-src `(grace:method-call ,$1 ,$2)))
-     ((member-call callrest) (at-src `(grace:method-call ,$1 ,$2))))
-    ;; Handle calls or member access that begin with a call
-    ;; i.e. a().b...
-    (call-member-or-call
-     ((call DOT identifier) (at-src `(grace:member ,$1 ,$3)))
-     ((call DOT identifier callrest) (at-src `(grace:method-call ,(at-src `(grace:member ,$1 ,$3)) ,$4)))
-     ((call-member-or-call DOT identifier) (at-src `(grace:member ,$1 ,$3)))
-     ((call-member-or-call DOT identifier callrest) (at-src `(grace:method-call ,$1 ,(at-src `(grace:member ,$1 ,$3))))))
-    ;; Handle arbitrarily many calls that begin with 
-    ;; some number of member accesses and then a call.
-    (member-call-member-call
-     ((member-call DOT identifier callrest) (at-src `(grace:method-call ,$1 ,(at-src `(grace:member ,$1 ,$3)))))
-     ((member-call-member-call callrest) (at-src `(grace:method-call ,$1 ,$2))))                    
-    ;; Handle arbitrarily many calls or members 
-    ;; that begin with some number of member accesses 
-    ;; and then a call.
-    (member-call-member-or-call
-     ((member-call DOT identifier) (at-src `(grace:member ,$1 ,$3)))
-     ((member-call-member-call) $1)
-     ((member-call-member-or-call DOT identifier) (at-src `(grace:member ,$1 ,$3)))
-     ((member-call-member-or-call DOT identifier callrest) (at-src `(grace:method-call ,$1 ,(at-src `(grace:member ,$1 ,$3))))))
-    (any-members-or-calls
-     ((member-call-member-or-call) $1)
-     ((call-member-or-call) $1)
-     ((member-call) $1)
-     ((member) $1)
-     ((call) $1))
+     ((id-or-member callrest) (at-src `(grace:method-call ,$1 ,$2)))
+     ((call callrest) (prec METHODCALL) (at-src `(grace:method-call ,$1 ,$2))))
+    (any-dot
+     ((any DOT id-or-member) (at-src `(grace:member ,$1 ,$3)))
+     ((id-or-member) (prec UNARY) $1)
+     ((call) (prec UNARY) $1))
+    (any-call
+     ((any-dot callrest) (at-src `(grace:method-call ,$1 ,$2)))
+     ((any-call callrest) (at-src `(grace:method-call ,$1 ,$2))))
+    (any
+     ((any-call) $1)
+     ((any-dot) $1))
+
     (callrest 
      ((LPAREN method-list RPAREN) $2)
      ((LPAREN RPAREN) `empty))
@@ -162,7 +128,7 @@
     
     (term ((NUM) (at-src `(grace:number ,$1)))
           ((STRING) (at-src `(grace:str ,$1)))
-          ((identifier) $1)
+          ((any) $1)
           ((- term) 
            (prec UNARY) 
            (at-src `(grace:method-call 
