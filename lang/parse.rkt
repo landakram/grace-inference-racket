@@ -41,9 +41,9 @@
      ((statement) $1)
      ((NEWLINE) `empty))
     (statement
-     ((declaration NEWLINE) $1)
-     ((expression NEWLINE) $1)                
-     ((identifier := expression NEWLINE) (at-src `(grace:bind ,$1 ,$3))))
+     ((NEWLINE declaration) $2)
+     ((NEWLINE expression) $2)                
+     ((NEWLINE identifier := expression) (at-src `(grace:bind ,$2 ,$4))))
   ;   ((return-stmt) $1)
      
     (declaration 
@@ -59,8 +59,10 @@
     (def-declaration
      ((DEF identifier type-ref = expression) (at-src `(grace:def-decl ,$2 ,$3 ,$5))))
     (method-declaration
-     ((METHOD identifier method-return-type LBRACE method-body RBRACE NEWLINE) (at-src `(grace:method ,$2 empty ,$5 ,$3)))
-     ((METHOD identifier method-signature method-return-type LBRACE method-body RBRACE NEWLINE) (at-src `(grace:method ,$2 ,$3 ,$6 ,$4)))
+     ((NEWLINE METHOD identifier method-return-type LBRACE method-body RBRACE) 
+      (at-src `(grace:method ,$3 empty ,$6 ,$4)))
+     ((NEWLINE METHOD identifier method-signature method-return-type LBRACE method-body RBRACE) 
+      (at-src `(grace:method ,$3 ,$4 ,$7 ,$5)))
      )
     (method-signature
      ((LPAREN RPAREN) `empty) 
@@ -133,6 +135,10 @@
            (prec UNARY) 
            (at-src `(grace:method-call 
                      ,(at-src `(grace:member ,$2 -)) empty)))
+          ((+ term) 
+           (prec UNARY) 
+           (at-src `(grace:method-call 
+                     ,(at-src `(grace:member ,$2 +)) empty)))
           ; matchcase
           ; catchcase
           ((object-decl) $1))
