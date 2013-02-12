@@ -34,7 +34,7 @@
    (grammar
     (code-sequence ((_code-sequence) (at-src `(grace:code-seq ,$1))))
     (_code-sequence 
-     ((code) $1)
+     ((code) `(list ,$1))
      ((code _code-sequence) `(cons ,$1 ,$2)))
     (code
      ((method-declaration) $1)
@@ -75,8 +75,10 @@
     (method-return-type
      ((ARROW identifier) $2)
      (() `#f))
+
     (method-body
      ((statement method-body) `(cons ,$1 ,$2))
+     ((NEWLINE) `empty)
      (() `empty))
     (expression
      ((expression + expression) (at-src `(grace:expression + ,$1 ,$3)))
@@ -150,9 +152,9 @@
     (object-decl ((OBJECT LBRACE object-body RBRACE) (at-src `(grace:object ,$3)))
                  ((OBJECT LBRACE RBRACE) (at-src `(grace:object empty))))
               ;extends, etc.
-    (object-body 
-     ((method-declaration object-body) `(cons ,$1 ,$2))
-     ((statement object-body) `(cons ,$1 ,$2))
-     ((method-declaration) $1)
-     ((statement) $1))
+    (object-body      
+     ((_code-sequence) $1))
+    (possibly-newline
+     ((NEWLINE) null)
+     (() null))
    )))
