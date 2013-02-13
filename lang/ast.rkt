@@ -1,17 +1,23 @@
 #lang racket
-(provide all-from-out)
+(provide all-defined-out)
 
-(define-syntax (define-grace-structs stx)
+(define-for-syntax (grace-struct-syntax prefix stx) 
   (syntax-case stx ()
     [(_ (struct-name (field ...)) ...)
      (with-syntax ([(grace:struct ...) (map (lambda (id)
                                               (datum->syntax
                                                id
                                                (string->symbol
-                                                (format "grace:~a" (syntax-e id)))))
+                                                (format "~a:~a" prefix (syntax-e id)))))
                                             (syntax->list (syntax (struct-name ...))))])
        (syntax (begin (define-struct grace:struct (field ...) #:transparent) ...
                       (provide (struct-out grace:struct) ...))))]))
+
+(define-syntax (define-grace-structs stx)
+  (grace-struct-syntax "grace" stx))
+
+(define-syntax (define-grace-types stx)
+  (grace-struct-syntax "grace:type" stx))
 
 (define-grace-structs
   (var-decl (name type value))
@@ -19,7 +25,7 @@
   
   (bind (name value))
   
-  (number (n))
+  (number (value))
   (identifier (value type))
   
   (expression (op e1 e2))
@@ -27,8 +33,18 @@
   (object (body))
   (method (name signature body type))
   (member (parent name))
+  (return (value))
   
   (code-seq (code))
-  (str (s))
+  (str (value)))
+
+(define-grace-types
+  (number ())
+  (string ())
+  (list ())
+  (boolean ())
+  (dynamic ())
+  (void ())
+  (done ()))
   
-  )
+

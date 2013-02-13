@@ -43,9 +43,13 @@
     (statement
      ((NEWLINE declaration) $2)
      ((NEWLINE expression) $2)                
+     ((NEWLINE return) $2)
      ((NEWLINE identifier := expression) (at-src `(grace:bind ,$2 ,$4))))
   ;   ((return-stmt) $1)
      
+    (return
+     ((RETURN) (at-src `(grace:return "void")))
+     ((RETURN expression) (at-src `(grace:return ,$2))))
     (declaration 
      ((var-declaration) $1)
      ((def-declaration) $1))
@@ -91,7 +95,7 @@
      ((expression && expression) (at-src `(grace:expression 'and ,$1 ,$3)))
      ((expression OR expression) (at-src `(grace:expression 'or ,$1 ,$3)))
      
-     ((expression == expression) (at-src `(grace:expression equals? ,$1 ,$3)))
+     ((expression == expression) (at-src `(grace:expression equal? ,$1 ,$3)))
      ((expression < expression) (at-src `(grace:expression < ,$1 ,$3)))
      ((expression > expression) (at-src `(grace:expression > ,$1 ,$3)))
      ((expression <= expression) (at-src `(grace:expression <= ,$1 ,$3)))
