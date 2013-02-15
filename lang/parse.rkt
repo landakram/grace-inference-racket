@@ -90,7 +90,7 @@
      ((expression * expression) (at-src `(grace:expression * ,$1 ,$3)))
      ((expression / expression) (at-src `(grace:expression / ,$1 ,$3)))
      ((expression % expression) (at-src `(grace:expression modulo ,$1 ,$3)))
-     ((expression ^ expression) (at-src `(grace:expression expr ,$1 ,$3)))
+     ((expression ^ expression) (at-src `(grace:expression exp ,$1 ,$3)))
      
      ((expression && expression) (at-src `(grace:expression 'and ,$1 ,$3)))
      ((expression OR expression) (at-src `(grace:expression 'or ,$1 ,$3)))
@@ -104,7 +104,6 @@
      ((term) $1)
      ; multi-part method names
      ;((postfixsquare) $1)
-     ;((parenthesis-expr) $1))
      )
     (parenthesis-expr ((LPAREN expression RPAREN) $2))
     
