@@ -8,7 +8,7 @@
                                                (string->symbol
                                                 (format "~a:~a" prefix (syntax-e id)))))
                                             (syntax->list (syntax (struct-name ...))))])
-       (syntax (begin (define-struct grace:struct (field ...) struct-option ... #:transparent) ...)))]))
+       (syntax (begin (define-struct grace:struct (field ...) struct-option ... #:prefab) ...)))]))
 
 (define-syntax (define-grace-structs stx)
   (grace-struct-syntax "grace" stx))

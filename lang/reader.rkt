@@ -1,6 +1,7 @@
 #lang racket
 (require "parse.rkt"
          "ast.rkt"
+         "typecheck.rkt"
          parser-tools/lex)
 
 (provide read-syntax
@@ -20,13 +21,17 @@
                      (string->symbol
                       (path->string (path-replace-suffix name #""))))
                    'anonymous)])
+    (define datum (syntax->datum stx))
+    (define env (typecheck datum))
     (datum->syntax #f `(module ,name racket 
-                         (provide data)
-                         (provide e)
+                         (provide st)
+                         (provide env)
                          (require grace/lang/ast)
                          (require grace/lang/typecheck)
-                         (define data ,(syntax->datum stx))
-                         (define e (typecheck data))))))
+                         (define st ,datum)
+                         (define env ,env)))))
+
+(define (p in) (parse (object-name in) in))
 
 ;; In case `read' is used, instead of `read-syntax':
 (define (read in)
