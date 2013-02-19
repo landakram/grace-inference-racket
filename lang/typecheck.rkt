@@ -101,7 +101,7 @@
   (match code-seq
     ((grace:code-seq code)
      (grace:code-seq (filter (lambda (x) (not (list? x))) code)))
-    (_ (code-seq))))
+    (_ code-seq)))
 
 (define (typecheck thing)
   (let ((env (make-hash)))
@@ -116,7 +116,7 @@
     (set-type env "true" (grace:type:boolean))
     (set-type env "false" (grace:type:boolean))
     
-    (let-values ([(t e)(type-check (sanitize thing) env)])
+    (let-values ([(t e) (type-check (sanitize thing) env)])
       e)))
       
 (provide typecheck)
