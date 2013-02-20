@@ -22,7 +22,7 @@
                       (path->string (path-replace-suffix name #""))))
                    'anonymous)])
     (define datum (syntax->datum stx))
-    (define env (typecheck datum))
+    (define env (typecheck stx))
     (datum->syntax #f `(module ,name racket 
                          (provide st)
                          (provide env)
