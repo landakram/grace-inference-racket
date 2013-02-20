@@ -46,30 +46,81 @@
 (define top-other (grace:identifier "other" dynamic-identifier))
 (define list-other (grace:identifier "other" list-identifier))
 
-(define-struct grace:type (methods) #:transparent)
+(define grace:type<%>
+  (interface () methods readable-name))
 
-(define-grace-types
-  (method (name signature rtype))
-  (string ())
-  (list ())
-  (boolean ())
-  (dynamic ())
-  (void ())
-  (done ()))
+(define grace:type%
+  (class* object% (grace:type<%> equal<%>)
+    (super-new)
+    (define/public (methods) 
+      (list))
+    (define/public (readable-name) 
+      "Dynamic")
+    (define/public (equal-to? other recur)
+      (and (recur (methods) (send other methods))
+           (recur (readable-name) (send other readable-name))))
+    (define/public (equal-hash-code-of hash-code)
+      (hash-code (readable-name)))
+    (define/public (equal-secondary-hash-code-of hash-code)
+      (hash-code (readable-name)))))
 
-(define grace:type:number (grace:type (list 
-                        (grace:type:method + (list number-other) number-identifier)
-                        (grace:type:method - (list number-other) number-identifier)
-                        (grace:type:method * (list number-other) number-identifier)
-                        (grace:type:method / (list number-other) number-identifier)
-                        (grace:type:method modulo (list number-other) number-identifier)
-                        (grace:type:method exp (list number-other) number-identifier)
-                        
-                        (grace:type:method equal? (list number-other) top-other)
-                        (grace:type:method 'not (list number-other) top-other)
-                        (grace:type:method < (list number-other) boolean-identifier)
-                        (grace:type:method > (list number-other) boolean-identifier)
-                        (grace:type:method <= (list number-other) boolean-identifier)
-                        (grace:type:method >= (list number-other) boolean-identifier))))
+(define grace:type:number%
+  (class* grace:type% ()
+    (super-new)
+    (define/override 
+     (methods) (list 
+               (new grace:type:method% [name +] [signature (list number-other)] [rtype number-identifier])
+               (new grace:type:method% [name -] [signature (list number-other)] [rtype number-identifier])
+               (new grace:type:method% [name *] [signature (list number-other)] [rtype number-identifier])
+               (new grace:type:method% [name /] [signature (list number-other)] [rtype number-identifier])
+               (new grace:type:method% [name modulo] [signature (list number-other)] [rtype number-identifier])
+               (new grace:type:method% [name exp] [signature (list number-other)] [rtype number-identifier])
+               
+               (new grace:type:method% [name equal?] [signature (list number-other)] [rtype top-other])
+               (new grace:type:method% [name 'not] [signature (list number-other)] [rtype top-other])
+               (new grace:type:method% [name <] [signature (list number-other)] [rtype boolean-identifier])
+               (new grace:type:method% [name >] [signature (list number-other)] [rtype boolean-identifier])
+               (new grace:type:method% [name <=] [signature (list number-other)] [rtype boolean-identifier])
+               (new grace:type:method% [name >=] [signature (list number-other)] [rtype boolean-identifier])))
+    (define/override 
+      (readable-name) "Number")))
 
+(define grace:type:method%
+  (class* grace:type% ()
+    (super-new)
+    (init-field name signature rtype) 
+    (define/override 
+      (readable-name) "Method")
+    (define/override
+      (equal-to? other recur)
+      (and 
+       (recur name (get-field name other))
+       (recur signature (get-field signature other))
+       (recur rtype (get-field rtype other))))))
+
+(define grace:type:string%
+  (class* grace:type% ()
+    (super-new)
+    (define/override (readable-name) "String")))
+
+(define grace:type:list%
+  (class* grace:type% ()
+    (super-new)
+    (define/override (readable-name) "List")))
+
+(define grace:type:boolean%
+  (class* grace:type% ()
+    (super-new)
+    (define/override (readable-name) "Boolean")))
+
+(define grace:type:void%
+  (class* grace:type% ()
+    (super-new)
+    (define/override (readable-name) "Void")))
+
+(define grace:type:done%
+  (class* grace:type% ()
+    (super-new)
+    (define/override (readable-name) "Done")))
+  
 (provide (all-defined-out))
