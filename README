@@ -1,0 +1,3 @@
+To install grace as a #lang language:
+$ cd grace-inference-racket
+$ raco link -n grace .
