@@ -15,15 +15,15 @@ var d : Dynamic := object {
     var a : Number := 4
     var b : Number := 7
     method bar(s : String) -> Number {
-	    	self.a + self.b
-		self.a := 5
-		self.a	
-		a := 5
-		bar("hello")
-		self.bar("hello")
-		4
+        self.a + self.b
+        self.a := 5
+        self.a
+        a := 5
+        bar("hello")
+        self.bar("hello")
+        4
     }
-    
+
     var c : Number := self.bar("foo")
 }
 
