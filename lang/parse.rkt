@@ -44,7 +44,7 @@
      ((NEWLINE declaration) $2)
      ((NEWLINE expression) $2)                
      ((NEWLINE return) $2)
-     ((NEWLINE identifier := expression) (at-src (grace:bind $2 $4))))
+     ((NEWLINE any := expression) (at-src (grace:bind $2 $4))))
   ;   ((return-stmt) $1)
      
     (return
@@ -73,12 +73,12 @@
      ((LPAREN signature-list RPAREN) $2))
     (signature-list
      ((identifier) (list $1))
-     ((IDENTIFIER : identifier) (list (at-src (grace:identifier (symbol->string (quote $1)) $3))))
+     ((IDENTIFIER : identifier) (list (at-src (grace:identifier (symbol->string $1) $3))))
      ((identifier COMMA signature-list) (append (list $1) $3))
      ((IDENTIFIER : identifier COMMA signature-list) (append (list (at-src (grace:identifier (symbol->string (quote $1)) $3))) $5)))
     (method-return-type
      ((ARROW identifier) $2)
-     (() `#f))
+     (() #f))
 
     (method-body
      ((statement method-body) (cons $1 $2))
