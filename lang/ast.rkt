@@ -46,18 +46,19 @@
 (define top-other (grace:identifier "other" dynamic-identifier))
 (define list-other (grace:identifier "other" list-identifier))
 
+(define (same-other type-identifier) (grace:identifier "_" type-identifier))
+
 (define grace:type<%>
-  (interface () methods readable-name))
+  (interface () readable-name))
 
 (define grace:type%
   (class* object% (grace:type<%> equal<%>)
     (super-new)
-    (define/public (methods) 
-      (list))
+    (init-field (methods (list)))
     (define/public (readable-name) 
       "Dynamic")
     (define/public (equal-to? other recur)
-      (and (recur (methods) (send other methods))
+      (and (recur methods (get-field methods other))
            (recur (readable-name) (send other readable-name))))
     (define/public (equal-hash-code-of hash-code)
       (hash-code (readable-name)))
@@ -67,8 +68,9 @@
 (define grace:type:number%
   (class* grace:type% ()
     (super-new)
-    (define/override 
-     (methods) (list 
+    (inherit-field methods)
+    (set-field! 
+     methods this (list 
                (new grace:type:method% [name +] [signature (list number-other)] [rtype number-identifier])
                (new grace:type:method% [name -] [signature (list number-other)] [rtype number-identifier])
                (new grace:type:method% [name *] [signature (list number-other)] [rtype number-identifier])
@@ -84,6 +86,13 @@
                (new grace:type:method% [name >=] [signature (list number-other)] [rtype boolean-identifier])))
     (define/override 
       (readable-name) "Number")))
+
+(define grace:type:object%
+  (class* grace:type% ()
+    (super-new)
+    (inherit-field methods)
+    (define/override
+      (readable-name) "Object")))
 
 (define grace:type:method%
   (class* grace:type% ()
@@ -122,5 +131,11 @@
   (class* grace:type% ()
     (super-new)
     (define/override (readable-name) "Done")))
+
+(define grace:type:module%
+  (class* grace:type% ()
+    (super-new)
+    (inherit-field methods)
+    (define/override (readable-name) "Module")))
   
 (provide (all-defined-out))
