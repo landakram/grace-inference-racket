@@ -41,11 +41,10 @@
      ((statement) $1)
      ((NEWLINE) empty))
     (statement
-     ((NEWLINE declaration) $2)
-     ((NEWLINE expression) $2)                
-     ((NEWLINE return) $2)
-     ((NEWLINE any := expression) (at-src (grace:bind $2 $4))))
-  ;   ((return-stmt) $1)
+     ((declaration NEWLINE) $1)
+     ((expression NEWLINE) $1)                
+     ((return NEWLINE) $1)
+     ((any := expression NEWLINE) (at-src (grace:bind $1 $3))))
      
     (return
      ((RETURN) (at-src (grace:return "void")))
@@ -63,10 +62,10 @@
     (def-declaration
      ((DEF identifier type-ref = expression) (at-src (grace:def-decl $2 $3 $5))))
     (method-declaration
-     ((NEWLINE METHOD identifier method-return-type LBRACE method-body RBRACE) 
-      (at-src (grace:method $3 empty $6 $4)))
-     ((NEWLINE METHOD identifier method-signature method-return-type LBRACE method-body RBRACE) 
-      (at-src (grace:method $3 $4 $7 $5)))
+     ((METHOD identifier method-return-type LBRACE method-body RBRACE NEWLINE) 
+      (at-src (grace:method $2 empty $5 $3)))
+     ((METHOD identifier method-signature method-return-type LBRACE method-body RBRACE NEWLINE) 
+      (at-src (grace:method $2 $3 $6 $4)))
      )
     (method-signature
      ((LPAREN RPAREN) empty) 
@@ -83,7 +82,8 @@
     (method-body
      ((statement method-body) (cons $1 $2))
      ((NEWLINE) empty)
-     (() empty))
+     ((NEWLINE method-body) $2)
+     ((statement) (list $1)))
     (expression
      ((expression + expression) (at-src (grace:expression + $1 $3)))
      ((expression - expression) (at-src (grace:expression - $1 $3)))
