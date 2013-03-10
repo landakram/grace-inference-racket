@@ -8,6 +8,7 @@
 (define-empty-tokens op-tokens (EOF 
                                 + - * / % ^ ++ ! && OR == < > <= >=
                                 = := : DOT \;
+                                //
                                 LBRACE RBRACE 
                                 LPAREN RPAREN 
                                 LBRACKET RBRACKET
@@ -32,6 +33,7 @@
   (number (:+ digit))
   ; TODO: handle punctuation and escaped quotes
   (string (:: "\"" (:* (:or letter digit whitespace)) "\""))
+  (comment (:: "//" (:* (:or letter digit punctuation my-whitespace))))
   (identifier (:: letter (:* (:or letter digit #\_ #\?))))
   (keyword (:or "object" "method" "var" "type" "import" "class"
                 "return" "def" "inherits" "is" "dialect")))
@@ -41,6 +43,7 @@
    ((eof) (token-EOF))
    (my-whitespace (return-without-pos (simple-grace-lexer input-port)))
    (my-newline (token-NEWLINE))
+   (comment (return-without-pos (simple-grace-lexer input-port)))
    ("-" (token--))
    ("+" (token-+))
    ("*" (token-*))
