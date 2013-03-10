@@ -3,9 +3,6 @@
 (require "ast.rkt"
          "parse.rkt")
 
-;; Maps identifier -> type.
-(define identifier-env (make-hash))
-
 ;; Gets a type from identifier-env. If the identifier is 
 ;; not present, returns false.
 (define (get-type k) 
@@ -20,6 +17,8 @@
 (define is-object? (make-parameter #f))
 (define current-return-type (make-parameter #f))
 
+(define typecheck-hook (make-parameter (lambda _ 'nothing)))
+
 (define (tc-error msg . rest) 
   (raise-syntax-error 'typecheck (apply format msg rest) (stx)))
 
@@ -29,6 +28,9 @@
 (define (conforms-to? conforming-type type)
   (cond 
     ((equal? type (new grace:type%)) #t)
+    ((equal? type 'missing) #t)
+    ((equal? conforming-type (new grace:type%)) #t)
+    ((equal? conforming-type 'missing) #t)
     ((equal? conforming-type type) #t)
     (else #f)))
 
@@ -101,29 +103,35 @@
                 (op (unwrap op))
                 (member-op (findf 
                             (lambda (a) (equal? (get-field name a) op))
-                            (get-field methods e1-type))))
-           (if member-op
-               (let ((param-type
-                      (get-type (grace:identifier-value 
-                                 (grace:identifier-type 
-                                  (car (get-field signature member-op)))))))
-             ;    (display param-type)
-             ;    (display "\n")
-             ;    (display e2-type)
-             ;    (display e2)
-             ;    (display "\n")
-        ;         (display e2)
-                 (if (conforms-to? e2-type param-type)
-                     (get-type (grace:identifier-value (get-field rtype member-op)))
-                     
-                     (tc-error
-                      "~a takes ~a but got ~a"
-                      op
-                      (send param-type readable-name)
-                      (send e2-type readable-name))))
-               (tc-error
-                "no such operator ~a in ~a"
-                op (send e1-type readable-name)))))
+                            (or (and (object? e1-type) (get-field methods e1-type))
+                                 empty)
+                            )))
+           (cond 
+             (member-op
+              (let ((param-type
+                     (get-type (grace:identifier-value 
+                                (grace:identifier-type 
+                                 (car (get-field signature member-op)))))))
+                ;    (display param-type)
+                ;    (display "\n")
+                ;    (display e2-type)
+                ;    (display e2)
+                ;    (display "\n")
+                ;         (display e2)
+                (if (conforms-to? e2-type param-type)
+                    (get-type (grace:identifier-value (get-field rtype member-op)))
+                    
+                    (tc-error
+                     "~a takes ~a but got ~a"
+                     op
+                     (send param-type readable-name)
+                     (send e2-type readable-name)))))
+             ((equal? e1-type 'missing)
+              'missing)
+             (else
+              (tc-error
+               "no such operator ~a in ~a"
+               op (send e1-type readable-name))))))
         ((grace:member parent name)
          (let* ((parent-type (expression-type parent))
                 (name-string (unwrap (grace:identifier-value (unwrap name))))
@@ -227,8 +235,8 @@
  ; (if (syntax? ident)
  ;     (parameterize ((stx ident))
  ;       (resolve-identifier (syntax->datum ident)))
-  (if (false? ident)
-      (new grace:type%)
+  (if (false? (unwrap ident))
+      'missing
       (get-type (grace:identifier-value (unwrap ident)))))
 
 (define (resolve-identifiers elt)
@@ -315,7 +323,12 @@
                 [name-type (resolve-identifier (unwrap name))]
                 [_ (resolve-identifiers value)]
                 [value-type (expression-type (unwrap value))]
-                [type-type (resolve-identifier (unwrap type))])
+                [type-type (resolve-identifier (unwrap type))]
+                [start (syntax-position (stx))]
+                [end (+ start (string-length "var ") (syntax-span name))])
+           (inference-hook start end 
+                           name-string type-type (send value-type readable-name) 
+                           'var)
            (if (not (conforms-to? value-type type-type))
                (tc-error "initializing var of type ~a with expression of type ~a"
                          (send type-type readable-name)
@@ -326,12 +339,17 @@
                 [name-type (resolve-identifier name)]
                 [_ (resolve-identifiers value)]
                 [value-type (expression-type value)]
-                [type-type (resolve-identifier type)])
+                [type-type (resolve-identifier type)]
+                [start (syntax-position (stx))]
+                [end (+ start (string-length "def ") (syntax-span name))])
+           (inference-hook start end 
+                           name-string type-type (send value-type readable-name) 
+                           'def)
            (if (not (conforms-to? value-type type-type))
                (tc-error "initializing def of type ~a with expression of type ~a"
                          (send type-type readable-name)
                          (send value-type readable-name))
-               (value-type))))
+               value-type)))
         ((grace:return value)
  ;        (display value)
          (let* ([_ (resolve-identifiers value)]
@@ -391,13 +409,7 @@
            (set-type (grace:identifier-value (unwrap name)) 
                      type-type)))
         (else elt))))
-      ;; TODO: inherits, class, import
-      
-        
-         
-         
-         
-        
+      ;; TODO: inherits, class, import     
 
 ;; Removes all empty statements if (grace:code-seq? code-seq)
 (define (sanitize code-seq)
@@ -426,9 +438,28 @@
     
     (resolve-identifiers-list 
      (syntax->list (grace:code-seq-code (syntax-e thing))))))
-      
-(provide typecheck)
+
+(define inference-list (list))
+
+(define (inference-hook start end var-name var-type type-name inf-type)
+  (when (equal? var-type 'missing)
+    (set! inference-list (append inference-list
+                                 (list
+                                  (list 
+                                   start end
+                                   var-name type-name
+                                   inf-type))))))
+
+(define (infer-types syntax-root)
+  (set! inference-list empty)
+  (typecheck syntax-root)
+  inference-list)
+  
+(provide typecheck infer-types)
  
 (define (p in) (parse (object-name in) in))
-(define a (p (open-input-string "\nvar a : Dynamic := object {\n var a : Number := 4 \n var b : Number := 7 \nmethod bar(s : String) -> Number {\n47 \n}\n}")))
+(define a (p (open-input-string "\nvar a : Dynamic := object {\n var a := 4 \n var b := 7 \nmethod bar(s : String) -> Number {\n47 \n}\n}\n")))
+;(define a (p (open-input-string "\nvar a := \"foo\"\n var c := 5\nvar b := 4 + 4 - 10 * 30 / 38 + c\n")))
 (map (lambda (x) (send x readable-name)) (typecheck a))
+
+(infer-types a)

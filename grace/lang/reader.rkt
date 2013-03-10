@@ -39,4 +39,8 @@
 
 ;; To get info about the language's environment support:
 (define (get-info in mod line col pos)
-  (lambda (key default) default))
+  (lambda (key default) 
+    (case key 
+      [(drracket:toolbar-buttons)
+       (dynamic-require 'grace/tools/drracket-buttons 'drracket-buttons)]
+      [else default])))
