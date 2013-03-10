@@ -1,9 +1,9 @@
 #lang grace
-var a : String := "foo"
-var c : Number := 3
-var b : Number := 4 + 4 - 10 * 30 / 38 + c
+var a := "foo"
+var c := 5
+var b := 4 + 4 - 10 * 30 / 38 + c
 
-c := 45 + c
+def g = "this is a definition"
 
 method foo(s : String) -> Number {
     return 4
@@ -12,11 +12,11 @@ method foo(s : String) -> Number {
 4 + 5 + 4 + foo("hello")
 
 var d : Dynamic := object {
-    var a : Number := 4
-    var b : Number := 7
+    var a := 4
+    var b := 7
     method bar(s : String) -> Number {
-        self.a + self.b
-        self.a := 5
+        self.a + self.b + "gekk" // doesn't get typechecked without type annotation
+        self.a := 3
         self.a
         a := 5
         bar("hello")
@@ -24,7 +24,5 @@ var d : Dynamic := object {
         4
     }
 
-    var c : Number := self.bar("foo")
+    var c := self.bar("foo")
 }
-
-d.b
