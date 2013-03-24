@@ -27,9 +27,9 @@
 
 (define (conforms-to? conforming-type type)
   (cond 
-    ((equal? type (new grace:type%)) #t)
+    ((equal? type (new grace:type:dynamic%)) #t)
     ((equal? type 'missing) #t)
-    ((equal? conforming-type (new grace:type%)) #t)
+    ((equal? conforming-type (new grace:type:dynamic%)) #t)
     ((equal? conforming-type 'missing) #t)
     ((equal? conforming-type type) #t)
     (else #f)))
@@ -66,18 +66,13 @@
                      #f) 
                     method-name)))
 
-(define (unwrap possible-stx-obj)
-  (if (syntax? possible-stx-obj)
-      (syntax->datum possible-stx-obj)
-      possible-stx-obj))
-
 (define (unwrap-list possible-stx-obj)
   (if (syntax? possible-stx-obj)
       (syntax->list possible-stx-obj)
       possible-stx-obj))
 
-;; Returns the actual type of a grade expression, or Dynamic for everything else
-;; grace-struct -> (grace:type:....%) or (grace:type%)
+;; Returns the actual type of a grace expression, or Dynamic for everything else
+;; grace-struct -> (grace:type:....%) or (grace:type:dynamic%)
 (define (expression-type elt)
   (if (syntax? elt)
       (parameterize ((stx elt))
@@ -185,9 +180,12 @@
                method-rtype))))
         ((grace:object body)
          (let* ((inner-methods (foldl body-stmt-to-method-type (list) (unwrap-list body))))
-           (new grace:type:object% (methods inner-methods))))
+           (new grace:type:object% 
+                [methods inner-methods]
+                [internal-name (format "Object_~a" (syntax-position (stx)))]
+                )))
         
-        (else (new grace:type%)))))
+        (else (new grace:type:dynamic%)))))
   
 (define (body-stmt-to-method-type body-stmt method-type-list)
   (if (syntax? body-stmt)
@@ -211,7 +209,7 @@
                        [signature (list)] 
                        [rtype (resolve-identifier type)])
                   (new grace:type:method% 
-                       [name (string->symbol (format "~a:=" name))] 
+                       [name (string->symbol (format "~a:=" (grace:identifier-value (unwrap name))))]
                        [signature (list (same-other (resolve-identifier type)))]
                        [rtype (resolve-identifier type)]))))
         ((grace:method method-name signature body rtype)
@@ -220,7 +218,7 @@
                   (new grace:type:method%
                        [name (string->symbol (grace:identifier-value (unwrap method-name)))]
                        [signature (unwrap signature)]
-                       [rtype rtype]))))
+                       [rtype (resolve-identifier rtype)]))))
         (else method-type-list))))
 
 ;; will use resolve-identifier for identifiers in expression-type
@@ -228,13 +226,7 @@
 ;; Returns the type of a given grace identifier in the current environment
 ;; (grace:identifier) -> (grace:type:...%)
 (define (resolve-identifier ident)
-;  (display "+-----\n")
-  (display ident)
-  (display "\n")
-;  (display "\n------\n")
- ; (if (syntax? ident)
- ;     (parameterize ((stx ident))
- ;       (resolve-identifier (syntax->datum ident)))
+  (displayln ident)
   (if (false? (unwrap ident))
       'missing
       (get-type (grace:identifier-value (unwrap ident)))))
@@ -281,7 +273,7 @@
                        real-type)))))) ; do nothing
         ;; TODO: block
         ((grace:object body)
-         (parameterize* ([selftype (new grace:type:object%)]
+         (parameterize* ([selftype (new grace:type:object% [internal-name "self"])]
                          [env (hash-copy (env))]
                          [is-object? #t])
            (set-type "self" (selftype))
@@ -327,8 +319,9 @@
                 [start (syntax-position (stx))]
                 [end (+ start (string-length "var ") (syntax-span name))])
            (inference-hook start end 
-                           name-string type-type (send value-type readable-name) 
+                           name-string type-type value-type
                            'var)
+           
            (if (not (conforms-to? value-type type-type))
                (tc-error "initializing var of type ~a with expression of type ~a"
                          (send type-type readable-name)
@@ -343,7 +336,7 @@
                 [start (syntax-position (stx))]
                 [end (+ start (string-length "def ") (syntax-span name))])
            (inference-hook start end 
-                           name-string type-type (send value-type readable-name) 
+                           name-string type-type value-type 
                            'def)
            (if (not (conforms-to? value-type type-type))
                (tc-error "initializing def of type ~a with expression of type ~a"
@@ -372,43 +365,46 @@
   (if (syntax? elt)
       (parameterize ((stx elt))
         (maybe-bind-name (syntax-e elt)))
-      (match elt
-        ;; TODO: types
-        ((grace:var-decl name type value)
-         (let* ([name-string (grace:identifier-value (syntax->datum name))]
-                [type-type (resolve-identifier type)])
-           (if (is-object?)
-               (begin (set-type name-string type-type) 
-                      (add-method-to-selftype (new grace:type:method%
-                                                   [name name-string]
-                                                   [signature (list)]
-                                                   [rtype type-type]))
-                      (add-method-to-selftype (new grace:type:method%
-                                                   [name (format "~a:=" name-string)]
-                                                   [signature (list (same-other (resolve-identifier type)))]
-                                                   [rtype type-type])))
-               (set-type name-string type-type))))
-        ((grace:def-decl name type value)
-         (let* ([name-string (grace:identifier-value (syntax->datum name))]
-                [type-type (resolve-identifier type)])
-           (if (is-object?)
-               (begin (set-type name-string type-type) 
-                      (add-method-to-selftype (new grace:type:method%
-                                                   [name name-string]
-                                                   [signature (list type-type)]
-                                                   [rtype type-type])))
-               (set-type name-string type-type))))
-        ((grace:method name signature body rtype)
-         (let* ([type-type (resolve-identifier rtype)]
-                [method-name (grace:identifier-value (syntax->datum name))]
-                [new-method-type (new grace:type:method% 
-                                     (name method-name)
-                                     (signature (syntax->datum signature))
-                                     (rtype type-type))])
-           (add-method-to-selftype new-method-type)
-           (set-type (grace:identifier-value (unwrap name)) 
-                     type-type)))
-        (else elt))))
+      (cond
+           ((is-a? (unwrap elt) grace:type:object%) 
+            (set-type (get-field internal-name (unwrap elt)) (unwrap elt)))
+           (else 
+            (match elt
+              ((grace:var-decl name type value)
+               (let* ([name-string (grace:identifier-value (syntax->datum name))]
+                      [type-type (resolve-identifier type)])
+                 (if (is-object?)
+                     (begin (set-type name-string type-type) 
+                            (add-method-to-selftype (new grace:type:method%
+                                                         [name name-string]
+                                                         [signature (list)]
+                                                         [rtype type-type]))
+                            (add-method-to-selftype (new grace:type:method%
+                                                         [name (format "~a:=" name-string)]
+                                                         [signature (list (same-other (resolve-identifier type)))]
+                                                         [rtype type-type])))
+                     (set-type name-string type-type))))
+              ((grace:def-decl name type value)
+               (let* ([name-string (grace:identifier-value (syntax->datum name))]
+                      [type-type (resolve-identifier type)])
+                 (if (is-object?)
+                     (begin (set-type name-string type-type) 
+                            (add-method-to-selftype (new grace:type:method%
+                                                         [name name-string]
+                                                         [signature (list type-type)]
+                                                         [rtype type-type])))
+                     (set-type name-string type-type))))
+              ((grace:method name signature body rtype)
+               (let* ([type-type (resolve-identifier rtype)]
+                      [method-name (grace:identifier-value (syntax->datum name))]
+                      [new-method-type (new grace:type:method% 
+                                            (name method-name)
+                                            (signature (syntax->datum signature))
+                                            (rtype type-type))])
+                 (add-method-to-selftype new-method-type)
+                 (set-type (grace:identifier-value (unwrap name)) 
+                           type-type)))
+              (else elt))))))
       ;; TODO: inherits, class, import     
 
 ;; Removes all empty statements if (grace:code-seq? code-seq)
@@ -425,11 +421,11 @@
     (set-type "String" (new grace:type:string%))
     (set-type "List" (new grace:type:list%))
     (set-type "Boolean" (new grace:type:boolean%))
-    (set-type "Dynamic" (new grace:type%))
+    (set-type "Dynamic" (new grace:type:dynamic%))
     (set-type "Void" (new grace:type:void%))
     (set-type "Done" (new grace:type:done%))
     
-    (set-type "Object" (new grace:type:object%))
+    (set-type "Object" (new grace:type:object% [internal-name "Object"]))
     
     (set-type "true" (new grace:type:boolean%))
     (set-type "false" (new grace:type:boolean%))
@@ -441,25 +437,60 @@
 
 (define inference-list (list))
 
-(define (inference-hook start end var-name var-type type-name inf-type)
+(define (inference-hook start end var-name var-type value-type inf-type)
+  (define primitive? (not (is-a? value-type grace:type:object%)))
+  (define typedef-string (or 
+                          (and primitive? 'prim)
+                          (format "~a\n" (send value-type readable-name))))
+  (define annotation-string (or 
+                             (and primitive? (send value-type readable-name))
+                             (get-field internal-name value-type)))
+  
+  (when (not primitive?)
+    ; Search through existing types to see if we can find a match
+    (define existing-type
+      (findf (lambda (x) (equal? x value-type)) (hash-values (env))))
+    (when existing-type
+      (set! typedef-string "")
+      (set! annotation-string (get-field internal-name existing-type))))
+            
   (when (equal? var-type 'missing)
     (set! inference-list (append inference-list
                                  (list
                                   (list 
                                    start end
-                                   var-name type-name
+                                   var-name 
+                                   annotation-string
+                                   typedef-string
+                                   primitive?
                                    inf-type))))))
+
+(define (infer-prims syntax-root)
+  (set! inference-list empty)
+  (typecheck syntax-root)
+  (filter (lambda (x)
+            (match-define (list start end var-name type-name type-def primitive? inf-type) x)
+            primitive?) 
+          inference-list))
+
+(define (infer-objects syntax-root)
+  (set! inference-list empty)
+  (typecheck syntax-root)
+  (filter (lambda (x)
+            (match-define (list start end var-name type-name type-def primitive? inf-type) x)
+            (not primitive?))
+          inference-list))
 
 (define (infer-types syntax-root)
   (set! inference-list empty)
   (typecheck syntax-root)
   inference-list)
   
-(provide typecheck infer-types)
+(provide typecheck infer-types infer-prims infer-objects)
  
-(define (p in) (parse (object-name in) in))
-(define a (p (open-input-string "\nvar a : Dynamic := object {\n var a := 4 \n var b := 7 \nmethod bar(s : String) -> Number {\n47 \n}\n}\n")))
+;(define (p in) (parse (object-name in) in))
+;(define a (p (open-input-string "\nvar a := object {\n var a := 4 \n var b := 7 \nmethod bar(s : String) -> Number {\n47 \n}\n}\n")))
 ;(define a (p (open-input-string "\nvar a := \"foo\"\n var c := 5\nvar b := 4 + 4 - 10 * 30 / 38 + c\n")))
-(map (lambda (x) (send x readable-name)) (typecheck a))
+;(map (lambda (x) (send x readable-name)) (typecheck a))
 
-(infer-types a)
+;(infer-types a)

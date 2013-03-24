@@ -15,7 +15,7 @@
    (start code-sequence)
    (end EOF)
    ;(suppress )
-   (debug "errordump")
+  ; (debug "errordump")
    (error (lambda (a t v start end) 
             (raise-parse-error t v start end)))
    (src-pos)
@@ -42,7 +42,7 @@
      ((NEWLINE) empty))
     (statement
      ((declaration NEWLINE) $1)
-     ((expression NEWLINE) $1)                
+     ((expression NEWLINE) $1)   
      ((return NEWLINE) $1)
      ((any := expression NEWLINE) (at-src (grace:bind $1 $3))))
      
@@ -51,8 +51,22 @@
      ((RETURN expression) (at-src (grace:return $2))))
     (declaration 
      ((var-declaration) $1)
-     ((def-declaration) $1))
+     ((def-declaration) $1)
+     ((type-declaration) $1))
     
+    (type-declaration
+     ((TYPE identifier = LBRACE NEWLINE method-signatures RBRACE) (at-src (new grace:type:object% 
+                                                                       [internal-name (grace:identifier-value (syntax->datum $2))]
+                                                                       [methods $6]))))
+    (method-signatures
+     ((method-name method-signature method-return-type NEWLINE) (list (new grace:type:method%
+                                                                                  [name (string->symbol (grace:identifier-value (syntax->datum $1)))]
+                                                                                  [signature $2]
+                                                                                  [rtype (syntax->datum $3)])))
+     ((method-name method-signature method-return-type NEWLINE method-signatures) (append (list (new grace:type:method%
+                                                                                  [name (string->symbol (grace:identifier-value (syntax->datum $1)))]
+                                                                                  [signature $2]
+                                                                                  [rtype (syntax->datum $3)])) $5)))
     (var-declaration 
      ((VAR identifier type-ref) (at-src (grace:var-decl $2 $3 #f)))
      ((VAR identifier type-ref := expression) (at-src (grace:var-decl $2 $3 $5))))
@@ -62,11 +76,14 @@
     (def-declaration
      ((DEF identifier type-ref = expression) (at-src (grace:def-decl $2 $3 $5))))
     (method-declaration
-     ((METHOD identifier method-return-type LBRACE method-body RBRACE NEWLINE) 
+     ((METHOD method-name method-return-type LBRACE method-body RBRACE NEWLINE) 
       (at-src (grace:method $2 empty $5 $3)))
-     ((METHOD identifier method-signature method-return-type LBRACE method-body RBRACE NEWLINE) 
-      (at-src (grace:method $2 $3 $6 $4)))
-     )
+     ((METHOD method-name method-signature method-return-type LBRACE method-body RBRACE NEWLINE) 
+      (at-src (grace:method $2 $3 $6 $4))))
+    (method-name
+     ; TODO: allow operators
+     ((identifier) $1)
+     ((identifier :=) (at-src (grace:identifier (format "~a:=" (grace:identifier-value (syntax->datum $1))) #f))))
     (method-signature
      ((LPAREN RPAREN) empty) 
      ((LPAREN signature-list RPAREN) $2))

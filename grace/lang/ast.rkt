@@ -65,6 +65,13 @@
     (define/public (equal-secondary-hash-code-of hash-code)
       (hash-code (readable-name)))))
 
+(define grace:type:dynamic%
+  (class* grace:type% ()
+    (super-new)
+    (inherit-field methods)
+    (define/override (readable-name)
+      "Dynamic")))
+
 (define grace:type:number%
   (class* grace:type% ()
     (super-new)
@@ -91,8 +98,21 @@
   (class* grace:type% ()
     (super-new)
     (inherit-field methods)
-    (define/override
-      (readable-name) "Object")))
+    (init-field internal-name)
+    (define/override (readable-name) 
+      (define o (open-output-string))
+      (displayln (format "type ~a = {" internal-name) o)
+      (for ([method methods])
+        (displayln (format "    ~a" (send method readable-signature)) o))
+      (displayln "}" o)
+      (get-output-string o))
+    (define/override (equal-to? other recur)
+      (recur methods (get-field methods other)))))
+
+(define (unwrap possible-stx-obj)
+  (if (syntax? possible-stx-obj)
+      (syntax->datum possible-stx-obj)
+      possible-stx-obj))
 
 (define grace:type:method%
   (class* grace:type% ()
@@ -100,12 +120,35 @@
     (init-field name signature rtype) 
     (define/override 
       (readable-name) "Method")
-    (define/override
-      (equal-to? other recur)
+    (define/public (rtype-name)
+      (cond ((equal? rtype 'missing) "Dynamic")
+            ((grace:identifier? rtype) (grace:identifier-value rtype))
+            ((is-a? rtype grace:type%) (send rtype readable-name))))
+    (define/public (readable-signature)
+      (define o (open-output-string))
+      (display (format "~a(" name) o)
+      (for ([t signature])
+        (define unwrapped (unwrap t))
+        (display t)
+        (define type-name (cond ((equal? unwrapped 'missing) "Dynamic")
+                               ((grace:identifier? unwrapped) (grace:identifier-value unwrapped))
+                               ((is-a? unwrapped grace:type%) (send unwrapped readable-name))))
+        (display (format "~a : ~a" 
+                         (grace:identifier-value unwrapped)
+                         type-name)))
+      (display (format ") -> ~a" (rtype-name))  o)
+      (get-output-string o))
+    (define/override (equal-to? other recur)
+      (displayln "******")
+      (displayln name)
+      (displayln (get-field name other))
+      (displayln signature)
+      (displayln (get-field signature other))
+      (displayln "******")
       (and 
        (recur name (get-field name other))
-       (recur signature (get-field signature other))
-       (recur rtype (get-field rtype other))))))
+       (recur (readable-signature) (send other readable-signature))
+       (recur (rtype-name) (send other rtype-name))))))
 
 (define grace:type:string%
   (class* grace:type% ()
