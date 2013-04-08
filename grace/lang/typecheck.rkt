@@ -17,8 +17,6 @@
 (define is-object? (make-parameter #f))
 (define current-return-type (make-parameter #f))
 
-(define typecheck-hook (make-parameter (lambda _ 'nothing)))
-
 (define (tc-error msg . rest) 
   (raise-syntax-error 'typecheck (apply format msg rest) (stx)))
 
@@ -44,19 +42,6 @@
   (findf 
    (lambda (a) (equal? (get-field name a) name))
    (get-field methods (resolve-identifier parent))))  
-  
-(define (find-method name)
-;  (display name)
-  (if (syntax? name)
-      (parameterize ((stx name))
-        (find-method (syntax->datum name)))
-      ;; first search in selftype
-      (let* ([method (findf 
-                      (lambda (a) (equal? (get-field name a) (grace:identifier-value name)))
-                      (get-field methods (selftype)))])
-        (if (method) 
-            method
-            (get-type (grace:identifier-value name))))))
 
 (define (insert-implicit-self method-name)
   (if (grace:member? method-name)
@@ -231,6 +216,12 @@
       'missing
       (get-type (grace:identifier-value (unwrap ident)))))
 
+;; Ensures that identifiers are present in the type environment, and are used
+;; consistently.
+;;
+;; Things returned from this function are meaningless. It is evaluated for its 
+;; side effects, which are to throw type errors if types are inconsistent or 
+;; to add things to the type environment.
 (define (resolve-identifiers elt)
   (if (syntax? elt)
       (parameterize ((stx elt))
@@ -255,22 +246,20 @@
              (resolve-identifier param)
              (set-type (grace:identifier-value (syntax->datum param)) 
                        (resolve-identifier (grace:identifier-type (syntax->datum param)))))
-         ;  (resolve-identifiers-list (syntax->list signature))
+           
            (parameterize ((current-return-type (resolve-identifier rtype)))
-             (if (false? (current-return-type))
-                 (tc-error "return type of method not defined as a type")
+             ;; TODO: consideration for returning objects or self out of method
+             (when (false? (current-return-type))
+                 (tc-error "return type of method not defined as a type"))
                  
-                 (let* ([body-stmt-types (resolve-identifiers-list (syntax->list body))]
-                        [last-statement (last (syntax->datum body))]
-                        [real-type (expression-type last-statement)])
-                   (if (not (grace:return? last-statement))
-                       (if (not (conforms-to? real-type (current-return-type)))
-                           (tc-error "returning type ~a from method of return type ~a"
-                                     (send real-type readable-name)
-                                     (send (current-return-type) readable-name))
-                           ;; TODO: consideration for returning objects
-                           real-type) ; do nothing
-                       real-type)))))) ; do nothing
+             (let* ([body-stmt-types (resolve-identifiers-list (syntax->list body))]
+                    [last-statement (last (syntax->datum body))]
+                    [real-type (expression-type last-statement)])
+               (when (not (grace:return? last-statement))
+                   (when (not (conforms-to? real-type (current-return-type)))
+                       (tc-error "returning type ~a from method of return type ~a"
+                                 (send real-type readable-name)
+                                 (send (current-return-type) readable-name))))))))
         ;; TODO: block
         ((grace:object body)
          (parameterize* ([selftype (new grace:type:object% [internal-name "self"])]
@@ -293,21 +282,20 @@
                   ((not (conforms-to? value-type name-type)) (tc-error "assigning value of nonconforming type ~a to var of type ~a"
                                                                        (send value-type readable-name)
                                                                        (send name-type readable-name)))
-                  (else name-type))))
+                  (else 'success))))
              ((grace:member? (unwrap name))
-              (display (format "selftype methods: ~a\n" (map (lambda (x) (get-field name x)) (get-field methods (selftype)))))
+              ;(display (format "selftype methods: ~a\n" (map (lambda (x) (get-field name x)) (get-field methods (selftype)))))
               (let* ([member-op 
                       (find-method-in 
                        (format "~a:=" (grace:identifier-value (grace:member-name (unwrap name))) )
                        (grace:member-parent (unwrap name)))])
                 (if member-op ;; ensures that we are working on a mutable var
-                    (if (conforms-to? value-type name-type)
-                        value-type
-                        (tc-error "assigning value of nonconforming type ~a to var of type ~a"
-                                  (send value-type readable-name)
-                                  (send name-type readable-name)))
+                    (when (not (conforms-to? value-type name-type))
+                      (tc-error "assigning value of nonconforming type ~a to var of type ~a"
+                                (send value-type readable-name)
+                                (send name-type readable-name)))
                     (tc-error "no such member"))))
-             (else (grace:bind name value)))))
+             (else 'success))))
         ((grace:var-decl name type value) 
     ;     (display (env))
     ;     (display (format "------> var-decl ~a ~a ~a" name type value))
@@ -316,35 +304,34 @@
                 [_ (resolve-identifiers value)]
                 [value-type (expression-type (unwrap value))]
                 [type-type (resolve-identifier (unwrap type))]
+                ;; TODO: start and end are specific to inference-hook
                 [start (syntax-position (stx))]
                 [end (+ start (string-length "var ") (syntax-span name))])
            (inference-hook start end 
                            name-string type-type value-type
                            'var)
            
-           (if (not (conforms-to? value-type type-type))
+           (when (not (conforms-to? value-type type-type))
                (tc-error "initializing var of type ~a with expression of type ~a"
                          (send type-type readable-name)
-                         (send value-type readable-name))
-               value-type)))
+                         (send value-type readable-name)))))
         ((grace:def-decl name type value)
          (let* ([name-string (grace:identifier-value (syntax->datum name))]
                 [name-type (resolve-identifier name)]
                 [_ (resolve-identifiers value)]
                 [value-type (expression-type value)]
                 [type-type (resolve-identifier type)]
+                ;; TODO: start and end are specific to inference-hook
                 [start (syntax-position (stx))]
                 [end (+ start (string-length "def ") (syntax-span name))])
            (inference-hook start end 
                            name-string type-type value-type 
                            'def)
-           (if (not (conforms-to? value-type type-type))
+           (when (not (conforms-to? value-type type-type))
                (tc-error "initializing def of type ~a with expression of type ~a"
                          (send type-type readable-name)
-                         (send value-type readable-name))
-               value-type)))
+                         (send value-type readable-name)))))
         ((grace:return value)
- ;        (display value)
          (let* ([_ (resolve-identifiers value)]
                 [value-type (expression-type value)])
            (cond 
@@ -355,13 +342,17 @@
                                                          (send value-type readable-name)
                                                          (send (current-return-type) readable-name)))
              ;; types are equal
-             (else value-type))))
+             (else 'success))))
         ;; TODO: index, op, if, while
         (else elt)
         )))
 
+;; Binds identifiers to the type environment for custom types, var, def, method declarations.
+;; Also adds methods to the self object when inside an object declaration.
+;;
+;; Things returned from this function are meaningless. It is evaluated for its side effects.
 (define (maybe-bind-name elt)
-  (display (format "is-object? ~a\n" (is-object?)))
+  ;(display (format "is-object? ~a\n" (is-object?)))
   (if (syntax? elt)
       (parameterize ((stx elt))
         (maybe-bind-name (syntax-e elt)))
@@ -404,16 +395,12 @@
                  (add-method-to-selftype new-method-type)
                  (set-type (grace:identifier-value (unwrap name)) 
                            type-type)))
-              (else elt))))))
+              (else 'success))))))
       ;; TODO: inherits, class, import     
 
-;; Removes all empty statements if (grace:code-seq? code-seq)
-(define (sanitize code-seq)
-  (match code-seq
-    ((grace:code-seq code)
-     (grace:code-seq (filter (lambda (x) (not (list? x))) code)))
-    (_ code-seq)))
-
+;; Typechecks a Grace program. 
+;;
+;; thing is a grace:code-seq.
 (define (typecheck thing)
   (parameterize ([env (make-hash)]
                  [stx thing])
@@ -437,6 +424,20 @@
 
 (define inference-list (list))
 
+;; Adds an entry to a global list of inferenced things. This list is used 
+;; by the inferencing tool.
+;;
+;; Entries are very specific and are lists with these items:
+;;
+;;  start             - char count until the inferenced thing
+;;  end               - char count until where the type annotation should be inserted
+;;  var-name          - the inferenced thing's name (i.e. for var foo -> foo)
+;;  annotation-string - string of annotation to insert
+;;  typedef-string    - string of custom type, if inferencing an object's type
+;;  primitive?        - a boolean indicating whether the thing is an object
+;;  inf-type          - a symbol with additional information, like whether inferencing a var or def
+;;
+;; Alas, these should probably be in a struct or something. 
 (define (inference-hook start end var-name var-type value-type inf-type)
   (define primitive? (not (is-a? value-type grace:type:object%)))
   (define typedef-string (or 
@@ -451,7 +452,8 @@
     (define existing-type
       (findf (lambda (x) (equal? x value-type)) (hash-values (env))))
     (when existing-type
-      (set! typedef-string "")
+      ;; if the type exists, we don't want to insert a typedef, just the type annotation
+      (set! typedef-string "") 
       (set! annotation-string (get-field internal-name existing-type))))
             
   (when (equal? var-type 'missing)
@@ -465,6 +467,7 @@
                                    primitive?
                                    inf-type))))))
 
+;; Filters only primitive inferences
 (define (infer-prims syntax-root)
   (set! inference-list empty)
   (typecheck syntax-root)
@@ -473,6 +476,7 @@
             primitive?) 
           inference-list))
 
+;; Filters object type inferences
 (define (infer-objects syntax-root)
   (set! inference-list empty)
   (typecheck syntax-root)
@@ -481,6 +485,7 @@
             (not primitive?))
           inference-list))
 
+;; Runs the typechecking algorithm and returns the global list of inferenced things
 (define (infer-types syntax-root)
   (set! inference-list empty)
   (typecheck syntax-root)
