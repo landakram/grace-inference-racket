@@ -31,8 +31,7 @@
   (letter (:or (:/ "a" "z") (:/ #\A #\Z) ))
   (digit (:/ #\0 #\9))
   (number (:+ digit))
-  ; TODO: handle punctuation and escaped quotes
-  (string (:: "\"" (:* (:or letter digit whitespace)) "\""))
+  (string (:: "\"" (:* (:or letter digit "\\\"" (intersection punctuation (complement (char-set "\""))) whitespace)) "\""))
   (comment (:: "//" (:* (:or letter digit punctuation my-whitespace))))
   (identifier (:: letter (:* (:or letter digit #\_ #\?))))
   (keyword (:or "object" "method" "var" "type" "import" "class"

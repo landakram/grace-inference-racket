@@ -3,7 +3,8 @@ var a := "foo"
 var c := 5
 var b := 4 + 4 - 10 * 30 / 38 + c
 
-def g = "this is a definition"
+def g = "This is a definition."
+
 
 method foo(s : String) -> Number {
     return 4
