@@ -44,6 +44,7 @@
      ((declaration NEWLINE) $1)
      ((expression NEWLINE) $1)   
      ((return NEWLINE) $1)
+     ((if-then NEWLINE) $1)
      ((any := expression NEWLINE) (at-src (grace:bind $1 $3))))
      
     (return
@@ -168,13 +169,24 @@
           ; block
           ; array
     (identifier ((IDENTIFIER) (at-src (grace:identifier (symbol->string $1) #f))))
-          
+    
+    (if-then ((IF LPAREN expression RPAREN THEN LPAREN if-body RPAREN) (at-src (grace:if-then $3 $7))))
+    
     (object-decl ((OBJECT LBRACE object-body RBRACE) (at-src (grace:object $3)))
                  ((OBJECT LBRACE RBRACE) (at-src (grace:object empty))))
               ;extends, etc.
+    
+    (if-body      
+     ((_code-sequence) $1))
     (object-body      
      ((_code-sequence) $1))
     (possibly-newline
      ((NEWLINE) null)
      (() null))
    )))
+
+
+;To test lexing and parsing without typechecking, copy your program into open-input-string 
+;(define (p in) (parse (object-name in) in))
+;(define a (p (open-input-string "if (true) then (var z := 4 \n)\n")))
+;(display a)

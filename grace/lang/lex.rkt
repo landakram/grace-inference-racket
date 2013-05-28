@@ -3,7 +3,8 @@
          (prefix-in : parser-tools/lex-sre))
 (provide value-tokens op-tokens lex-this simple-grace-lexer)
 
-
+;value-tokens are tokens that contain a value.
+;op-tokens are names of all other tokens (including all keywords
 (define-tokens value-tokens (NUM STRING IDENTIFIER))
 (define-empty-tokens op-tokens (EOF 
                                 + - * / % ^ ++ ! && OR == < > <= >=
@@ -17,7 +18,7 @@
                                 SEMICOLON
                                 NEWLINE
                                 OBJECT METHOD VAR TYPE IMPORT CLASS
-                                RETURN DEF INHERITS IS DIALECT
+                                RETURN DEF INHERITS IS DIALECT IF THEN
                                 UNARY METHODCALL
                                 ))
 
@@ -35,7 +36,7 @@
   (comment (:: "//" (:* (:or letter digit punctuation my-whitespace))))
   (identifier (:: letter (:* (:or letter digit #\_ #\?))))
   (keyword (:or "object" "method" "var" "type" "import" "class"
-                "return" "def" "inherits" "is" "dialect")))
+                "return" "def" "inherits" "is" "dialect" "if" "then")))
 
 (define simple-grace-lexer
   (lexer-src-pos

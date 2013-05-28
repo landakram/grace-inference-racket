@@ -31,6 +31,7 @@
   (method (name signature body type))
   (member (parent name))
   (return (value))
+  (if-then (check body))
   
   (code-seq (code)))
 

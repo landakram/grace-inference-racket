@@ -112,6 +112,13 @@
               (tc-error
                "no such operator ~a in ~a"
                op (send e1-type readable-name))))))
+        ((grace:if-then guard todo)
+         (let* ((guard-type (expression-type guard))
+                (todo-type (expression-type todo)))
+           (if (conforms-to? guard-type (new grace:type:boolean%))
+               (void)
+               (tc-error "if-then takes boolean but got ~a" (send guard-type readable-name)))))
+        
         ((grace:member parent name)
          (let* ((parent-type (expression-type parent))
                 (name-string (unwrap (grace:identifier-value (unwrap name))))
@@ -238,6 +245,9 @@
                 (resolve-identifiers-list (syntax->list args))))
         ((grace:member parent name)
          (begin (resolve-identifiers parent)))
+        ((grace:if-then test body)
+         (begin (resolve-identifiers test)
+                (resolve-identifiers-list (syntax->list body))))
         ;; TODO: array, matchcase, catchase
         
         ((grace:method method-name signature body rtype)
@@ -364,7 +374,11 @@
               ((grace:var-decl name type value)
                (let* ([name-string (grace:identifier-value (syntax->datum name))]
                       [type-type (resolve-identifier type)])
-                 (if (is-object?)
+                 (begin 
+                   (if (equal? type-type 'missing)
+                       (set! type-type (new grace:type:dynamic%))
+                       (void ))
+                   (if (is-object?)
                      (begin (set-type name-string type-type) 
                             (add-method-to-selftype (new grace:type:method%
                                                          [name name-string]
@@ -374,7 +388,7 @@
                                                          [name (format "~a:=" name-string)]
                                                          [signature (list (same-other (resolve-identifier type)))]
                                                          [rtype type-type])))
-                     (set-type name-string type-type))))
+                     (set-type name-string type-type)))))
               ((grace:def-decl name type value)
                (let* ([name-string (grace:identifier-value (syntax->datum name))]
                       [type-type (resolve-identifier type)])
@@ -493,9 +507,10 @@
   
 (provide typecheck infer-types infer-prims infer-objects)
  
-;(define (p in) (parse (object-name in) in))
-;(define a (p (open-input-string "\nvar a := object {\n var a := 4 \n var b := 7 \nmethod bar(s : String) -> Number {\n47 \n}\n}\n")))
-;(define a (p (open-input-string "\nvar a := \"foo\"\n var c := 5\nvar b := 4 + 4 - 10 * 30 / 38 + c\n")))
-;(map (lambda (x) (send x readable-name)) (typecheck a))
 
-;(infer-types a)
+;To test lexing, parsing, and typechecking a program, copy it into open-input-string.
+
+;(define (p in) (parse (object-name in) in))
+;(define a (p (open-input-string "var z := 4 \n var y := z \n")))
+;(map (lambda (x) (send x readable-name)) (typecheck a))
+;(infer-prims a)
