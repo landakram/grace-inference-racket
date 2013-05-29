@@ -123,7 +123,11 @@
          (let* ((parent-type (expression-type parent))
                 (name-string (unwrap (grace:identifier-value (unwrap name))))
                 (member-op (findf 
-                            (lambda (a) (equal? (get-field name a) name-string))
+                            (lambda (a)  (let*
+                                                   ((temp (get-field name a)))
+                                               (begin (if (string? name-string)(set! name-string (string->symbol name-string))(void))
+                                               (if (string? temp)(set! temp (string->symbol temp))(void))
+                                               (print "!!!!!!!!!!!")(print temp) (print name-string)(equal? temp name-string))))
                             (get-field methods parent-type))))
            (if member-op
                (get-field rtype member-op )
@@ -510,7 +514,22 @@
 
 ;To test lexing, parsing, and typechecking a program, copy it into open-input-string.
 
-;(define (p in) (parse (object-name in) in))
-;(define a (p (open-input-string "var z := 4 \n var y := z \n")))
-;(map (lambda (x) (send x readable-name)) (typecheck a))
+(define (p in) (parse (object-name in) in))
+(define a (p (open-input-string "type Object_3 = {\n a() -> Number
+    a:=() -> Number
+    bar() -> Boolean
+    c() -> Boolean
+   c:=() -> Boolean
+}
+
+var d : Object_3 := object {
+    var a : Number := 4
+    method bar() -> Boolean {
+        return true
+    }
+   var c : Boolean := self.bar
+}
+
+")))
+(map (lambda (x) (send x readable-name)) (typecheck a))
 ;(infer-prims a)
