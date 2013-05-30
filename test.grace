@@ -18,4 +18,5 @@ var d : Object_3 := object {
 }
 
 
-var h := d.bar
+var h : Number := 2
+h := d.a
