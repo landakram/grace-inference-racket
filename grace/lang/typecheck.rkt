@@ -72,7 +72,7 @@
          (new grace:type:number%))
         ((grace:str value)
          (new grace:type:string%))
-        ((grace:identifier value type-identifier)
+        ((grace:identifier value type-identifier) ;; PARENT TYPE IS #f AND IT COMES HERE WITH (grace:identifier "x" #f)
        ;  (display "++++\n")
        ;  (display value)
        ;  (display "\n++++\n")
@@ -119,12 +119,12 @@
                (void)
                (tc-error "if-then takes boolean but got ~a" (send guard-type readable-name)))))
         
-        ((grace:member parent name)
-         (let* ((parent-type (expression-type parent))
+        ((grace:member parent name) ;; PARENT IS (grace:identifier "x" #f)
+         (let* ((parent-type (expression-type parent)) ;; PARENT-TYPE IS #f @@@@@@
                 (name-string (unwrap (grace:identifier-value (unwrap name))))
                 (member-op (findf 
                             (lambda (a) (equal? (get-field name a) name-string))
-                            (get-field methods parent-type))))
+                            (get-field methods parent-type)))) ;; THIS IS WHERE THE PROGRAM BREAKS @@@@@
            (if member-op
                (get-field rtype member-op )
               ; member-op
@@ -177,7 +177,7 @@
                 [internal-name (format "Object_~a" (syntax-position (stx)))]
                 )))
         
-        (else (new grace:type:dynamic%)))))
+        (else (new grace:type:dynamic%))))) ; TODO MIGHT HAVE TO IMPLEMENT ADDING FIELDS FOR DYNAMIC CLASS HERE
   
 (define (body-stmt-to-method-type body-stmt method-type-list)
   (if (syntax? body-stmt)
@@ -219,9 +219,9 @@
 ;; (grace:identifier) -> (grace:type:...%)
 (define (resolve-identifier ident)
   (displayln ident)
-  (if (false? (unwrap ident))
+  (if (false? (unwrap ident)) ;; UNWRAP DOES SYNTAX->DATUM @@@@@
       'missing
-      (get-type (grace:identifier-value (unwrap ident)))))
+      (get-type (grace:identifier-value (unwrap ident))))) ;; GET-TYPE SAYS IDENTIFIER DOES NOT EXIST @@@@@
 
 ;; Ensures that identifiers are present in the type environment, and are used
 ;; consistently.
@@ -367,7 +367,7 @@
       (parameterize ((stx elt))
         (maybe-bind-name (syntax-e elt)))
       (cond
-           ((is-a? (unwrap elt) grace:type:object%) 
+           ((is-a? (unwrap elt) grace:type:object%) ;; TODO MIGHT HAVE TO MOVE THIS TO EXPRESSION-TYPE
             (set-type (get-field internal-name (unwrap elt)) (unwrap elt)))
            (else 
             (match elt
@@ -376,19 +376,20 @@
                       [type-type (resolve-identifier type)])
                  (begin 
                    (if (equal? type-type 'missing)
-                       (set! type-type (new grace:type:dynamic%))
-                       (void ))
-                   (if (is-object?)
-                     (begin (set-type name-string type-type) 
-                            (add-method-to-selftype (new grace:type:method%
-                                                         [name name-string]
-                                                         [signature (list)]
-                                                         [rtype type-type]))
-                            (add-method-to-selftype (new grace:type:method%
-                                                         [name (format "~a:=" name-string)]
-                                                         [signature (list (same-other (resolve-identifier type)))]
-                                                         [rtype type-type])))
-                     (set-type name-string type-type)))))
+                       (let* ([obj-methods (if (is-a? (unwrap value) grace:type:object%) (get-field methods value) '())])
+                         (set! type-type (new grace:type:dynamic% [methods obj-methods])))
+                       (void)))))
+;                   (if (is-object?)
+;                     (begin (set-type name-string type-type) 
+;                            (add-method-to-selftype (new grace:type:method%
+;                                                         [name name-string]
+;                                                         [signature (list)]
+;                                                         [rtype type-type]))
+;                            (add-method-to-selftype (new grace:type:method%
+;                                                         [name (format "~a:=" name-string)]
+;                                                         [signature (list (same-other (resolve-identifier type)))]
+;                                                         [rtype type-type])))
+;                     (set-type name-string type-type)))))
               ((grace:def-decl name type value)
                (let* ([name-string (grace:identifier-value (syntax->datum name))]
                       [type-type (resolve-identifier type)])
@@ -406,7 +407,7 @@
                                             (name method-name)
                                             (signature (syntax->datum signature))
                                             (rtype type-type))])
-                 (add-method-to-selftype new-method-type)
+                 (add-method-to-selftype new-method-type) ;; METHOD IS ADDED TO TYPE 
                  (set-type (grace:identifier-value (unwrap name)) 
                            type-type)))
               (else 'success))))))
@@ -510,7 +511,16 @@
 
 ;To test lexing, parsing, and typechecking a program, copy it into open-input-string.
 
-;(define (p in) (parse (object-name in) in))
-;(define a (p (open-input-string "var z := 4 \n var y := z \n")))
+(define (p in) (parse (object-name in) in))
+(define a (p (open-input-string "
+var x := object {
+                 method foo () -> String {
+                                          \"bar\"
+                                          }
+}
+
+x.foo
+")))
+(typecheck a)
 ;(map (lambda (x) (send x readable-name)) (typecheck a))
 ;(infer-prims a)
