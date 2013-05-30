@@ -18,4 +18,4 @@ var d : Object_3 := object {
 }
 
 
-var h := d
+var h := d.bar

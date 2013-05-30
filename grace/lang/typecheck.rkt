@@ -124,10 +124,9 @@
                 (name-string (unwrap (grace:identifier-value (unwrap name))))
                 (member-op (findf 
                             (lambda (a)  (let*
-                                                   ((temp (get-field name a)))
-                                               (begin (if (string? name-string)(set! name-string (string->symbol name-string))(void))
-                                               (if (string? temp)(set! temp (string->symbol temp))(void))
-                                               (print "!!!!!!!!!!!")(print temp) (print name-string)(equal? temp name-string))))
+                                                  ((temp (get-field name a)))
+                                            (if (symbol? temp)(set! temp (symbol->string temp))(void))
+                                           (equal? temp name-string)))
                             (get-field methods parent-type))))
            (if member-op
                (get-field rtype member-op )
@@ -317,10 +316,16 @@
                 [name-type (resolve-identifier (unwrap name))]
                 [_ (resolve-identifiers value)]
                 [value-type (expression-type (unwrap value))]
+                [debug-check (unwrap value)]
                 [type-type (resolve-identifier (unwrap type))]
                 ;; TODO: start and end are specific to inference-hook
                 [start (syntax-position (stx))]
                 [end (+ start (string-length "var ") (syntax-span name))])
+           (print "*****\n****")(match value-type
+                                  ((grace:identifier str bool)
+                                  (set! value-type (get-type str)))
+                                  (else (print "nothing to do")))
+                                  
            (inference-hook start end 
                            name-string type-type value-type
                            'var)
@@ -514,22 +519,10 @@
 
 ;To test lexing, parsing, and typechecking a program, copy it into open-input-string.
 
-(define (p in) (parse (object-name in) in))
-(define a (p (open-input-string "type Object_3 = {\n a() -> Number
-    a:=() -> Number
-    bar() -> Boolean
-    c() -> Boolean
-   c:=() -> Boolean
-}
-
-var d : Object_3 := object {
-    var a : Number := 4
-    method bar() -> Boolean {
-        return true
-    }
-   var c : Boolean := self.bar
-}
-
-")))
-(map (lambda (x) (send x readable-name)) (typecheck a))
+;(define (p in) (parse (object-name in) in))
+;(define a (p (open-input-string "
+;")))
+;(write (syntax->datum a))
+;(typecheck a)
+;(map (lambda (x) (send x readable-name)) (typecheck a))
 ;(infer-prims a)
