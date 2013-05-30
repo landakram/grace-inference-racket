@@ -33,7 +33,7 @@
   (digit (:/ #\0 #\9))
   (number (:+ digit))
   (string (:: "\"" (:* (:or letter digit "\\\"" (intersection punctuation (complement (char-set "\""))) whitespace)) "\""))
-  (comment (:: "//" (:* (:or letter digit punctuation my-whitespace))))
+  (comment (:: "//" (:* (:or letter digit punctuation (char-set "+-/*%><=") my-whitespace))))
   (identifier (:: letter (:* (:or letter digit #\_ #\?))))
   (keyword (:or "object" "method" "var" "type" "import" "class"
                 "return" "def" "inherits" "is" "dialect" "if" "then")))

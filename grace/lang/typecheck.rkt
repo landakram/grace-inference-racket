@@ -3,9 +3,9 @@
 (require "ast.rkt"
          "parse.rkt")
 
-;; Gets a type from identifier-env. If the identifier is 
+;; Gets a type from identifier-env. If the identifier is
 ;; not present, returns false.
-(define (get-type k) 
+(define (get-type k)
   (hash-ref (env) k #f))
 
 ;; Sets a type for a given identifier
@@ -17,14 +17,14 @@
 (define is-object? (make-parameter #f))
 (define current-return-type (make-parameter #f))
 
-(define (tc-error msg . rest) 
+(define (tc-error msg . rest)
   (raise-syntax-error 'typecheck (apply format msg rest) (stx)))
 
-(define (add-method-to-selftype method) 
+(define (add-method-to-selftype method)
   (set-field! methods (selftype) (cons method (get-field methods (selftype)))))
 
 (define (conforms-to? conforming-type type)
-  (cond 
+  (cond
     ((equal? type (new grace:type:dynamic%)) #t)
     ((equal? type 'missing) #t)
     ((equal? conforming-type (new grace:type:dynamic%)) #t)
@@ -39,16 +39,16 @@
     (map expression-type lst)))
 
 (define (find-method-in name parent)
-  (findf 
+  (findf
    (lambda (a) (equal? (get-field name a) name))
-   (get-field methods (resolve-identifier parent))))  
+   (get-field methods (resolve-identifier parent))))
 
 (define (insert-implicit-self method-name)
   (if (grace:member? method-name)
       method-name
-      (grace:member (grace:identifier 
+      (grace:member (grace:identifier
                      (datum->syntax (stx) "self" (stx))
-                     #f) 
+                     #f)
                     method-name)))
 
 (define (unwrap-list possible-stx-obj)
@@ -65,7 +65,7 @@
        ; (display "\n\n")
 ;        (display (format "expression-type: ~a \n" elt))
         (expression-type (syntax-e elt)))
-      
+
       (match elt
         ((grace:number value)
          ;(display "number\n")
@@ -81,16 +81,16 @@
          (let* ((e1-type (expression-type e1))
                 (e2-type (expression-type e2))
                 (op (unwrap op))
-                (member-op (findf 
+                (member-op (findf
                             (lambda (a) (equal? (get-field name a) op))
                             (or (and (object? e1-type) (get-field methods e1-type))
                                  empty)
                             )))
-           (cond 
+           (cond
              (member-op
               (let ((param-type
-                     (get-type (grace:identifier-value 
-                                (grace:identifier-type 
+                     (get-type (grace:identifier-value
+                                (grace:identifier-type
                                  (car (get-field signature member-op)))))))
                 ;    (display param-type)
                 ;    (display "\n")
@@ -100,7 +100,7 @@
                 ;         (display e2)
                 (if (conforms-to? e2-type param-type)
                     (get-type (grace:identifier-value (get-field rtype member-op)))
-                    
+
                     (tc-error
                      "~a takes ~a but got ~a"
                      op
@@ -118,23 +118,26 @@
            (if (conforms-to? guard-type (new grace:type:boolean%))
                (void)
                (tc-error "if-then takes boolean but got ~a" (send guard-type readable-name)))))
-        
+
         ((grace:member parent name) ;; PARENT IS (grace:identifier "x" #f)
          (let* ((parent-type (expression-type parent)) ;; PARENT-TYPE IS #f @@@@@@
                 (name-string (unwrap (grace:identifier-value (unwrap name))))
-                (member-op (findf 
-                            (lambda (a) (equal? (get-field name a) name-string))
+                (member-op (findf
+                            (lambda (a) (let*
+                                            ((temp (get-field name a)))
+                                          (if (symbol? temp)(set! temp (symbol->string temp))(void))
+                                          (equal? temp name-string)))
                             (get-field methods parent-type)))) ;; THIS IS WHERE THE PROGRAM BREAKS @@@@@
            (if member-op
                (get-field rtype member-op )
-              ; member-op
-              ; (if (empty? (get-field signature member-op))
-              ;     (get-type (grace:identifier-value (get-field rtype member-op)))
-              ;     (tc-error
-              ;     "method ~a in ~a requires ~a arguments, not 0"
-              ;      (send member-op readable-name)
-              ;      (send parent-type readable-name)
-              ;      (length (get-field signature member-op))))
+               ; member-op
+               ; (if (empty? (get-field signature member-op))
+               ;     (get-type (grace:identifier-value (get-field rtype member-op)))
+               ;     (tc-error
+               ;     "method ~a in ~a requires ~a arguments, not 0"
+               ;      (send member-op readable-name)
+               ;      (send parent-type readable-name)
+               ;      (length (get-field signature member-op))))
                (tc-error
                 "no such method ~a in ~a"
                 name-string
@@ -144,7 +147,7 @@
                 (method-rtype (expression-type name))
                 (parent-type (expression-type (grace:member-parent name)))
                 (name-string (unwrap (grace:identifier-value (unwrap (grace:member-name name)))))
-                (member-op (findf 
+                (member-op (findf
                             (lambda (a) (equal? (get-field name a) name-string))
                             (get-field methods parent-type)))
                 (args (unwrap-list args))
@@ -156,51 +159,51 @@
                          (length params)
                          (length args))
                (begin (map (lambda (arg param)
-                      (let* ((param-type (get-type (grace:identifier-value 
-                                                    (grace:identifier-type 
-                                                     param))))
-                             (arg-type (expression-type arg)))
-                        (if (conforms-to? param-type arg-type)
-                            param-type
-                            (tc-error
-                             "argument in ~a must be of type ~a, given ~a"
-                             name-string
-                             (send param-type readable-name)
-                             (send arg-type readable-name)))))
-                    args
-                    params)
-               method-rtype))))
+                             (let* ((param-type (get-type (grace:identifier-value
+                                                           (grace:identifier-type
+                                                            param))))
+                                    (arg-type (expression-type arg)))
+                               (if (conforms-to? param-type arg-type)
+                                   param-type
+                                   (tc-error
+                                    "argument in ~a must be of type ~a, given ~a"
+                                    name-string
+                                    (send param-type readable-name)
+                                    (send arg-type readable-name)))))
+                           args
+                           params)
+                      method-rtype))))
         ((grace:object body)
          (let* ((inner-methods (foldl body-stmt-to-method-type (list) (unwrap-list body))))
-           (new grace:type:object% 
+           (new grace:type:object%
                 [methods inner-methods]
                 [internal-name (format "Object_~a" (syntax-position (stx)))]
                 )))
         
         (else (new grace:type:dynamic%))))) ; TODO MIGHT HAVE TO IMPLEMENT ADDING FIELDS FOR DYNAMIC CLASS HERE
-  
+
 (define (body-stmt-to-method-type body-stmt method-type-list)
   (if (syntax? body-stmt)
       (parameterize ((stx body-stmt))
         (body-stmt-to-method-type (syntax-e body-stmt) method-type-list))
       
       
-      (match body-stmt 
+      (match body-stmt
         ((grace:def-decl name type value)
-         (append method-type-list 
-                 (list 
-                  (new grace:type:method% 
+         (append method-type-list
+                 (list
+                  (new grace:type:method%
                        [name (string->symbol name)]
                        [signature (list)]
                        [rtype (resolve-identifier type)]))))
         ((grace:var-decl name type value)
-         (append method-type-list 
-                 (list 
-                  (new grace:type:method% 
-                       [name (string->symbol (grace:identifier-value (unwrap name)))] 
-                       [signature (list)] 
+         (append method-type-list
+                 (list
+                  (new grace:type:method%
+                       [name (string->symbol (grace:identifier-value (unwrap name)))]
+                       [signature (list)]
                        [rtype (resolve-identifier type)])
-                  (new grace:type:method% 
+                  (new grace:type:method%
                        [name (string->symbol (format "~a:=" (grace:identifier-value (unwrap name))))]
                        [signature (list (same-other (resolve-identifier type)))]
                        [rtype (resolve-identifier type)]))))
@@ -226,14 +229,14 @@
 ;; Ensures that identifiers are present in the type environment, and are used
 ;; consistently.
 ;;
-;; Things returned from this function are meaningless. It is evaluated for its 
-;; side effects, which are to throw type errors if types are inconsistent or 
+;; Things returned from this function are meaningless. It is evaluated for its
+;; side effects, which are to throw type errors if types are inconsistent or
 ;; to add things to the type environment.
 (define (resolve-identifiers elt)
   (if (syntax? elt)
       (parameterize ((stx elt))
         (resolve-identifiers (syntax-e elt)))
-      
+
       (match elt
         ((grace:identifier value type-identifier)
          (resolve-identifier (grace:identifier value type-identifier)))
@@ -249,19 +252,19 @@
          (begin (resolve-identifiers test)
                 (resolve-identifiers-list (syntax->list body))))
         ;; TODO: array, matchcase, catchase
-        
+
         ((grace:method method-name signature body rtype)
          (parameterize ((env (hash-copy (env))))
            (for ([param (syntax->list signature)])
              (resolve-identifier param)
-             (set-type (grace:identifier-value (syntax->datum param)) 
+             (set-type (grace:identifier-value (syntax->datum param))
                        (resolve-identifier (grace:identifier-type (syntax->datum param)))))
-           
+
            (parameterize ((current-return-type (resolve-identifier rtype)))
              ;; TODO: consideration for returning objects or self out of method
              (when (false? (current-return-type))
                  (tc-error "return type of method not defined as a type"))
-                 
+
              (let* ([body-stmt-types (resolve-identifiers-list (syntax->list body))]
                     [last-statement (last (syntax->datum body))]
                     [real-type (expression-type last-statement)])
@@ -277,7 +280,7 @@
                          [is-object? #t])
            (set-type "self" (selftype))
            (resolve-identifiers-list (syntax->list body))))
-        
+
         ((grace:bind name value)
          (resolve-identifiers value)
          (let* ([name-type (expression-type name)]
@@ -295,8 +298,8 @@
                   (else 'success))))
              ((grace:member? (unwrap name))
               ;(display (format "selftype methods: ~a\n" (map (lambda (x) (get-field name x)) (get-field methods (selftype)))))
-              (let* ([member-op 
-                      (find-method-in 
+              (let* ([member-op
+                      (find-method-in
                        (format "~a:=" (grace:identifier-value (grace:member-name (unwrap name))) )
                        (grace:member-parent (unwrap name)))])
                 (if member-op ;; ensures that we are working on a mutable var
@@ -306,21 +309,27 @@
                                 (send name-type readable-name)))
                     (tc-error "no such member"))))
              (else 'success))))
-        ((grace:var-decl name type value) 
+        ((grace:var-decl name type value)
     ;     (display (env))
     ;     (display (format "------> var-decl ~a ~a ~a" name type value))
          (let* ([name-string (grace:identifier-value (unwrap name))]
                 [name-type (resolve-identifier (unwrap name))]
                 [_ (resolve-identifiers value)]
                 [value-type (expression-type (unwrap value))]
+                [debug-check (unwrap value)]
                 [type-type (resolve-identifier (unwrap type))]
                 ;; TODO: start and end are specific to inference-hook
                 [start (syntax-position (stx))]
                 [end (+ start (string-length "var ") (syntax-span name))])
-           (inference-hook start end 
+           (print "*****\n****")(match value-type
+                                  ((grace:identifier str bool)
+                                  (set! value-type (get-type str)))
+                                  (else (print "nothing to do")))
+
+           (inference-hook start end
                            name-string type-type value-type
                            'var)
-           
+
            (when (not (conforms-to? value-type type-type))
                (tc-error "initializing var of type ~a with expression of type ~a"
                          (send type-type readable-name)
@@ -334,8 +343,8 @@
                 ;; TODO: start and end are specific to inference-hook
                 [start (syntax-position (stx))]
                 [end (+ start (string-length "def ") (syntax-span name))])
-           (inference-hook start end 
-                           name-string type-type value-type 
+           (inference-hook start end
+                           name-string type-type value-type
                            'def)
            (when (not (conforms-to? value-type type-type))
                (tc-error "initializing def of type ~a with expression of type ~a"
@@ -344,7 +353,7 @@
         ((grace:return value)
          (let* ([_ (resolve-identifiers value)]
                 [value-type (expression-type value)])
-           (cond 
+           (cond
              ((false? (current-return-type)) (tc-error
                                               "return statement with no surrounding method"))
              ((not (conforms-to? value-type (current-return-type))) (tc-error
@@ -369,18 +378,18 @@
       (cond
            ((is-a? (unwrap elt) grace:type:object%) ;; TODO MIGHT HAVE TO MOVE THIS TO EXPRESSION-TYPE
             (set-type (get-field internal-name (unwrap elt)) (unwrap elt)))
-           (else 
+           (else
             (match elt
               ((grace:var-decl name type value)
                (let* ([name-string (grace:identifier-value (syntax->datum name))]
                       [type-type (resolve-identifier type)])
-                 (begin 
+                 (begin
                    (if (equal? type-type 'missing)
                        (let* ([obj-methods (if (is-a? (unwrap value) grace:type:object%) (get-field methods value) '())])
                          (set! type-type (new grace:type:dynamic% [methods obj-methods])))
                        (void)))))
 ;                   (if (is-object?)
-;                     (begin (set-type name-string type-type) 
+;                     (begin (set-type name-string type-type)
 ;                            (add-method-to-selftype (new grace:type:method%
 ;                                                         [name name-string]
 ;                                                         [signature (list)]
@@ -394,7 +403,7 @@
                (let* ([name-string (grace:identifier-value (syntax->datum name))]
                       [type-type (resolve-identifier type)])
                  (if (is-object?)
-                     (begin (set-type name-string type-type) 
+                     (begin (set-type name-string type-type)
                             (add-method-to-selftype (new grace:type:method%
                                                          [name name-string]
                                                          [signature (list type-type)]
@@ -403,17 +412,17 @@
               ((grace:method name signature body rtype)
                (let* ([type-type (resolve-identifier rtype)]
                       [method-name (grace:identifier-value (syntax->datum name))]
-                      [new-method-type (new grace:type:method% 
+                      [new-method-type (new grace:type:method%
                                             (name method-name)
                                             (signature (syntax->datum signature))
                                             (rtype type-type))])
-                 (add-method-to-selftype new-method-type) ;; METHOD IS ADDED TO TYPE 
-                 (set-type (grace:identifier-value (unwrap name)) 
+                 (add-method-to-selftype new-method-type) ;; METHOD IS ADDED TO TYPE
+                 (set-type (grace:identifier-value (unwrap name))
                            type-type)))
               (else 'success))))))
-      ;; TODO: inherits, class, import     
+      ;; TODO: inherits, class, import
 
-;; Typechecks a Grace program. 
+;; Typechecks a Grace program.
 ;;
 ;; thing is a grace:code-seq.
 (define (typecheck thing)
@@ -426,20 +435,20 @@
     (set-type "Dynamic" (new grace:type:dynamic%))
     (set-type "Void" (new grace:type:void%))
     (set-type "Done" (new grace:type:done%))
-    
+
     (set-type "Object" (new grace:type:object% [internal-name "Object"]))
-    
+
     (set-type "true" (new grace:type:boolean%))
     (set-type "false" (new grace:type:boolean%))
-    
+
     (set-type "self" (selftype))
-    
-    (resolve-identifiers-list 
+
+    (resolve-identifiers-list
      (syntax->list (grace:code-seq-code (syntax-e thing))))))
 
 (define inference-list (list))
 
-;; Adds an entry to a global list of inferenced things. This list is used 
+;; Adds an entry to a global list of inferenced things. This list is used
 ;; by the inferencing tool.
 ;;
 ;; Entries are very specific and are lists with these items:
@@ -452,31 +461,31 @@
 ;;  primitive?        - a boolean indicating whether the thing is an object
 ;;  inf-type          - a symbol with additional information, like whether inferencing a var or def
 ;;
-;; Alas, these should probably be in a struct or something. 
+;; Alas, these should probably be in a struct or something.
 (define (inference-hook start end var-name var-type value-type inf-type)
   (define primitive? (not (is-a? value-type grace:type:object%)))
-  (define typedef-string (or 
+  (define typedef-string (or
                           (and primitive? 'prim)
                           (format "~a\n" (send value-type readable-name))))
-  (define annotation-string (or 
+  (define annotation-string (or
                              (and primitive? (send value-type readable-name))
                              (get-field internal-name value-type)))
-  
+
   (when (not primitive?)
     ; Search through existing types to see if we can find a match
     (define existing-type
       (findf (lambda (x) (equal? x value-type)) (hash-values (env))))
     (when existing-type
       ;; if the type exists, we don't want to insert a typedef, just the type annotation
-      (set! typedef-string "") 
+      (set! typedef-string "")
       (set! annotation-string (get-field internal-name existing-type))))
-            
+
   (when (equal? var-type 'missing)
     (set! inference-list (append inference-list
                                  (list
-                                  (list 
+                                  (list
                                    start end
-                                   var-name 
+                                   var-name
                                    annotation-string
                                    typedef-string
                                    primitive?
@@ -488,7 +497,7 @@
   (typecheck syntax-root)
   (filter (lambda (x)
             (match-define (list start end var-name type-name type-def primitive? inf-type) x)
-            primitive?) 
+            primitive?)
           inference-list))
 
 ;; Filters object type inferences
@@ -505,9 +514,9 @@
   (set! inference-list empty)
   (typecheck syntax-root)
   inference-list)
-  
+
 (provide typecheck infer-types infer-prims infer-objects)
- 
+
 
 ;To test lexing, parsing, and typechecking a program, copy it into open-input-string.
 
