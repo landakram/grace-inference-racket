@@ -15,8 +15,11 @@ var d : Object_3 := object {
         4
     }
     var c : Number := self.bar
+    self.c:= 3
 }
 
-var h := d.bar
+var y := 3
+var z := y + 4
+
 
 
