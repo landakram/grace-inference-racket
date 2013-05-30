@@ -321,10 +321,10 @@
                 ;; TODO: start and end are specific to inference-hook
                 [start (syntax-position (stx))]
                 [end (+ start (string-length "var ") (syntax-span name))])
-           (print "*****\n****")(match value-type
-                                  ((grace:identifier str bool)
-                                  (set! value-type (get-type str)))
-                                  (else (print "nothing to do")))
+           (match value-type
+             ((grace:identifier str bool)
+              (set! value-type (get-type str)))
+             (else (void)))
                                   
            (inference-hook start end 
                            name-string type-type value-type
