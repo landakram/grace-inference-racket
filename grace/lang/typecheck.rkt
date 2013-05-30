@@ -60,6 +60,11 @@
       (syntax->list possible-stx-obj)
       possible-stx-obj))
 
+;Expression-type-helper usually gives type of expression properly.  Occasionally
+;;instead of giving the desired type "grace:type:..."  it gave 
+;; (grace:identifier "Number" #f) or something similar.  This checks if we got 
+;; an identifier, it searches for that string, and returns the proper type
+;; with all associated methods.
 (define (expression-type elt)
   (let* ((first-type (expression-type-helper elt))) 
     (match first-type
@@ -542,7 +547,7 @@ var d : Object_3 := object {
 }
 
 var h:= 4
-d.c:=2
+d.c := 2
 ")))
 ;(write (syntax->datum a))
 ;(typecheck a)
