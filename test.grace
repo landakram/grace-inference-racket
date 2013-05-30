@@ -11,11 +11,12 @@ type Object_3 = {
 
 var d : Object_3 := object {
     var a : Number := 4
-    method bar() -> Number {
+    method bar()-> Number {
         4
     }
     var c : Number := self.bar
 }
 
-
 var h := d.bar
+
+

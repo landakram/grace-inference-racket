@@ -36,12 +36,16 @@
   (parameterize ((env (hash-copy (env))))
     (map maybe-bind-name lst)
     (map resolve-identifiers lst)
-    (map expression-type lst)))
+    (map expression-type lst)
+ ))
 
 (define (find-method-in name parent)
   (findf
-   (lambda (a) (equal? (get-field name a) name))
-   (get-field methods (resolve-identifier parent))))
+   (lambda (a) (let*
+                   ((temp (get-field name a)))
+                  (if (symbol? temp)(set! temp (symbol->string temp))(void))
+                  (equal? temp name)))
+  (get-field methods (resolve-identifier parent))))
 
 (define (insert-implicit-self method-name)
   (if (grace:member? method-name)
@@ -56,16 +60,22 @@
       (syntax->list possible-stx-obj)
       possible-stx-obj))
 
+(define (expression-type elt)
+  (let* ((first-type (expression-type-helper elt)))
+    (match first-type
+      ((grace:identifier str bool)
+       (get-type str))
+    (else first-type))))
+
 ;; Returns the actual type of a grace expression, or Dynamic for everything else
 ;; grace-struct -> (grace:type:....%) or (grace:type:dynamic%)
-(define (expression-type elt)
+(define (expression-type-helper elt)
   (if (syntax? elt)
       (parameterize ((stx elt))
        ; (display elt)
        ; (display "\n\n")
 ;        (display (format "expression-type: ~a \n" elt))
-        (expression-type (syntax-e elt)))
-
+        (expression-type-helper (syntax-e elt)))
       (match elt
         ((grace:number value)
          ;(display "number\n")
@@ -122,22 +132,18 @@
         ((grace:member parent name) ;; PARENT IS (grace:identifier "x" #f)
          (let* ((parent-type (expression-type parent)) ;; PARENT-TYPE IS #f @@@@@@
                 (name-string (unwrap (grace:identifier-value (unwrap name))))
-                (member-op (findf
-                            (lambda (a) (let*
-                                            ((temp (get-field name a)))
-                                          (if (symbol? temp)(set! temp (symbol->string temp))(void))
-                                          (equal? temp name-string)))
-                            (get-field methods parent-type)))) ;; THIS IS WHERE THE PROGRAM BREAKS @@@@@
+                (member-op
+                 (find-method-in name-string parent)))
            (if member-op
-               (get-field rtype member-op )
-               ; member-op
-               ; (if (empty? (get-field signature member-op))
-               ;     (get-type (grace:identifier-value (get-field rtype member-op)))
-               ;     (tc-error
-               ;     "method ~a in ~a requires ~a arguments, not 0"
-               ;      (send member-op readable-name)
-               ;      (send parent-type readable-name)
-               ;      (length (get-field signature member-op))))
+               (get-field rtype member-op)
+              ; member-op
+              ; (if (empty? (get-field signature member-op))
+              ;     (get-type (grace:identifier-value (get-field rtype member-op)))
+              ;     (tc-error
+              ;     "method ~a in ~a requires ~a arguments, not 0"
+              ;      (send member-op readable-name)
+              ;      (send parent-type readable-name)
+              ;      (length (get-field signature member-op))))
                (tc-error
                 "no such method ~a in ~a"
                 name-string
@@ -179,15 +185,15 @@
                 [methods inner-methods]
                 [internal-name (format "Object_~a" (syntax-position (stx)))]
                 )))
-        
+
         (else (new grace:type:dynamic%))))) ; TODO MIGHT HAVE TO IMPLEMENT ADDING FIELDS FOR DYNAMIC CLASS HERE
 
 (define (body-stmt-to-method-type body-stmt method-type-list)
   (if (syntax? body-stmt)
       (parameterize ((stx body-stmt))
         (body-stmt-to-method-type (syntax-e body-stmt) method-type-list))
-      
-      
+
+
       (match body-stmt
         ((grace:def-decl name type value)
          (append method-type-list
@@ -297,6 +303,8 @@
                                                                        (send name-type readable-name)))
                   (else 'success))))
              ((grace:member? (unwrap name))
+              (display "here")
+              (displayln (unwrap name))
               ;(display (format "selftype methods: ~a\n" (map (lambda (x) (get-field name x)) (get-field methods (selftype)))))
               (let* ([member-op
                       (find-method-in
@@ -316,16 +324,10 @@
                 [name-type (resolve-identifier (unwrap name))]
                 [_ (resolve-identifiers value)]
                 [value-type (expression-type (unwrap value))]
-                [debug-check (unwrap value)]
                 [type-type (resolve-identifier (unwrap type))]
                 ;; TODO: start and end are specific to inference-hook
                 [start (syntax-position (stx))]
                 [end (+ start (string-length "var ") (syntax-span name))])
-           (print "*****\n****")(match value-type
-                                  ((grace:identifier str bool)
-                                  (set! value-type (get-type str)))
-                                  (else (print "nothing to do")))
-
            (inference-hook start end
                            name-string type-type value-type
                            'var)
@@ -522,14 +524,27 @@
 
 (define (p in) (parse (object-name in) in))
 (define a (p (open-input-string "
-var x := object {
-                 method foo () -> String {
-                                          \"bar\"
-                                          }
+type Object_3 = {
+    a() -> Number
+    a:=() -> Number
+    bar() -> Number
+    c() -> Number
+    c:=() -> Number
 }
 
-x.foo
+var d : Object_3 := object {
+    var a : Number := 4
+    method bar()-> Number {
+        4
+    }
+    var c : Number := self.bar
+    self.c:= 3
+}
+
+var h:= 4
+d.c:=2
 ")))
-(typecheck a)
-;(map (lambda (x) (send x readable-name)) (typecheck a))
+;(write (syntax->datum a))
+;(typecheck a)
+(map (lambda (x) (send x readable-name)) (typecheck a))
 ;(infer-prims a)
