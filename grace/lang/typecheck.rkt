@@ -41,8 +41,11 @@
 
 (define (find-method-in name parent)
   (findf 
-   (lambda (a) (equal? (get-field name a) name))
-   (get-field methods (resolve-identifier parent))))  
+   (lambda (a) (let*
+                   ((temp (get-field name a)))
+                  (if (symbol? temp)(set! temp (symbol->string temp))(void))
+                  (equal? temp name)))
+  (get-field methods (resolve-identifier parent)))) 
 
 (define (insert-implicit-self method-name)
   (if (grace:member? method-name)
@@ -61,7 +64,6 @@
   (let* ((first-type (expression-type-helper elt))) 
     (match first-type
       ((grace:identifier str bool)
-       (print "oOoOoO") (print str)
        (get-type str))
     (else first-type))))
 
@@ -131,14 +133,10 @@
         ((grace:member parent name)
          (let* ((parent-type (expression-type parent))
                 (name-string (unwrap (grace:identifier-value (unwrap name))))
-                (member-op (findf 
-                            (lambda (a)  (let*
-                                                  ((temp (get-field name a)))
-                                            (if (symbol? temp)(set! temp (symbol->string temp))(void))
-                                           (equal? temp name-string)))
-                            (get-field methods parent-type))))
+                (member-op
+                 (find-method-in name-string parent)))
            (if member-op
-               (get-field rtype member-op )
+               (get-field rtype member-op)
               ; member-op
               ; (if (empty? (get-field signature member-op))
               ;     (get-type (grace:identifier-value (get-field rtype member-op)))
@@ -306,6 +304,8 @@
                                                                        (send name-type readable-name)))
                   (else 'success))))
              ((grace:member? (unwrap name))
+              (display "here")
+              (displayln (unwrap name))
               ;(display (format "selftype methods: ~a\n" (map (lambda (x) (get-field name x)) (get-field methods (selftype)))))
               (let* ([member-op 
                       (find-method-in 
@@ -329,10 +329,6 @@
                 ;; TODO: start and end are specific to inference-hook
                 [start (syntax-position (stx))]
                 [end (+ start (string-length "var ") (syntax-span name))])
-           (match value-type
-             ((grace:identifier str bool)
-              (set! value-type (get-type str)))
-             (else (void)))
            (inference-hook start end 
                            name-string type-type value-type
                            'var)
@@ -350,10 +346,6 @@
                 ;; TODO: start and end are specific to inference-hook
                 [start (syntax-position (stx))]
                 [end (+ start (string-length "def ") (syntax-span name))])
-           (match value-type
-             ((grace:identifier str bool)
-              (set! value-type (get-type str)))
-             (else (void)))
            (inference-hook start end 
                            name-string type-type value-type 
                            'def)
@@ -532,7 +524,6 @@
 
 (define (p in) (parse (object-name in) in))
 (define a (p (open-input-string "
-var z := 2
 type Object_3 = {
     a() -> Number
     a:=() -> Number
@@ -543,17 +534,17 @@ type Object_3 = {
 
 var d : Object_3 := object {
     var a : Number := 4
-    method bar() -> Number {
+    method bar()-> Number {
         4
     }
     var c : Number := self.bar
+    self.c:= 3
 }
 
-
-var h := 2
-h := d.a
+var h:= 4
+d.c:=2
 ")))
 ;(write (syntax->datum a))
 ;(typecheck a)
-;(map (lambda (x) (send x readable-name)) (typecheck a))
+(map (lambda (x) (send x readable-name)) (typecheck a))
 ;(infer-prims a)
