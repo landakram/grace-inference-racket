@@ -194,8 +194,6 @@
   (class* grace:type% ()
     (super-new)
     (inherit-field methods)
-    (set-field!
-      methods this number-methods)
     (define/override (readable-name)
       "Dynamic")))
 

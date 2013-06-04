@@ -1,6 +1,5 @@
 #lang grace
 
-
 type Object_3 = {
     a() -> Number
     a:=() -> Number
@@ -9,7 +8,7 @@ type Object_3 = {
     c:=() -> Number
 }
 
-var d : Object_3 := object {
+var d := object {
     var a : Number := 4
     method bar()-> Number {
         4
@@ -18,8 +17,7 @@ var d : Object_3 := object {
     self.c:= 3
 }
 
-var y := 3
-var z := y + 4
+var h:= d
+var z := d.c
 
-
-
+d+4
