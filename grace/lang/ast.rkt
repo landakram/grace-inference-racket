@@ -115,18 +115,10 @@
        (recur (readable-signature) (send other readable-signature))
        (recur (rtype-name) (send other rtype-name))))))
 
-(define object-methods
-  (list
-    (new grace:type:method%
-         [name 'print]
-         [signature (list string-other)]
-         [rtype void-identifier])))
-
 (define grace:type:object%
   (class* grace:type% ()
     (super-new)
     (inherit-field methods)
-    (add-methods this object-methods)
     (init-field internal-name)
     (define/override (readable-name)
       (define o (open-output-string))
@@ -138,11 +130,22 @@
     (define/override (equal-to? other recur)
       (recur methods (get-field methods other)))))
 
+;; TODO:
+;; Maybe add a builtin-methods field separate from methods that can
+;; be looked in in find-method-in in the typechecker, but not added
+;; to objects by the inferencer.
+(define builtin-methods
+  (list
+    (new grace:type:method%
+         [name 'print]
+         [signature (list string-other)]
+         [rtype void-identifier])))
+
 (define grace:type:module%
   (class* grace:type% ()
     (super-new)
     (inherit-field methods)
-    (add-methods this object-methods)
+    (add-methods this builtin-methods)
     (define/override (readable-name) "Module")))
 
 ; List of methods for number types.
