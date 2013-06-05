@@ -17,15 +17,6 @@
 (define is-object? (make-parameter #f))
 (define current-return-type (make-parameter #f))
 
-;; Builtin methods
-(define builtin-methods
-  (list
-    (new grace:type:method%
-         [name "print"]
-         [signature (list (get-type "String"))]
-         [rtype (get-type "Void")])
-   ))
-
 
 (define (tc-error msg . rest)
   (raise-syntax-error 'typecheck (apply format msg rest) (stx)))
