@@ -154,8 +154,8 @@
         ((grace:method-call name args)
          ;If the parent has type dynamic, return type of every method is dynamic as well.
          ;Otherwise, get the return type of that method.
-         (if (check-if-dynamic (grace:member-parent name))
-             (grace:member-parent name)
+         (if (check-if-dynamic (grace:member-parent (unwrap name)))
+             (grace:member-parent (unwrap name))
              (let* ((name (insert-implicit-self (unwrap name)))
                     (method-rtype (expression-type name))
                     (parent-name (grace:member-parent name))
@@ -528,27 +528,13 @@
 
 (define (p in) (parse (object-name in) in))
 (define a (p (open-input-string "
-type Object_3 = {
-    a() -> Number
-    a:=() -> Number
-    bar() -> Number
-    c() -> Number
-    c:=() -> Number
-}
 
-var d : Object_3 := object {
+object {
     var a : Number := 4
-    method bar()-> Number {
-        4
-    }
-    var c : Number := self.bar
-    self.c:= 3
 }
-
-var h:= d
-d.bar + 4
 ")))
+;(display (syntax->datum a))
 ;(write (syntax->datum a))
-;(typecheck a)
-(map (lambda (x) (send x readable-name)) (typecheck a))
+(display (typecheck a))
+;(map (lambda (x) (send x readable-name)) (typecheck a))
 ;(infer-prims a)
