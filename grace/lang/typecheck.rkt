@@ -17,15 +17,6 @@
 (define is-object? (make-parameter #f))
 (define current-return-type (make-parameter #f))
 
-;; Builtin methods
-(define builtin-methods
-  (list
-    (new grace:type:method%
-         [name "print"]
-         [signature (list (get-type "String"))]
-         [rtype (get-type "Void")])
-   ))
-
 
 (define (tc-error msg . rest)
   (raise-syntax-error 'typecheck (apply format msg rest) (stx)))
@@ -70,8 +61,8 @@
                     ((temp (get-field name a)))
                   (if (symbol? temp)(set! temp (symbol->string temp))(void))
                   (equal? temp name)))
-    (get-field methods (expression-type parent))))
-  )
+    (append (get-field builtins (expression-type parent))
+            (get-field methods (expression-type parent))))))
 
 (define (insert-implicit-self method-name)
   (if (grace:member? method-name)
@@ -134,7 +125,7 @@
                          (send param-type readable-name)
                          (send e2-type readable-name)))))
                  ((equal? e1-type 'missing)
-                  ;TODO: If this doesn't come up, delete this clause entirely.
+                  ;@@@@@ TODO: If this doesn't come up, delete this clause entirely.
                   (tc-error
                    "Go to line 110ish in the typechecker and see why we have type missing"))
                  (else
@@ -154,15 +145,15 @@
                  (find-method-in name-string parent)))
            ;If the parent is of type dynamic, then we want return type to be of type Dynamic too
            ;If not, get method's return type, if it exists.
-           (if
-            (check-if-dynamic parent)
-            parent-type
+           (if (check-if-dynamic parent)
+            (parent-type)
             (if member-op
                 (get-field rtype member-op)
-                (tc-error
-                 "no such method ~a in ~a"
-                 name-string
-                 (send parent-type readable-name))))))
+                (begin
+                  (tc-error
+                    "no such method ~a in ~a"
+                    name-string
+                    (send parent-type readable-name)))))))
         ((grace:method-call name args)
          ;If the parent has type dynamic, return type of every method is dynamic as well.
          ;Otherwise, get the return type of that method.
@@ -538,15 +529,21 @@
 
 ;To test lexing, parsing, and typechecking a program, copy it into open-input-string.
 
-(define (p in) (parse (object-name in) in))
-(define a (p (open-input-string "
-
-object {
-    var a : Number := 4
-}
-")))
+;(define (p in) (parse (object-name in) in))
+;(define a (p (open-input-string "
+;
+;var b := object {
+;    method foo() -> Number {
+;        print(\"Hello\")
+;        4
+;    }
+;    var a : Number := 4
+;}
+;
+;print(b.foo())
+;")))
 ;(display (syntax->datum a))
 ;(write (syntax->datum a))
-(display (typecheck a))
+;(display (typecheck a))
 ;(map (lambda (x) (send x readable-name)) (typecheck a))
 ;(infer-prims a)
