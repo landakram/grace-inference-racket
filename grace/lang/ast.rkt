@@ -60,31 +60,11 @@
 (define grace:type<%>
   (interface () readable-name))
 
-(define grace:type%
+(define grace:type:method%
   (class* object% (grace:type<%> equal<%>)
     (super-new)
-    (init-field (methods (list)))
-    (define/public (readable-name)
-      "Dynamic")
-    (define/public (equal-to? other recur)
-      (and (recur methods (get-field methods other))
-           (recur (readable-name) (send other readable-name))))
-    (define/public (equal-hash-code-of hash-code)
-      (hash-code (readable-name)))
-    (define/public (equal-secondary-hash-code-of hash-code)
-      (hash-code (readable-name)))))
-
-(define (unwrap possible-stx-obj)
-  (if (syntax? possible-stx-obj)
-      (syntax->datum possible-stx-obj)
-      possible-stx-obj))
-
-(define grace:type:method%
-  (class* grace:type% ()
-    (super-new)
     (init-field name signature rtype)
-    (define/override
-      (readable-name) "Method")
+    (define/public (readable-name) "Method")
     (define/public (rtype-name)
       (cond ((equal? rtype 'missing) "Dynamic")
             ((grace:identifier? rtype) (grace:identifier-value rtype))
@@ -103,7 +83,7 @@
                          type-name)))
       (display (format ") -> ~a" (rtype-name))  o)
       (get-output-string o))
-    (define/override (equal-to? other recur)
+    (define/public (equal-to? other recur)
       (displayln "******")
       (displayln name)
       (displayln (get-field name other))
@@ -113,22 +93,11 @@
       (and
        (recur name (get-field name other))
        (recur (readable-signature) (send other readable-signature))
-       (recur (rtype-name) (send other rtype-name))))))
-
-(define grace:type:object%
-  (class* grace:type% ()
-    (super-new)
-    (inherit-field methods)
-    (init-field internal-name)
-    (define/override (readable-name)
-      (define o (open-output-string))
-      (displayln (format "type ~a = {" internal-name) o)
-      (for ([method methods])
-        (displayln (format "    ~a" (send method readable-signature)) o))
-      (displayln "}" o)
-      (get-output-string o))
-    (define/override (equal-to? other recur)
-      (recur methods (get-field methods other)))))
+       (recur (rtype-name) (send other rtype-name))))
+    (define/public (equal-hash-code-of hash-code)
+      (hash-code (readable-name)))
+    (define/public (equal-secondary-hash-code-of hash-code)
+      (hash-code (readable-name)))))
 
 ;; TODO:
 ;; Maybe add a builtin-methods field separate from methods that can
@@ -141,11 +110,47 @@
          [signature (list string-other)]
          [rtype void-identifier])))
 
+(define grace:type%
+  (class* object% (grace:type<%> equal<%>)
+    (super-new)
+    (init-field (methods (list)))
+    (init-field (builtins builtin-methods))
+    (define/public (readable-name)
+      "Dynamic")
+    (define/public (equal-to? other recur)
+      (and (recur methods (get-field methods other))
+           (recur (readable-name) (send other readable-name))))
+    (define/public (equal-hash-code-of hash-code)
+      (hash-code (readable-name)))
+    (define/public (equal-secondary-hash-code-of hash-code)
+      (hash-code (readable-name)))))
+
+(define (unwrap possible-stx-obj)
+  (if (syntax? possible-stx-obj)
+      (syntax->datum possible-stx-obj)
+      possible-stx-obj))
+
+(define grace:type:object%
+  (class* grace:type% ()
+    (super-new)
+    (inherit-field methods)
+    (inherit-field builtins)
+    (init-field internal-name)
+    (define/override (readable-name)
+      (define o (open-output-string))
+      (displayln (format "type ~a = {" internal-name) o)
+      (for ([method methods])
+        (displayln (format "    ~a" (send method readable-signature)) o))
+      (displayln "}" o)
+      (get-output-string o))
+    (define/override (equal-to? other recur)
+      (recur methods (get-field methods other)))))
+
 (define grace:type:module%
   (class* grace:type% ()
     (super-new)
     (inherit-field methods)
-    (add-methods this builtin-methods)
+    (inherit-field builtins)
     (define/override (readable-name) "Module")))
 
 ; List of methods for number types.

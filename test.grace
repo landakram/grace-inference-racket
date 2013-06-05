@@ -8,18 +8,11 @@ type Object_3 = {
     c:=() -> Number
 }
 
-type Object_2 = {
-	foo() -> String
-}
-
 var obj := object {
 	method foo() -> String {
+            print("World")
 		return "Hello"
 	}
-
-	var a := object {
-		print("hello")
-    }
 }
 
 obj.foo()
