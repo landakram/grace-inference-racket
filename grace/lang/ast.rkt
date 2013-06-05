@@ -49,6 +49,12 @@
 (define top-other (grace:identifier "other" dynamic-identifier))
 (define list-other (grace:identifier "other" list-identifier))
 
+;; Adds methods to a type where new-methods should be passed in as a (list ...)
+(define (add-methods parent new-methods)
+  (let* ([old-methods (get-field methods parent)]
+         [all-methods (append new-methods old-methods)])
+    (set-field! methods parent all-methods)))
+
 (define (same-other type-identifier) (grace:identifier "_" type-identifier))
 
 (define grace:type<%>
@@ -120,9 +126,7 @@
   (class* grace:type% ()
     (super-new)
     (inherit-field methods)
-    ;(let* ([methods (get-field methods this)])
-    ;  (void))
-    (set-field! methods this (append object-methods (get-field methods this)))
+    (add-methods this object-methods)
     (init-field internal-name)
     (define/override (readable-name)
       (define o (open-output-string))
@@ -138,7 +142,7 @@
   (class* grace:type% ()
     (super-new)
     (inherit-field methods)
-    (set-field! methods this (append object-methods (get-field methods this)))
+    (add-methods this object-methods)
     (define/override (readable-name) "Module")))
 
 ; List of methods for number types.
@@ -162,7 +166,7 @@
   (class* grace:type% ()
     (super-new)
     (inherit-field methods)
-    (set-field! methods this (append number-methods (get-field methods this)))
+    (add-methods this number-methods)
     (define/override
       (readable-name) "Number")))
 
