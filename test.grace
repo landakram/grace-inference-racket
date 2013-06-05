@@ -8,19 +8,16 @@ type Object_3 = {
     c:=() -> Number
 }
 
-type Object_2 = {
-	foo() -> String
-}
-
-var obj : Object_2 := object {
+var obj := object {
 	method foo() -> String {
+            print("World")
 		return "Hello"
 	}
 }
 
 obj.foo()
 
-print("hello")
+self.print("hello")
 
 method foo() -> String {
 	"Hello"

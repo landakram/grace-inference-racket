@@ -27,6 +27,7 @@
    RETURN DEF INHERITS IS DIALECT IF THEN
    UNARY METHODCALL))
 
+
 (define-lex-abbrevs
   (CR #\015)
   (LF #\012)
@@ -72,6 +73,7 @@
   (keyword
     (:or "object" "method" "var" "type" "import" "class"
          "return" "def" "inherits" "is" "dialect" "if" "then")))
+
 
 (define simple-grace-lexer
   (lexer-src-pos
