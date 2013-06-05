@@ -5,28 +5,33 @@
 
 (define stx (make-parameter #f))
 
-(define (test-eval elt)
+(define (test-eval elt env)
   (if (syntax? elt)
       (parameterize ((stx elt))
-        (begin (print "outer") (print (syntax->datum elt)) (test-eval (syntax-e elt))))
+        (begin (print "outer")  (test-eval (syntax-e elt) env)))
       (match elt
         ((grace:code-seq num)
-         (begin (print elt) (test-eval (cdr (unwrap num)))))
+         (begin (test-eval (cdr (unwrap num)) env)))
         ((grace:number num)
          (print (syntax-e num)))
-        
+        ((grace:method-call method params)
+         (print "calling") (print elt) (match (get-method (syntax->datum method) env) 
+                             [`(primitive ,p)
+     ; =>
+     (apply p '("testtesttest"))])
+                             (print "here") (print params) (test-eval params env))
         ((grace:str str)
          (print (syntax-e str)))
-        (else "aa")
+        (else (print "inelse") elt)
         )))
 
+(define (get-method elt env)
+  (match elt
+    ((grace:identifier name bool)
+     (env-lookup env (string->symbol name)))))
 
-(define (p in) (parse (object-name in) in))
-(define a (p (open-input-string "
-print \"HelloWorld\"
-")))
 
-(map test-eval (syntax->list (grace:code-seq-code (syntax-e a))))
+
 
 ;; Environments map variables to mutable cells 
 ;; containing values.  Also have list of objects.
@@ -44,10 +49,10 @@ print \"HelloWorld\"
    ;first takes a whole list of primitives and binds them to racket equivalents
    ;many of these will need to be replaced: 
    ;all the math ones will need to extract values out of new number objects and then call primitive version rather than being in current form
-   '(+  -  /  *  %   <= >= eq? void  display  newline string-append cons list eval false? number->string null list? == 
+   '(+  -  /  *  %   <= >= eq? void  print  newline string-append cons list eval false? number->string null list? == 
         prnt)
    (map (lambda (s) (list 'primitive s))
-   `(,+ ,- ,/ ,* ,modulo ,<= ,>= ,eq? ,void ,display ,newline ,string-append ,cons ,list ,eval ,false? ,number->string ,null ,list? ,equal? 
+   `(,+ ,- ,/ ,* ,modulo ,<= ,>= ,eq? ,void ,print ,newline ,string-append ,cons ,list ,eval ,false? ,number->string ,null ,list? ,equal? 
         ,(lambda (x) (match x 
                        ;if x is an object, check if it has an asString method defined, and call that
                        ;ideally, all objects will have asString defined
@@ -130,3 +135,10 @@ print \"HelloWorld\"
     [`(() ())
      ; =>
      (void)]))
+
+(define (p in) (parse (object-name in) in))
+(define a (p (open-input-string "
+print (\"HelloWorld\")
+")))
+
+(map (lambda (x) (test-eval x (env-initial))) (syntax->list (grace:code-seq-code (syntax-e a)))) 
