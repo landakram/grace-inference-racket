@@ -41,6 +41,7 @@
 (define boolean-identifier (grace:identifier "Boolean" #f))
 (define dynamic-identifier (grace:identifier "Dynamic" #f))
 (define list-identifier (grace:identifier "List" #f))
+(define void-identifier (grace:identifier "Void" #f))
 
 (define number-other (grace:identifier "other" number-identifier))
 (define boolean-othter (grace:identifier "other" boolean-identifier))
@@ -66,21 +67,6 @@
       (hash-code (readable-name)))
     (define/public (equal-secondary-hash-code-of hash-code)
       (hash-code (readable-name)))))
-
-(define grace:type:object%
-  (class* grace:type% ()
-    (super-new)
-    (inherit-field methods)
-    (init-field internal-name)
-    (define/override (readable-name)
-      (define o (open-output-string))
-      (displayln (format "type ~a = {" internal-name) o)
-      (for ([method methods])
-        (displayln (format "    ~a" (send method readable-signature)) o))
-      (displayln "}" o)
-      (get-output-string o))
-    (define/override (equal-to? other recur)
-      (recur methods (get-field methods other)))))
 
 (define (unwrap possible-stx-obj)
   (if (syntax? possible-stx-obj)
@@ -123,6 +109,37 @@
        (recur (readable-signature) (send other readable-signature))
        (recur (rtype-name) (send other rtype-name))))))
 
+(define object-methods
+  (list
+    (new grace:type:method%
+         [name 'print]
+         [signature (list string-other)]
+         [rtype void-identifier])))
+
+(define grace:type:object%
+  (class* grace:type% ()
+    (super-new)
+    (inherit-field methods)
+    ;(let* ([methods (get-field methods this)])
+    ;  (void))
+    (set-field! methods this (append object-methods (get-field methods this)))
+    (init-field internal-name)
+    (define/override (readable-name)
+      (define o (open-output-string))
+      (displayln (format "type ~a = {" internal-name) o)
+      (for ([method methods])
+        (displayln (format "    ~a" (send method readable-signature)) o))
+      (displayln "}" o)
+      (get-output-string o))
+    (define/override (equal-to? other recur)
+      (recur methods (get-field methods other)))))
+
+(define grace:type:module%
+  (class* grace:type% ()
+    (super-new)
+    (inherit-field methods)
+    (set-field! methods this (append object-methods (get-field methods this)))
+    (define/override (readable-name) "Module")))
 
 ; List of methods for number types.
 (define number-methods
@@ -145,8 +162,7 @@
   (class* grace:type% ()
     (super-new)
     (inherit-field methods)
-    (set-field!
-     methods this number-methods)
+    (set-field! methods this (append number-methods (get-field methods this)))
     (define/override
       (readable-name) "Number")))
 
@@ -183,12 +199,6 @@
   (class* grace:type% ()
     (super-new)
     (define/override (readable-name) "Done")))
-
-(define grace:type:module%
-  (class* grace:type% ()
-    (super-new)
-    (inherit-field methods)
-    (define/override (readable-name) "Module")))
 
 (define grace:type:dynamic%
   (class* grace:type% ()

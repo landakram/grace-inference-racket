@@ -8,16 +8,34 @@ type Object_3 = {
     c:=() -> Number
 }
 
-var d := object {
-    var a : Number := 4
-    method bar()-> Number {
-        4
-    }
-    var c : Number := self.bar
-    self.c:= 3
+type Object_2 = {
+	foo() -> String
 }
 
-var h:= d
-var z := d.c
+var obj : Object_2 := object {
+	method foo() -> String {
+		return "Hello"
+	}
+}
 
-d+4
+obj.foo()
+
+print("hello")
+
+method foo() -> String {
+	"Hello"
+}
+
+//var d := object {
+//    var a : Number := 4
+//    method bar()-> Number {
+//        4
+//    }
+//    var c : Number := self.bar
+//    self.c:= 3
+//}
+
+//var h:= d
+//var z := d.c
+
+//d+4
