@@ -224,6 +224,7 @@
          [signature (list number-other)]
          [rtype boolean-identifier])))
 
+
 (define grace:type:number%
   (class* grace:type% ()
     (super-new)
@@ -232,8 +233,44 @@
     (define/override
       (readable-name) "Number")))
 
+
 ; List of methods for string types.
 ; Empty for now. TODO: Implement if there are any.
+(define string-methods
+  (list))
+
+
+; List of methods for number types.
+(define number-methods
+  (list
+    (new grace:type:method% [name +] [signature (list number-other)] [rtype number-identifier])
+    (new grace:type:method% [name -] [signature (list number-other)] [rtype number-identifier])
+    (new grace:type:method% [name *] [signature (list number-other)] [rtype number-identifier])
+    (new grace:type:method% [name /] [signature (list number-other)] [rtype number-identifier])
+    (new grace:type:method% [name modulo] [signature (list number-other)] [rtype number-identifier])
+    (new grace:type:method% [name exp] [signature (list number-other)] [rtype number-identifier])
+
+    (new grace:type:method% [name equal?] [signature (list number-other)] [rtype top-other])
+    (new grace:type:method% [name 'not] [signature (list number-other)] [rtype top-other])
+    (new grace:type:method% [name <] [signature (list number-other)] [rtype boolean-identifier])
+    (new grace:type:method% [name >] [signature (list number-other)] [rtype boolean-identifier])
+    (new grace:type:method% [name <=] [signature (list number-other)] [rtype boolean-identifier])
+    (new grace:type:method% [name >=] [signature (list number-other)] [rtype boolean-identifier])))
+
+
+(define grace:type:number%
+  (class* grace:type% ()
+    (super-new)
+    (inherit-field methods)
+    (set-field!
+     methods this number-methods)
+    (define/override
+      (readable-name) "Number")))
+
+
+; List of methods for string types.
+;
+; Empty for now. TODO: Implement if there are any, and add to dynamic type.
 (define string-methods
   (list))
 
