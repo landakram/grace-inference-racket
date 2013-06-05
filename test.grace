@@ -1,38 +1,41 @@
 #lang grace
-var a := "foo"
-var c := 5
-var b := 4 + 4 - 10 * 30 / 38 + c
 
-def g = "This is a definition."
-
-
-method foo(s : String) -> Number {
-    return 4
+type Object_3 = {
+    a() -> Number
+    a:=() -> Number
+    bar() -> Number
+    c() -> Number
+    c:=() -> Number
 }
 
-4 + 5 + 4 + foo("hello") 
-
-type A = {
-    foo() -> Number
+type Object_2 = {
+	foo() -> String
 }
 
-var d : A := object {
-    method foo() -> Number {
-        5
-    }
+var obj : Object_2 := object {
+	method foo() -> String {
+		return "Hello"
+	}
 }
 
-var d := object {
-    var a := 4
-    var b := 7
-    method bar(s : String) -> Number {
-        self.a + self.b // doesn't get typechecked without type annotation
-        self.a := 3
-        self.a
-        a := 5
-        bar("hello")
-        self.bar("hello")
-        4
-    }
-    var c := self.bar("foo")
+obj.foo()
+
+print("hello")
+
+method foo() -> String {
+	"Hello"
 }
+
+//var d := object {
+//    var a : Number := 4
+//    method bar()-> Number {
+//        4
+//    }
+//    var c : Number := self.bar
+//    self.c:= 3
+//}
+
+//var h:= d
+//var z := d.c
+
+//d+4

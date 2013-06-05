@@ -1,5 +1,6 @@
 #lang racket
-(define-for-syntax (grace-struct-syntax prefix stx) 
+
+(define-for-syntax (grace-struct-syntax prefix stx)
   (syntax-case stx ()
     [(_ (struct-name (field ...) struct-option ...) ...)
      (with-syntax ([(grace:struct ...) (map (lambda (id)
@@ -20,18 +21,19 @@
   (number (value))
   (str (value))
   (identifier (value type))
-  
+
   (var-decl (name type value))
   (def-decl (name type value))
   (bind (name value))
-  
+
   (expression (op e1 e2))
   (method-call (name args))
   (object (body))
   (method (name signature body type))
   (member (parent name))
   (return (value))
-  
+  (if-then (check body))
+
   (code-seq (code)))
 
 (define number-identifier (grace:identifier "Number" #f))
@@ -39,6 +41,7 @@
 (define boolean-identifier (grace:identifier "Boolean" #f))
 (define dynamic-identifier (grace:identifier "Dynamic" #f))
 (define list-identifier (grace:identifier "List" #f))
+(define void-identifier (grace:identifier "Void" #f))
 
 (define number-other (grace:identifier "other" number-identifier))
 (define boolean-othter (grace:identifier "other" boolean-identifier))
@@ -55,7 +58,7 @@
   (class* object% (grace:type<%> equal<%>)
     (super-new)
     (init-field (methods (list)))
-    (define/public (readable-name) 
+    (define/public (readable-name)
       "Dynamic")
     (define/public (equal-to? other recur)
       (and (recur methods (get-field methods other))
@@ -65,50 +68,6 @@
     (define/public (equal-secondary-hash-code-of hash-code)
       (hash-code (readable-name)))))
 
-(define grace:type:dynamic%
-  (class* grace:type% ()
-    (super-new)
-    (inherit-field methods)
-    (define/override (readable-name)
-      "Dynamic")))
-
-(define grace:type:number%
-  (class* grace:type% ()
-    (super-new)
-    (inherit-field methods)
-    (set-field! 
-     methods this (list 
-               (new grace:type:method% [name +] [signature (list number-other)] [rtype number-identifier])
-               (new grace:type:method% [name -] [signature (list number-other)] [rtype number-identifier])
-               (new grace:type:method% [name *] [signature (list number-other)] [rtype number-identifier])
-               (new grace:type:method% [name /] [signature (list number-other)] [rtype number-identifier])
-               (new grace:type:method% [name modulo] [signature (list number-other)] [rtype number-identifier])
-               (new grace:type:method% [name exp] [signature (list number-other)] [rtype number-identifier])
-               
-               (new grace:type:method% [name equal?] [signature (list number-other)] [rtype top-other])
-               (new grace:type:method% [name 'not] [signature (list number-other)] [rtype top-other])
-               (new grace:type:method% [name <] [signature (list number-other)] [rtype boolean-identifier])
-               (new grace:type:method% [name >] [signature (list number-other)] [rtype boolean-identifier])
-               (new grace:type:method% [name <=] [signature (list number-other)] [rtype boolean-identifier])
-               (new grace:type:method% [name >=] [signature (list number-other)] [rtype boolean-identifier])))
-    (define/override 
-      (readable-name) "Number")))
-
-(define grace:type:object%
-  (class* grace:type% ()
-    (super-new)
-    (inherit-field methods)
-    (init-field internal-name)
-    (define/override (readable-name) 
-      (define o (open-output-string))
-      (displayln (format "type ~a = {" internal-name) o)
-      (for ([method methods])
-        (displayln (format "    ~a" (send method readable-signature)) o))
-      (displayln "}" o)
-      (get-output-string o))
-    (define/override (equal-to? other recur)
-      (recur methods (get-field methods other)))))
-
 (define (unwrap possible-stx-obj)
   (if (syntax? possible-stx-obj)
       (syntax->datum possible-stx-obj)
@@ -117,8 +76,8 @@
 (define grace:type:method%
   (class* grace:type% ()
     (super-new)
-    (init-field name signature rtype) 
-    (define/override 
+    (init-field name signature rtype)
+    (define/override
       (readable-name) "Method")
     (define/public (rtype-name)
       (cond ((equal? rtype 'missing) "Dynamic")
@@ -133,7 +92,7 @@
         (define type-name (cond ((equal? unwrapped 'missing) "Dynamic")
                                ((grace:identifier? unwrapped) (grace:identifier-value unwrapped))
                                ((is-a? unwrapped grace:type%) (send unwrapped readable-name))))
-        (display (format "~a : ~a" 
+        (display (format "~a : ~a"
                          (grace:identifier-value unwrapped)
                          type-name)))
       (display (format ") -> ~a" (rtype-name))  o)
@@ -145,14 +104,80 @@
       (displayln signature)
       (displayln (get-field signature other))
       (displayln "******")
-      (and 
+      (and
        (recur name (get-field name other))
        (recur (readable-signature) (send other readable-signature))
        (recur (rtype-name) (send other rtype-name))))))
 
+(define object-methods
+  (list
+    (new grace:type:method%
+         [name 'print]
+         [signature (list string-other)]
+         [rtype void-identifier])))
+
+(define grace:type:object%
+  (class* grace:type% ()
+    (super-new)
+    (inherit-field methods)
+    ;(let* ([methods (get-field methods this)])
+    ;  (void))
+    (set-field! methods this (append object-methods (get-field methods this)))
+    (init-field internal-name)
+    (define/override (readable-name)
+      (define o (open-output-string))
+      (displayln (format "type ~a = {" internal-name) o)
+      (for ([method methods])
+        (displayln (format "    ~a" (send method readable-signature)) o))
+      (displayln "}" o)
+      (get-output-string o))
+    (define/override (equal-to? other recur)
+      (recur methods (get-field methods other)))))
+
+(define grace:type:module%
+  (class* grace:type% ()
+    (super-new)
+    (inherit-field methods)
+    (set-field! methods this (append object-methods (get-field methods this)))
+    (define/override (readable-name) "Module")))
+
+; List of methods for number types.
+(define number-methods
+  (list
+    (new grace:type:method% [name +] [signature (list number-other)] [rtype number-identifier])
+    (new grace:type:method% [name -] [signature (list number-other)] [rtype number-identifier])
+    (new grace:type:method% [name *] [signature (list number-other)] [rtype number-identifier])
+    (new grace:type:method% [name /] [signature (list number-other)] [rtype number-identifier])
+    (new grace:type:method% [name modulo] [signature (list number-other)] [rtype number-identifier])
+    (new grace:type:method% [name exp] [signature (list number-other)] [rtype number-identifier])
+
+    (new grace:type:method% [name equal?] [signature (list number-other)] [rtype top-other])
+    (new grace:type:method% [name 'not] [signature (list number-other)] [rtype top-other])
+    (new grace:type:method% [name <] [signature (list number-other)] [rtype boolean-identifier])
+    (new grace:type:method% [name >] [signature (list number-other)] [rtype boolean-identifier])
+    (new grace:type:method% [name <=] [signature (list number-other)] [rtype boolean-identifier])
+    (new grace:type:method% [name >=] [signature (list number-other)] [rtype boolean-identifier])))
+
+(define grace:type:number%
+  (class* grace:type% ()
+    (super-new)
+    (inherit-field methods)
+    (set-field! methods this (append number-methods (get-field methods this)))
+    (define/override
+      (readable-name) "Number")))
+
+; List of methods for string types.
+;
+; Empty for now. TODO: Implement if there are any, and add to dynamic type.
+(define string-methods
+  (list))
+
 (define grace:type:string%
   (class* grace:type% ()
     (super-new)
+    (inherit-field methods)
+    (set-field!
+      methods this string-methods)
     (define/override (readable-name) "String")))
 
 (define grace:type:list%
@@ -175,10 +200,11 @@
     (super-new)
     (define/override (readable-name) "Done")))
 
-(define grace:type:module%
+(define grace:type:dynamic%
   (class* grace:type% ()
     (super-new)
     (inherit-field methods)
-    (define/override (readable-name) "Module")))
-  
+    (define/override (readable-name)
+      "Dynamic")))
+
 (provide (all-defined-out))
