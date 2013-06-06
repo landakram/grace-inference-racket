@@ -154,13 +154,6 @@
     (define/override (equal-to? other recur)
       (recur methods (get-field methods other)))))
 
-(define builtin-methods
-  (list
-    (new grace:type:method%
-         [name 'print]
-         [signature (list string-other)]
-         [rtype void-identifier])))
-
 (define grace:type:module%
   (class* grace:type% ()
     (super-new)
