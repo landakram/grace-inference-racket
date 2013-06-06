@@ -8,22 +8,22 @@
 (define (test-eval elt env)
   (if (syntax? elt)
       (parameterize ((stx elt))
-        (begin (print "outer")  (test-eval (syntax-e elt) env)))
-      (match elt
-        ((grace:code-seq num)
-         (begin (test-eval (cdr (unwrap num)) env)))
-        ((grace:number num)
-         (print (syntax-e num)))
-        ((grace:method-call method params)
-         (print "calling") (print elt) (match (get-method (syntax->datum method) env) 
-                             [`(primitive ,p)
-     ; =>
-     (apply p '("testtesttest"))])
-                             (print "here") (print params) (test-eval params env))
-        ((grace:str str)
-         (print (syntax-e str)))
-        (else (print "inelse") elt)
-        )))
+        (test-eval (syntax-e elt) env))
+      (if (list? elt)
+          (map (lambda (x) (test-eval x env)) elt)        
+          (match elt
+            ((grace:code-seq num) ; I don't think things will go here right now
+             (begin (print "in codeseq")(test-eval (cdr (unwrap num)) env)))
+            ((grace:number num)
+             (print (syntax-e num)))
+            ((grace:method-call method params)
+             (match (get-method (syntax->datum method) env) 
+               [`(primitive ,p)
+                ; =>
+                (apply p (test-eval params env))]))
+            ((grace:str str)
+             (syntax-e str))
+            (else (print "inelse")))))) ; I don't think things will go here right now
 
 (define (get-method elt env)
   (match elt
@@ -43,33 +43,33 @@
 
 ; initial environment, with bindings for primitives:
 (define (env-initial)
+  (env-extend* 
    (env-extend* 
-    (env-extend* 
-   (box (env-empty))
-   ;first takes a whole list of primitives and binds them to racket equivalents
-   ;many of these will need to be replaced: 
-   ;all the math ones will need to extract values out of new number objects and then call primitive version rather than being in current form
-   '(+  -  /  *  %   <= >= eq? void  print  newline string-append cons list eval false? number->string null list? == 
-        prnt)
-   (map (lambda (s) (list 'primitive s))
-   `(,+ ,- ,/ ,* ,modulo ,<= ,>= ,eq? ,void ,print ,newline ,string-append ,cons ,list ,eval ,false? ,number->string ,null ,list? ,equal? 
-        ,(lambda (x) (match x 
-                       ;if x is an object, check if it has an asString method defined, and call that
-                       ;ideally, all objects will have asString defined
-                       [(? box?) (if (hash-has-key? (unbox x) 'asString) (begin (display (eval `asString x)) (newline)) (begin (display x) (newline)))]
-                       [any (begin (display x) (newline))])))))
-    ;next, extends environment further to add tru and fals objects
-    ;naming is intentional to avoid any confusion with primitive true and false but should be changeable without causing any issues.
-    ;The only thing users should see is the asString method, so it may be fine as-is.
-    '(tru fals 
-          ;<
-          )
-    (let* ((env0 (env-extend* (box (env-empty)) '(asString) `("true"))) 
-              (env1 (env-extend* (box (env-empty)) '(asString) `("false")))) 
-                (begin (set-box! env0 (unbox (env-extend* env0 '(not prefix!) `((closure (lambda () ,env1) ,env1) (closure (lambda () ,env1) ,env1)))))
-                       (set-box! env1 (unbox (env-extend* env1 '(not prefix!) `((closure (lambda () ,env0) ,env0) (closure (lambda () ,env0) ,env0)))))
-                       `(,env0 ,env1))))
-   )
+    (box (env-empty))
+    ;first takes a whole list of primitives and binds them to racket equivalents
+    ;many of these will need to be replaced: 
+    ;all the math ones will need to extract values out of new number objects and then call primitive version rather than being in current form
+    '(+  -  /  *  %   <= >= eq? void  print  newline string-append cons list eval false? number->string null list? == 
+         prnt)
+    (map (lambda (s) (list 'primitive s))
+         `(,+ ,- ,/ ,* ,modulo ,<= ,>= ,eq? ,void ,print ,newline ,string-append ,cons ,list ,eval ,false? ,number->string ,null ,list? ,equal? 
+              ,(lambda (x) (match x 
+                             ;if x is an object, check if it has an asString method defined, and call that
+                             ;ideally, all objects will have asString defined
+                             [(? box?) (if (hash-has-key? (unbox x) 'asString) (begin (display (eval `asString x)) (newline)) (begin (display x) (newline)))]
+                             [any (begin (display x) (newline))])))))
+   ;next, extends environment further to add tru and fals objects
+   ;naming is intentional to avoid any confusion with primitive true and false but should be changeable without causing any issues.
+   ;The only thing users should see is the asString method, so it may be fine as-is.
+   '(tru fals 
+         ;<
+         )
+   (let* ((env0 (env-extend* (box (env-empty)) '(asString) `("true"))) 
+          (env1 (env-extend* (box (env-empty)) '(asString) `("false")))) 
+     (begin (set-box! env0 (unbox (env-extend* env0 '(not prefix!) `((closure (lambda () ,env1) ,env1) (closure (lambda () ,env1) ,env1)))))
+            (set-box! env1 (unbox (env-extend* env1 '(not prefix!) `((closure (lambda () ,env0) ,env0) (closure (lambda () ,env0) ,env0)))))
+            `(,env0 ,env1))))
+  )
 
 
 ; looks up a value:
@@ -79,12 +79,12 @@
      (cell-value (hash-ref (unbox env) var))]
     [x
      (hash-ref (unbox env) var)]))
-    
+
 
 ; sets a value in an environment:
 (define (env-set! env var value)
   (set-cell-value! (hash-ref (unbox env) var) value))
-    
+
 
 ; extends an environment with several bindings:
 (define (env-extend* env varbls values)
@@ -138,7 +138,7 @@
 
 (define (p in) (parse (object-name in) in))
 (define a (p (open-input-string "
-print (\"HelloWorld\")
+print (\"Hello, World!\")
 ")))
 
 (map (lambda (x) (test-eval x (env-initial))) (syntax->list (grace:code-seq-code (syntax-e a)))) 
