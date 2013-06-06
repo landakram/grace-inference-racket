@@ -110,10 +110,7 @@
     (define/public (equal-secondary-hash-code-of hash-code)
       (hash-code (readable-name)))))
 
-;; TODO:
-;; Maybe add a builtin-methods field separate from methods that can
-;; be looked in in find-method-in in the typechecker, but not added
-;; to objects by the inferencer.
+
 (define builtin-methods
   (list
     (new grace:type:method%
