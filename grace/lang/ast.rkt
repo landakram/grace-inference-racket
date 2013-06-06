@@ -3,13 +3,17 @@
 (define-for-syntax (grace-struct-syntax prefix stx)
   (syntax-case stx ()
     [(_ (struct-name (field ...) struct-option ...) ...)
-     (with-syntax ([(grace:struct ...) (map (lambda (id)
-                                              (datum->syntax
-                                               id
-                                               (string->symbol
-                                                (format "~a:~a" prefix (syntax-e id)))))
-                                            (syntax->list (syntax (struct-name ...))))])
-       (syntax (begin (define-struct grace:struct (field ...) struct-option ... #:prefab) ...)))]))
+     (with-syntax
+       ([(grace:struct ...) (map (lambda (id)
+                                   (datum->syntax
+                                     id
+                                     (string->symbol
+                                       (format "~a:~a" prefix (syntax-e id)))))
+                                 (syntax->list (syntax (struct-name ...))))])
+       (syntax
+         (begin
+           (define-struct grace:struct (field ...) struct-option ... #:prefab)
+           ...)))]))
 
 (define-syntax (define-grace-structs stx)
   (grace-struct-syntax "grace" stx))
@@ -75,14 +79,19 @@
       (for ([t signature])
         (define unwrapped (unwrap t))
         (display t)
-        (define type-name (cond ((equal? unwrapped 'missing) "Dynamic")
-                               ((grace:identifier? unwrapped) (grace:identifier-value unwrapped))
-                               ((is-a? unwrapped grace:type%) (send unwrapped readable-name))))
+        (define type-name
+          (cond ((equal? unwrapped 'missing) "Dynamic")
+                ((grace:identifier? unwrapped)
+                 (grace:identifier-value unwrapped))
+                ((is-a? unwrapped grace:type%)
+                 (send unwrapped readable-name))))
+
         (display (format "~a : ~a"
                          (grace:identifier-value unwrapped)
                          type-name)))
       (display (format ") -> ~a" (rtype-name))  o)
       (get-output-string o))
+
     (define/public (equal-to? other recur)
       (displayln "******")
       (displayln name)
@@ -94,8 +103,10 @@
        (recur name (get-field name other))
        (recur (readable-signature) (send other readable-signature))
        (recur (rtype-name) (send other rtype-name))))
+
     (define/public (equal-hash-code-of hash-code)
       (hash-code (readable-name)))
+
     (define/public (equal-secondary-hash-code-of hash-code)
       (hash-code (readable-name)))))
 
@@ -146,13 +157,6 @@
     (define/override (equal-to? other recur)
       (recur methods (get-field methods other)))))
 
-(define builtin-methods
-  (list
-    (new grace:type:method%
-         [name 'print]
-         [signature (list string-other)]
-         [rtype void-identifier])))
-
 (define grace:type:module%
   (class* grace:type% ()
     (super-new)
@@ -163,19 +167,55 @@
 ; List of methods for number types.
 (define number-methods
   (list
-    (new grace:type:method% [name +] [signature (list number-other)] [rtype number-identifier])
-    (new grace:type:method% [name -] [signature (list number-other)] [rtype number-identifier])
-    (new grace:type:method% [name *] [signature (list number-other)] [rtype number-identifier])
-    (new grace:type:method% [name /] [signature (list number-other)] [rtype number-identifier])
-    (new grace:type:method% [name modulo] [signature (list number-other)] [rtype number-identifier])
-    (new grace:type:method% [name exp] [signature (list number-other)] [rtype number-identifier])
+    (new grace:type:method%
+         [name +]
+         [signature (list number-other)]
+         [rtype number-identifier])
+    (new grace:type:method%
+         [name -]
+         [signature (list number-other)]
+         [rtype number-identifier])
+    (new grace:type:method%
+         [name *]
+         [signature (list number-other)]
+         [rtype number-identifier])
+    (new grace:type:method%
+         [name /]
+         [signature (list number-other)]
+         [rtype number-identifier])
+    (new grace:type:method%
+         [name modulo]
+         [signature (list number-other)]
+         [rtype number-identifier])
+    (new grace:type:method%
+         [name exp]
+         [signature (list number-other)]
+         [rtype number-identifier])
 
-    (new grace:type:method% [name equal?] [signature (list number-other)] [rtype top-other])
-    (new grace:type:method% [name 'not] [signature (list number-other)] [rtype top-other])
-    (new grace:type:method% [name <] [signature (list number-other)] [rtype boolean-identifier])
-    (new grace:type:method% [name >] [signature (list number-other)] [rtype boolean-identifier])
-    (new grace:type:method% [name <=] [signature (list number-other)] [rtype boolean-identifier])
-    (new grace:type:method% [name >=] [signature (list number-other)] [rtype boolean-identifier])))
+    (new grace:type:method%
+         [name equal?]
+         [signature (list number-other)]
+         [rtype top-other])
+    (new grace:type:method%
+         [name 'not]
+         [signature (list number-other)]
+         [rtype top-other])
+    (new grace:type:method%
+         [name <]
+         [signature (list number-other)]
+         [rtype boolean-identifier])
+    (new grace:type:method%
+         [name >]
+         [signature (list number-other)]
+         [rtype boolean-identifier])
+    (new grace:type:method%
+         [name <=]
+         [signature (list number-other)]
+         [rtype boolean-identifier])
+    (new grace:type:method%
+         [name >=]
+         [signature (list number-other)]
+         [rtype boolean-identifier])))
 
 (define grace:type:number%
   (class* grace:type% ()
@@ -186,8 +226,7 @@
       (readable-name) "Number")))
 
 ; List of methods for string types.
-;
-; Empty for now. TODO: Implement if there are any, and add to dynamic type.
+; Empty for now. TODO: Implement if there are any.
 (define string-methods
   (list))
 
@@ -195,8 +234,7 @@
   (class* grace:type% ()
     (super-new)
     (inherit-field methods)
-    (set-field!
-      methods this string-methods)
+    (add-methods this string-methods)
     (define/override (readable-name) "String")))
 
 (define grace:type:list%
