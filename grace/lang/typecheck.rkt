@@ -44,6 +44,8 @@
 
 (define (check-if-dynamic parent)
   (eq? (send (expression-type parent) readable-name) "Dynamic"))
+
+
 ;;Takes in a method name to look for and a parent in which to look for that
 ;;method. Returns the method name if it found it, and returns #f if it's not
 ;;there.
@@ -241,9 +243,9 @@
 ;; (grace:identifier) -> (grace:type:...%)
 (define (resolve-identifier ident)
   (displayln ident)
-  (if (false? (unwrap ident)) ;; UNWRAP DOES SYNTAX->DATUM @@@@@
+  (if (false? (unwrap ident))
       'missing
-      (get-type (grace:identifier-value (unwrap ident))))) ;; GET-TYPE SAYS IDENTIFIER DOES NOT EXIST @@@@@
+      (get-type (grace:identifier-value (unwrap ident)))))
 
 ;; Ensures that identifiers are present in the type environment, and are used
 ;; consistently.
@@ -311,14 +313,14 @@
                   ;((is-a? name-type grace:type:def%) (tc-error "reassignment to constant ~a" name-string))
                   ((is-a? name-type grace:type:method%) (tc-error "assignment to method ~a" name-string))
                   ((false? name-type) (tc-error "assignment to undeclared ~a" name-string))
-                  ((not (conforms-to? value-type name-type)) (tc-error "assigning value of nonconforming type ~a to var of type ~a"
-                                                                       (send value-type readable-name)
-                                                                       (send name-type readable-name)))
+                  ((not (conforms-to? value-type name-type))
+                   (tc-error "assigning value of nonconforming type ~a to var of type ~a"
+                             (send value-type readable-name)
+                             (send name-type readable-name)))
                   (else 'success))))
              ((grace:member? (unwrap name))
               (display "here")
               (displayln (unwrap name))
-              ;(display (format "selftype methods: ~a\n" (map (lambda (x) (get-field name x)) (get-field methods (selftype)))))
               (let* ([member-op
                       (find-method-in
                        (format "~a:=" (grace:identifier-value (grace:member-name (unwrap name))) )
@@ -369,10 +371,10 @@
            (cond
              ((false? (current-return-type)) (tc-error
                                               "return statement with no surrounding method"))
-             ((not (conforms-to? value-type (current-return-type))) (tc-error
-                                                                     "returning type ~a from method of return type ~a"
-                                                                     (send value-type readable-name)
-                                                                     (send (current-return-type) readable-name)))
+             ((not (conforms-to? value-type (current-return-type)))
+              (tc-error "returning type ~a from method of return type ~a"
+                        (send value-type readable-name)
+                        (send (current-return-type) readable-name)))
              ;; types are equal
              (else 'success))))
         ;; TODO: index, op, if, while
@@ -402,14 +404,16 @@
                     (void ))
                 (if (is-object?)
                     (begin (set-type name-string type-type)
-                           (add-method-to-selftype (new grace:type:method%
-                                                        [name name-string]
-                                                        [signature (list)]
-                                                        [rtype type-type]))
-                           (add-method-to-selftype (new grace:type:method%
-                                                        [name (format "~a:=" name-string)]
-                                                        [signature (list (same-other (resolve-identifier type)))]
-                                                        [rtype type-type])))
+                           (add-method-to-selftype
+                             (new grace:type:method%
+                                  [name name-string]
+                                  [signature (list)]
+                                  [rtype type-type]))
+                           (add-method-to-selftype
+                             (new grace:type:method%
+                                  [name (format "~a:=" name-string)]
+                                  [signature (list (same-other (resolve-identifier type)))]
+                                  [rtype type-type])))
                     (set-type name-string type-type)))))
            ((grace:def-decl name type value)
             (let* ([name-string (grace:identifier-value (syntax->datum name))]
