@@ -46,6 +46,7 @@
 (define dynamic-identifier (grace:identifier "Dynamic" #f))
 (define list-identifier (grace:identifier "List" #f))
 (define void-identifier (grace:identifier "Void" #f))
+(define done-identifier (grace:identifier "Done" #f))
 
 (define number-other (grace:identifier "other" number-identifier))
 (define boolean-othter (grace:identifier "other" boolean-identifier))
@@ -116,7 +117,7 @@
     (new grace:type:method%
          [name 'print]
          [signature (list string-other)]
-         [rtype void-identifier])))
+         [rtype done-identifier])))
 
 (define grace:type%
   (class* object% (grace:type<%> equal<%>)
