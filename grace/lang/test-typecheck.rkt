@@ -8,6 +8,8 @@
 
 (define a (p (open-input-string "
 var b := object {
+    var a := \"Hello\"
+
     method foo() -> Number {
         print(\"Hello\")
         4
