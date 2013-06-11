@@ -173,6 +173,11 @@
      ; =>
      (void)]))
 
+;;TODO: Wrap vars in parens when passed in as parameters to a method:
+;;i.e. ((send2 self print) (y)) instead of ((send2 self print) y) 
+;;to print the value of y
+
+;;TODO: Deal with newlines somehow so they are ignored rather than gumming things up
 (define (AST-to-RG elt)
   (if (syntax? elt)
       (parameterize ((stx elt))
@@ -183,26 +188,67 @@
                 (map AST-to-RG elt)
                 (print (length elt))))
           (match elt
-            ((grace:code-seq num) (AST-to-RG (cdr (syntax->datum num))))
-            ((grace:object body) (print "body") (print  body) (string-append "(objectC () ()" (foldr string-append " "(AST-to-RG body)) ")"))
-            ;(cadr )
+            ('() (print "found it"))
+            ((grace:code-seq num) (map AST-to-RG (syntax->datum num)))
+            ((grace:object body) 
+             (string-append "(objectC (" (car (extract-vardecs body)) ") (" (car (extract-methods body))")" "(begin (list"(foldr string-append ""(all-but-methods-vars body)) ")))"))
             ((grace:method name signature body type) 
              (string-append 
               "(" (AST-to-RG name) "(lambda (" 
               (foldr string-append ") " (map (lambda (x) (string-append " " x)) (AST-to-RG signature)))
-              (car (AST-to-RG body))))
+              (car (AST-to-RG body)) "))"))
             ((grace:method-call name args) (string-append "((send2 self " (AST-to-RG name) ") " (AST-to-RG (car args)) ")"))
-            ;((grace:method-call name args) (print (car (AST-to-RG args)))) 
             ((grace:identifier value type) value)
+            ((grace:var-decl name type value) (string-append "(" (AST-to-RG name) " " (AST-to-RG value) ")"))
             ((grace:str str) (string-append "\"" str "\""))
-            (else (print elt))))))
+            ((grace:number num) (number->string num))
+            (else (print "elt"))))))
+
+(define (extract-methods elt)
+  (if (syntax? elt)
+      (parameterize ((stx elt))
+        (extract-methods (syntax-e elt)))
+      (if (list? elt)
+          (begin
+            (if (eq? 1 1)
+                (map extract-methods elt)
+                (print (length elt))))
+          (match elt
+            ((grace:method name signature body type) (AST-to-RG elt))
+          (else "")))))
+(define (all-but-methods-vars elt)
+    (if (syntax? elt)
+      (parameterize ((stx elt))
+        (all-but-methods-vars(syntax-e elt)))
+      (if (list? elt)
+          (begin
+            (if (eq? 1 1)
+                (map all-but-methods-vars elt)
+                (print elt)))
+          (match elt
+            ((grace:method name signature body type) "  ")
+            ((grace:var-decl name type value) "  ")
+            (else (AST-to-RG elt))))))
+
+(define (extract-vardecs elt)
+  (if (syntax? elt)
+      (parameterize ((stx elt))
+        (extract-vardecs (syntax-e elt)))
+      (if (list? elt)
+          (begin
+            (if (eq? 1 1)
+                (map extract-vardecs elt)
+                (print (length elt))))
+          (match elt
+            ((grace:var-decl name type value) (AST-to-RG elt))
+          (else "")))))
 (define (p in) (parse (object-name in) in))
-(define a (p (open-input-string "
-object{ method foo(x, y) {
+(define a (p (open-input-string " object{ var y:= 2
+print(\"Hello, World!\")
 print(y)
 }
-}
 ")))
+;(print (syntax-e a))
 (print (AST-to-RG (syntax-e a)))
 ;(display (syntax->datum a))
 ;(map (lambda (x) (test-eval x (env-initial))) (syntax->list (grace:code-seq-code (syntax-e a))))
