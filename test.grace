@@ -9,7 +9,8 @@ type Object_3 = {
 }
 
 var obj := object {
-	method foo() -> String {
+	method foo(x : Number, y : String, z : Boolean) -> String {
+	        var w := z
             print("World")
 		return "Hello"
 	}
@@ -21,6 +22,9 @@ self.print("hello")
 
 method foo() -> String {
 	"Hello"
+}
+method bar(z : Number) {
+	foo()
 }
 
 //var d := object {

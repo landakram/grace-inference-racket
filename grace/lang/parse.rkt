@@ -48,7 +48,7 @@
     (code
      ((method-declaration) $1)
      ((statement) $1)
-     ((NEWLINE) empty))
+     ((NEWLINE) (void)))
 
     (statement
      ((declaration NEWLINE) $1)
@@ -142,7 +142,7 @@
 
     (method-body
      ((statement method-body) (cons $1 $2))
-     ((NEWLINE) empty)
+     ((NEWLINE) (void))
      ((NEWLINE method-body) $2)
      ((statement) (list $1)))
 
@@ -239,8 +239,8 @@
      ((_code-sequence) $1))
 
     (possibly-newline
-     ((NEWLINE) null)
-     (() null)))))
+     ((NEWLINE) (void))
+     (() (void))))))
 
 
 ;To test lexing and parsing without typechecking, copy your program into

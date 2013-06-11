@@ -826,20 +826,21 @@
 
 ;; @@@@@ DEBUGGING CODE @@@@@
 ;; @@@@@ FIXME: REMOVE  @@@@@
-(define (p in)
-  (parse (object-name in) in))
-
-(define a (p (open-input-string "
-var a := object {
-	var b := 4
-	
-	method foo -> Number {
-		return b
-	}
-}
-
-var c := a.foo
-")))
-
-(display
-  (typecheck a))
+;(define (p in)
+;  (parse (object-name in) in))
+;
+;(define a (p (open-input-string "
+;var a := object {
+;	var b := 4
+;	
+;	method foo(x : String, y : Number) -> Number {
+;           var c := y
+;		return b
+;	}
+;}
+;
+;var c := a.foo
+;")))
+;
+;(display
+;  (typecheck a))
