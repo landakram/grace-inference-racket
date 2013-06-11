@@ -88,13 +88,13 @@
     ;all the math ones will need to extract values out of new number objects and then call primitive version rather than being in current form
     '(+  -  /  *  %   <= >= eq? void  print  newline string-append cons list eval false? number->string null list? == 
          prnt)
-    (map (lambda (s) (list 'primitive s))
-         `(,+ ,- ,/ ,* ,modulo ,<= ,>= ,eq? ,void ,print ,newline ,string-append ,cons ,list ,eval ,false? ,number->string ,null ,list? ,equal? 
-              ,(lambda (x) (match x 
-                             ;if x is an object, check if it has an asString method defined, and call that
-                             ;ideally, all objects will have asString defined
-                             [(? box?) (if (hash-has-key? (unbox x) 'asString) (begin (display (eval `asString x)) (newline)) (begin (display x) (newline)))]
-                             [any (begin (display x) (newline))])))))
+    
+    `(,+ ,- ,/ ,* ,modulo ,<= ,>= ,eq? ,void ,print ,newline ,string-append ,cons ,list ,eval ,false? ,number->string ,null ,list? ,equal? 
+         ,(lambda (x) (match x 
+                        ;if x is an object, check if it has an asString method defined, and call that
+                        ;ideally, all objects will have asString defined
+                        [(? box?) (if (hash-has-key? (unbox x) 'asString) (begin (display (eval `asString x)) (newline)) (begin (display x) (newline)))]
+                        [any (begin (display x) (newline))]))))
    ;next, extends environment further to add tru and fals objects
    ;naming is intentional to avoid any confusion with primitive true and false but should be changeable without causing any issues.
    ;The only thing users should see is the asString method, so it may be fine as-is.
@@ -111,6 +111,7 @@
 
 ; looks up a value:
 (define (env-lookup env var)
+  (print "looking up")
   (match (hash-ref (unbox env) var)
     [(? cell?)  
      (cell-value (hash-ref (unbox env) var))]
@@ -173,6 +174,23 @@
      ; =>
      (void)]))
 
+(define env-reverse 
+  (env-extend* 
+   (box (env-empty))
+   ;first takes a whole list of primitives and binds them to racket equivalents
+   ;many of these will need to be replaced: all the math ones will need to extract values out of new number objects
+   ;and then call primitive version rather than being in current form
+   `(,+ ,- ,/ ,* ,modulo ,<= ,>= ,eq? ,void ,display ,newline ,string-append ,cons ,list ,eval ,false? ,number->string ,null ,list? ,equal? 
+        ,(lambda (x) (match x 
+                       ;if x is an object, check if it has an asString method defined, and call that
+                       ;ideally, all objects will have asString defined
+                       [(? box?) (if (hash-has-key? (unbox x) 'asString) (begin (display (eval `asString x)) (newline)) (begin (display x) (newline)))]
+                       [any (begin (display x) (newline))])))
+   (map (lambda (s) (list 'primitive s))
+        '(+ -  /  *  %   <= >= eq? void  display  newline string-append cons list eval false? number->string null list? == 
+            print)
+        )))
+
 ;;TODO: Wrap vars in parens when passed in as parameters to a method:
 ;;i.e. ((send2 self print) (y)) instead of ((send2 self print) y) 
 ;;to print the value of y
@@ -202,6 +220,9 @@
             ((grace:var-decl name type value) (string-append "(" (AST-to-RG name) " " (AST-to-RG value) ")"))
             ((grace:str str) (string-append "\"" str "\""))
             ((grace:number num) (number->string num))
+            ((grace:expression op e1 e2)
+             (string-append "(" (symbol->string (cadr (env-lookup env-reverse op)))
+                            " " (AST-to-RG e1) " " (AST-to-RG e2) ")"))
             (else (print "elt"))))))
 
 (define (extract-methods elt)
@@ -215,9 +236,9 @@
                 (print (length elt))))
           (match elt
             ((grace:method name signature body type) (AST-to-RG elt))
-          (else "")))))
+            (else "")))))
 (define (all-but-methods-vars elt)
-    (if (syntax? elt)
+  (if (syntax? elt)
       (parameterize ((stx elt))
         (all-but-methods-vars(syntax-e elt)))
       (if (list? elt)
@@ -241,15 +262,15 @@
                 (print (length elt))))
           (match elt
             ((grace:var-decl name type value) (AST-to-RG elt))
-          (else "")))))
+            (else "")))))
 (define (p in) (parse (object-name in) in))
 
 (define a (p (open-input-string " object{ var y:= 2
 print(\"Hello, World!\")
-print(y)
+print(y+2)
 }
 ")))
-;(print (syntax-e a))
+;(print (syntax->datum a))
 (print (AST-to-RG (syntax-e a)))
 ;(display (syntax->datum a))
 ;(map (lambda (x) (test-eval x (env-initial))) (syntax->list (grace:code-seq-code (syntax-e a))))
