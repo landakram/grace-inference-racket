@@ -572,7 +572,7 @@
          [member-op (find-method-in name-string parent)])
     (if (check-if-dynamic parent)
         ; Returns dynamic if the parent is dynamic.
-        (parent-type)
+        parent-type
         (if member-op
             ; Get the return type of the method if it exists.
             (get-field rtype member-op)
@@ -830,16 +830,15 @@
   (parse (object-name in) in))
 
 (define a (p (open-input-string "
-var b := object {
-    var a := \"Hello\"
-
-    method foo() -> Number {
-        print(\"Hello\")
-        4
-    }
+var a := object {
+	var b := 4
+	
+	method foo -> Number {
+		return b
+	}
 }
 
-print(b.foo())
+var c := a.foo
 ")))
 
 (display
