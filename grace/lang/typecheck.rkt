@@ -183,7 +183,7 @@
             ; Setter.
             (add-method-to-selftype
              (new grace:type:method%
-                  [name (format "~a:=" name-string)]
+                  [name (string->symbol (format "~a:=" name-string))]
                   [signature (list (same-other (resolve-identifier type)))]
                   [rtype type-type])))
           (void))
@@ -290,7 +290,7 @@
         ; For a variable declaration, check the declared type, if any, against
         ; the type of the expression given by value.
         ((grace:var-decl name type value)
-         (resolve-declaration "var " name type value))
+         (resolve-declaration "var" name type value))
         
         ; For a constant declaration, check the declared type, if any, against
         ; the type of the expression given by value.
@@ -298,7 +298,7 @@
         ; TODO: Make sure this and the var-decl work properly and clean it up.
         ; @@@@@
         ((grace:def-decl name type value)
-         (resolve-declaration "def " name type value))
+         (resolve-declaration "def" name type value))
         
         ; For a return statement, check its type against specified return type.
         ((grace:return value)
@@ -680,7 +680,8 @@
                        [rtype (resolve-identifier type)])
                   (new grace:type:method%
                        [name (string->symbol (format "~a:=" name-string))]
-                       [signature (list)]
+                       [signature (list (same-other (resolve-identifier type)))]
+                       ;[signature (list)]
                        [rtype (resolve-identifier type)])))))
         
         ; A method declaration is added to the method list.
@@ -826,27 +827,21 @@
 
 ;; @@@@@ DEBUGGING CODE @@@@@
 ;; @@@@@ FIXME: REMOVE  @@@@@
-(define (p in)
-  (parse (object-name in) in))
-
-(define a (p (open-input-string "
-type Object_119 = {
-    b() -> Number
-    b:=() -> Number
-    foo(_ : Number, _ : String, _ : Boolean) -> String
-}
-
-var obj : Object_119 := object {
-    var b : Number := 2
-	method foo(x : Number, y : String, z : Boolean) -> String {
-	        var w : Boolean := z
-            print(\"World\")
-		return \"Hello\"
-	}
-}
-
-obj.foo(2, \"2\", true) 
-")))
-
-(display
-  (typecheck a))
+;(define (p in)
+;  (parse (object-name in) in))
+;
+;(define a (p (open-input-string "
+;var obj := object {
+;    var b : Number := 2
+;	method foo(x : Number, y : String, z : Boolean) -> String {
+;	        var w : Boolean := z
+;            print(\"World\")
+;		return \"Hello\"
+;	}
+;}
+;
+;obj.foo(2, \"2\", true) 
+;")))
+;
+;(display
+;  (typecheck a))

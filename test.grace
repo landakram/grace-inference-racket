@@ -8,13 +8,7 @@ type Object_3 = {
     c:=() -> Number
 }
 
-type Object_119 = {
-    b() -> Number
-    b:=() -> Number
-    foo(_ : Number, _ : String, _ : Boolean) -> String
-}
-
-var obj : Object_119 := object {
+var obj := object {
     var b : Number := 2
 	method foo(x : Number, y : String, z : Boolean) -> String {
 	        var w : Boolean := z
@@ -47,3 +41,5 @@ method bar(z : Number) {
 //var z := d.c
 
 //d+4
+
+//string::117: typecheck: initializing var  of type type Object_119 = { b() -> Number b:=() -> Number...#f) #s(grace:identifier "Number" #f) #s(grace:number 2)) #s(grace:method #s(grace:identifier "f...
