@@ -14,16 +14,26 @@
           (match elt
             ((grace:code-seq num) ; I don't think things will go here right now
              (begin (print "in codeseq")(test-eval (cdr (unwrap num)) env)))
+            ((grace:method name signature body type)
+             ;(test-eval body env)
+             ;(print `(,(test-eval body env)))
+             (env-lookup (env-extend* env `(,(test-eval name env)) `(,body)) 'foo)
+             )
             ((grace:number num)
              (print (syntax-e num)))
+            ((grace:var-decl iden bool val)
+             (eval-initvar (test-eval iden env) val env))
+            ((grace:identifier id bool)
+             (string->symbol (syntax->datum id)))
             ((grace:method-call method params)
              (match (get-method (syntax->datum method) env) 
                [`(primitive ,p)
                 ; =>
-                (apply p (test-eval params env))]))
+                (apply p (test-eval params env))]
+               (else (print (get-method (syntax->datum method))))))
             ((grace:str str)
              (syntax-e str))
-            (else (print "inelse")))))) ; I don't think things will go here right now
+            (else (print "inelse") (print elt)))))) ; I don't think things will go here right now
 
 (define (get-method elt env)
   (match elt
@@ -31,6 +41,33 @@
      (env-lookup env (string->symbol name)))))
 
 
+;This is the preferred way to initialize var objects
+;Makes a hidden var with the name $____, which should never be accessed by user 
+;(change encoding to use a char that can't be entered in Grace or to make hiddenvar inaccessible except by internal methods?)
+;Makes a method with same names as var that returns value of hiddenva
+;Makes a method with name ____:= that takes a value and sets hiddenvar to that value
+(define (eval-initvar var val env)
+  (let* ((hiddenvar (string->symbol (string-append "$" (symbol->string var))))
+         (readmethod var)
+         (modmethod (string->symbol (string-append (symbol->string var) ":=")))
+         (env0 (env-extend* env (list hiddenvar) (list val)))
+         (env1 (env-extend* env0 (list readmethod) (list (test-eval `(lambda () ,hiddenvar) env0))))
+         (env2 (env-extend* env1 (list modmethod) (list (test-eval `(lambda (x) (set! ,hiddenvar x)) env1)))))
+    env2))
+
+;Allows you to initialize a list of var objects.  Takes list of vars and list of initial values.
+(define (eval-initvar* objs vals env)
+  (match `(,objs ,vals)
+    [`((,o . ,objs) (,v . ,vals))
+     ;=>
+     (eval-initvar* objs vals (eval-initvar o v env))]
+    
+    
+    [`(() ())
+     ; =>
+     ;(display env)
+     ;(newline)
+     env]))
 
 
 ;; Environments map variables to mutable cells 
@@ -136,9 +173,83 @@
      ; =>
      (void)]))
 
-(define (p in) (parse (object-name in) in))
-(define a (p (open-input-string "
-print (\"Hello, World!\")
-")))
+;;TODO: Wrap vars in parens when passed in as parameters to a method:
+;;i.e. ((send2 self print) (y)) instead of ((send2 self print) y) 
+;;to print the value of y
 
-(map (lambda (x) (test-eval x (env-initial))) (syntax->list (grace:code-seq-code (syntax-e a)))) 
+;;TODO: Deal with newlines somehow so they are ignored rather than gumming things up
+(define (AST-to-RG elt)
+  (if (syntax? elt)
+      (parameterize ((stx elt))
+        (AST-to-RG (syntax-e elt)))
+      (if (list? elt)
+          (begin
+            (if (eq? 1 1)
+                (map AST-to-RG elt)
+                (print (length elt))))
+          (match elt
+            ('() (print "found it"))
+            ((grace:code-seq num) (map AST-to-RG (syntax->datum num)))
+            ((grace:object body) 
+             (string-append "(objectC (" (car (extract-vardecs body)) ") (" (car (extract-methods body))")" "(begin (list"(foldr string-append ""(all-but-methods-vars body)) ")))"))
+            ((grace:method name signature body type) 
+             (string-append 
+              "(" (AST-to-RG name) "(lambda (" 
+              (foldr string-append ") " (map (lambda (x) (string-append " " x)) (AST-to-RG signature)))
+              (car (AST-to-RG body)) "))"))
+            ((grace:method-call name args) (string-append "((send2 self " (AST-to-RG name) ") " (AST-to-RG (car args)) ")"))
+            ((grace:identifier value type) value)
+            ((grace:var-decl name type value) (string-append "(" (AST-to-RG name) " " (AST-to-RG value) ")"))
+            ((grace:str str) (string-append "\"" str "\""))
+            ((grace:number num) (number->string num))
+            (else (print "elt"))))))
+
+(define (extract-methods elt)
+  (if (syntax? elt)
+      (parameterize ((stx elt))
+        (extract-methods (syntax-e elt)))
+      (if (list? elt)
+          (begin
+            (if (eq? 1 1)
+                (map extract-methods elt)
+                (print (length elt))))
+          (match elt
+            ((grace:method name signature body type) (AST-to-RG elt))
+          (else "")))))
+(define (all-but-methods-vars elt)
+    (if (syntax? elt)
+      (parameterize ((stx elt))
+        (all-but-methods-vars(syntax-e elt)))
+      (if (list? elt)
+          (begin
+            (if (eq? 1 1)
+                (map all-but-methods-vars elt)
+                (print elt)))
+          (match elt
+            ((grace:method name signature body type) "  ")
+            ((grace:var-decl name type value) "  ")
+            (else (AST-to-RG elt))))))
+
+(define (extract-vardecs elt)
+  (if (syntax? elt)
+      (parameterize ((stx elt))
+        (extract-vardecs (syntax-e elt)))
+      (if (list? elt)
+          (begin
+            (if (eq? 1 1)
+                (map extract-vardecs elt)
+                (print (length elt))))
+          (match elt
+            ((grace:var-decl name type value) (AST-to-RG elt))
+          (else "")))))
+(define (p in) (parse (object-name in) in))
+
+(define a (p (open-input-string " object{ var y:= 2
+print(\"Hello, World!\")
+print(y)
+}
+")))
+;(print (syntax-e a))
+(print (AST-to-RG (syntax-e a)))
+;(display (syntax->datum a))
+;(map (lambda (x) (test-eval x (env-initial))) (syntax->list (grace:code-seq-code (syntax-e a))))
