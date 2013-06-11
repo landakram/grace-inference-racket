@@ -47,11 +47,12 @@
 (define list-identifier (grace:identifier "List" #f))
 (define void-identifier (grace:identifier "Void" #f))
 (define done-identifier (grace:identifier "Done" #f))
+(define top-identifier (grace:identifier "Top" #f))
 
 (define number-other (grace:identifier "other" number-identifier))
 (define boolean-othter (grace:identifier "other" boolean-identifier))
 (define string-other (grace:identifier "other" string-identifier))
-(define top-other (grace:identifier "other" dynamic-identifier))
+(define top-other (grace:identifier "other" top-identifier))
 (define list-other (grace:identifier "other" list-identifier))
 
 ;; Adds methods to a type where new-methods should be passed in as a (list ...)
@@ -211,12 +212,12 @@
 
     (new grace:type:method%
          [name equal?]
-         [signature (list number-other)]
-         [rtype top-other])
+         [signature (list top-other)]
+         [rtype boolean-identifier])
     (new grace:type:method%
          [name 'not]
          [signature (list number-other)]
-         [rtype top-other])
+         [rtype boolean-identifier])
     (new grace:type:method%
          [name <]
          [signature (list number-other)]
@@ -293,5 +294,13 @@
     (inherit-field methods)
     (define/override (internal-name)
       "Missing")))
+
+
+(define grace:type:top%
+  (class* grace:type% ()
+    (super-new)
+    (inherit-field methods)
+    (define/override (readable-name)
+      "Top")))
 
 (provide (all-defined-out))

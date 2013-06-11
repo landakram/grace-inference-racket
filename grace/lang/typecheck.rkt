@@ -104,6 +104,7 @@
     (set-type "Object"  (new grace:type:object% [internal-name "Object"]))
     (set-type "true"    (new grace:type:boolean%))
     (set-type "false"   (new grace:type:boolean%))
+    (set-type "Top"     (new grace:type:top%))
     (set-type "self"    (selftype))
     
     ; Resolve types in the program.
@@ -446,13 +447,15 @@
 ;; 'conforming-type' is of the same type or a subtype of 'type'.
 (define (conforms-to? conforming-type type)
   (let* ([dynamic-type (new grace:type:dynamic%)]
-         [missing-type (new grace:type:dynamic*%)]) ;FIXME
+         [missing-type (new grace:type:dynamic*%)]
+         [top-type (new grace:type:top%)]) ;FIXME
     (cond
       ((equal? type dynamic-type) #t)
       ((equal? type missing-type) #t)
       ((equal? conforming-type dynamic-type) #t)
       ((equal? conforming-type missing-type) #t)
       ((equal? conforming-type type) #t)
+      ((equal? type top-type) #t)
       
       ; @@@@@ TODO: Subtyping, etc. @@@@@
       
@@ -511,6 +514,7 @@
         ; For an if-then statement, make sure the condition is a boolean.
         ((grace:if-then condition body)
          (let* ([cond-type (expression-type condition)])
+           (displayln condition)
            (unless (conforms-to? cond-type (new grace:type:boolean%))
              (tc-error "if-then takes boolean but got ~a"
                        (send cond-type readable-name)))))
@@ -621,7 +625,7 @@
                               [arg-type (expression-type arg)])
                          
                          ; If they don't match up, error.
-                         (unless (conforms-to? param-type arg-type)
+                         (unless (conforms-to? arg-type param-type)
                            (tc-error
                             "argument in ~a must be of type ~a, given ~a"
                             name-string
@@ -829,21 +833,14 @@
 
 ;; @@@@@ DEBUGGING CODE @@@@@
 ;; @@@@@ FIXME: REMOVE  @@@@@
-;(define (p in)
-;  (parse (object-name in) in))
-;
-;(define a (p (open-input-string "
-;var obj := object {
-;    var b : Number := 2
-;	method foo(x : Number, y : String, z : Boolean) -> String {
-;	        var w : Boolean := z
-;            print(\"World\")
-;		return \"Hello\"
-;	}
-;}
-;
-;obj.foo(2, \"2\", true) 
-;")))
-;
-;(display
-;  (typecheck a))
+(define (p in)
+  (parse (object-name in) in))
+
+(define a (p (open-input-string "
+if (2 > 1) then { 
+                2 
+                 }
+")))
+
+(display
+  (typecheck a))
