@@ -68,7 +68,8 @@
                       my-whitespace))))
 
   (identifier
-    (:: letter (:* (:or letter digit #\_ #\?))))
+    (:or (:: letter (:* (:or letter digit #\_ #\?)))
+         (:: #\_)))
 
   (keyword
     (:or "object" "method" "var" "type" "import" "class"

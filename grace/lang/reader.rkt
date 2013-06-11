@@ -23,7 +23,7 @@
                    'anonymous)])
     (define datum (syntax->datum stx))
     (define env (typecheck stx))
-    (display (list? env))
+    ;(display (list? env))
     (datum->syntax #f `(module ,name racket 
                          (provide st env)
                          (require grace/lang/ast)

@@ -46,6 +46,7 @@
 (define dynamic-identifier (grace:identifier "Dynamic" #f))
 (define list-identifier (grace:identifier "List" #f))
 (define void-identifier (grace:identifier "Void" #f))
+(define done-identifier (grace:identifier "Done" #f))
 
 (define number-other (grace:identifier "other" number-identifier))
 (define boolean-othter (grace:identifier "other" boolean-identifier))
@@ -76,29 +77,46 @@
     (define/public (readable-signature)
       (define o (open-output-string))
       (display (format "~a(" name) o)
-      (for ([t signature])
-        (define unwrapped (unwrap t))
-        (display t)
+      ;(displayln signature) ; TODO REMOVE
+      (for ([i (in-range (length signature))])
+        (define t (list-ref signature i))
+        (define unwrapped (grace:identifier-type (unwrap t)))
+        ;(displayln t)
         (define type-name
-          (cond ((equal? unwrapped 'missing) "Dynamic")
+          (cond ((equal? unwrapped 'missing) "Dyanmic")
                 ((grace:identifier? unwrapped)
                  (grace:identifier-value unwrapped))
                 ((is-a? unwrapped grace:type%)
                  (send unwrapped readable-name))))
+        (if (equal? i (- (length signature) 1))
+            (display (format "_ : ~a" type-name) o)
+            (display (format "_ : ~a, " type-name) o)))
+                
+      ;(for ([t signature])
+      ;  (define unwrapped (grace:identifier-type (unwrap t)))
+      ;  (displayln t)
+      ;  (define type-name
+      ;    (cond ((equal? unwrapped 'missing) "Dynamic")
+      ;          ((grace:identifier? unwrapped)
+      ;           (grace:identifier-value unwrapped))
+      ;          ((is-a? unwrapped grace:type%)
+      ;           (send unwrapped readable-name))))
+      ;  (display (format "_ : ~a"
+      ;                   type-name) o))
 
-        (display (format "~a : ~a"
-                         (grace:identifier-value unwrapped)
-                         type-name)))
+        ;(display (format "~a : ~a, "
+        ;                 (grace:identifier-value unwrapped)
+        ;                 type-name)))
       (display (format ") -> ~a" (rtype-name))  o)
       (get-output-string o))
 
     (define/public (equal-to? other recur)
-      (displayln "******")
-      (displayln name)
-      (displayln (get-field name other))
-      (displayln signature)
-      (displayln (get-field signature other))
-      (displayln "******")
+      ;(displayln "******")
+      ;(displayln name)
+      ;(displayln (get-field name other))
+      ;(displayln signature)
+      ;(displayln (get-field signature other))
+      ;(displayln "******")
       (and
        (recur name (get-field name other))
        (recur (readable-signature) (send other readable-signature))
@@ -116,7 +134,7 @@
     (new grace:type:method%
          [name 'print]
          [signature (list string-other)]
-         [rtype void-identifier])))
+         [rtype done-identifier])))
 
 (define grace:type%
   (class* object% (grace:type<%> equal<%>)
@@ -148,6 +166,8 @@
       (define o (open-output-string))
       (displayln (format "type ~a = {" internal-name) o)
       (for ([method methods])
+        (displayln method) ; TODO REMOVE
+        (displayln (send method readable-signature))
         (displayln (format "    ~a" (send method readable-signature)) o))
       (displayln "}" o)
       (get-output-string o))

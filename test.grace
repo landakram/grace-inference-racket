@@ -9,18 +9,23 @@ type Object_3 = {
 }
 
 var obj := object {
-	method foo() -> String {
+    var b : Number := 2
+	method foo(x : Number, y : String, z : Boolean) -> String {
+	        var w : Boolean := z
             print("World")
 		return "Hello"
 	}
 }
 
-obj.foo()
+obj.foo(2, "2", true) // TODO FIGURE OUT IN TYPECHECKER WHY APPEND IS NOT GETTING A LIST (LOOK AT BODY-STMT-TO-...)
 
 self.print("hello")
 
 method foo() -> String {
 	"Hello"
+}
+method bar(z : Number) {
+	foo()
 }
 
 //var d := object {
@@ -36,3 +41,5 @@ method foo() -> String {
 //var z := d.c
 
 //d+4
+
+//string::117: typecheck: initializing var  of type type Object_119 = { b() -> Number b:=() -> Number...#f) #s(grace:identifier "Number" #f) #s(grace:number 2)) #s(grace:method #s(grace:identifier "f...
