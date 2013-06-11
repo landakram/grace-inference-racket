@@ -28,6 +28,8 @@ method bar(z : Number) {
 	foo()
 }
 
+var a : Dynamic := 2
+
 //var d := object {
 //    var a : Number := 4
 //    method bar()-> Number {

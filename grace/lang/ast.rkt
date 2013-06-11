@@ -279,10 +279,19 @@
     (super-new)
     (inherit-field methods)
     (define/override (readable-name)
-      "Dynamic")))
+      "Dynamic")
+    (define/public (internal-name)
+      "Dynamic")
+    (define/override (equal-to? other recur)
+      (if (recur (send other readable-name) "Dynamic")
+          (recur (send other internal-name) (internal-name))
+          #f))))
 
 (define grace:type:dynamic*%
   (class* grace:type:dynamic% ()
-    (super-new)))
+    (super-new)
+    (inherit-field methods)
+    (define/override (internal-name)
+      "Missing")))
 
 (provide (all-defined-out))
