@@ -281,4 +281,8 @@
     (define/override (readable-name)
       "Dynamic")))
 
+(define grace:type:dynamic*%
+  (class* grace:type:dynamic% ()
+    (super-new)))
+
 (provide (all-defined-out))

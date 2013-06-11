@@ -166,9 +166,9 @@
   (let* ([name-string (grace:identifier-value (syntax->datum name))]
          [type-type   (resolve-identifier type)])
     (begin
-      (if (equal? type-type 'missing)
-          (set! type-type (new grace:type:dynamic%))
-          (void))
+;      (if (equal? type-type 'missing)
+;          (set! type-type (new grace:type:dynamic%))
+;          (void))
       
       ; If we are in the scope of an object, add getter and setter.
       (if (in-object?)
@@ -311,7 +311,8 @@
 ;; Returns missing if the identifier is nil.
 (define (resolve-identifier ident)
   (if (false? (unwrap ident))
-      'missing
+      ;'missing ;FIXME
+      (new grace:type:dynamic*%)
       (get-type (grace:identifier-value (unwrap ident)))))
 
 
@@ -444,12 +445,13 @@
 ;; Returns true if the two types conform, meaning one is dynamic, or that
 ;; 'conforming-type' is of the same type or a subtype of 'type'.
 (define (conforms-to? conforming-type type)
-  (let* ([dynamic-type (new grace:type:dynamic%)])
+  (let* ([dynamic-type (new grace:type:dynamic%)]
+         [missing-type (new grace:type:dynamic*%)]) ;FIXME
     (cond
       ((equal? type dynamic-type) #t)
-      ((equal? type 'missing) #t)
+      ((equal? type missing-type) #t)
       ((equal? conforming-type dynamic-type) #t)
-      ((equal? conforming-type 'missing) #t)
+      ((equal? conforming-type missing-type) #t)
       ((equal? conforming-type type) #t)
       
       ; @@@@@ TODO: Subtyping, etc. @@@@@
@@ -760,7 +762,7 @@
       (set! annotation-string (get-field internal-name existing-type))))
   
   ; If the type of the variable was not given, add it to our inference list.
-  (when (equal? var-type 'missing)
+  (when (equal? var-type (new grace:type:dynamic*%))
     (set! inference-list
           (append inference-list
                   (list (list start

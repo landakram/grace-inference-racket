@@ -8,13 +8,7 @@ type Object_3 = {
     c:=() -> Number
 }
 
-type Object_119 = {
-    b() -> Number
-    b:=(_ : Number) -> Done
-    foo(_ : Number, _ : String, _ : Boolean) -> String
-}
-
-var obj : Object_119 := object {
+var obj := object {
     var b : Number := 2
 	method foo(x : Number, y : String, z : Boolean) -> String {
 	        var w : Boolean := z
@@ -23,7 +17,7 @@ var obj : Object_119 := object {
 	}
 }
 
-obj.foo(2, "2", true)
+obj.foo(2, "2", true) // TODO FIGURE OUT IN TYPECHECKER WHY APPEND IS NOT GETTING A LIST (LOOK AT BODY-STMT-TO-...)
 
 self.print("hello")
 
