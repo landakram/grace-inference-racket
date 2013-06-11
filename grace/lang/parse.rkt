@@ -199,7 +199,7 @@
      ((LPAREN RPAREN) empty))
 
     (method-list
-     ((expression COMMA method-list) (append $1 $3))
+     ((expression COMMA method-list) (append (list $1) $3))
      ((expression) (list $1)))
 
     (term ((NUM) (at-src (grace:number $1)))
@@ -248,3 +248,27 @@
 ;(define (p in) (parse (object-name in) in))
 ;(define a (p (open-input-string "if (true) then (var z := 4 \n)\n")))
 ;(display a)
+
+;; @@@@@ DEBUGGING CODE @@@@@
+
+;(define (p in)
+;  (parse (object-name in) in))
+;
+;(define a (p (open-input-string "
+;type Object_119 = {
+;    b() -> Number
+;    b:=() -> Number
+;    foo(_ : Number, _ : String, _ : Boolean) -> String
+;}
+;
+;var obj : Object_119 := object {
+;    var b : Number := 2
+;	method foo(x : Number, y : String, z : Boolean) -> String {
+;	        var w : Boolean := z
+;            print(\"World\")
+;		return \"Hello\"
+;	}
+;}
+;
+;obj.foo(2, \"2\", true) 
+;")))

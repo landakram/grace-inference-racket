@@ -615,7 +615,7 @@
                        (let* ([param-type (get-type
                                            (grace:identifier-value
                                             (grace:identifier-type
-                                             param)))]
+                                             (unwrap param))))]
                               [arg-type (expression-type arg)])
                          
                          ; If they don't match up, error.
@@ -756,7 +756,7 @@
     ; Don't decalre the type again, and annotate using the existing type.
     (when existing-type
       (set! typedef-string "")
-      (set! annotation-string (get-field intername-name existing-type))))
+      (set! annotation-string (get-field internal-name existing-type))))
   
   ; If the type of the variable was not given, add it to our inference list.
   (when (equal? var-type 'missing)
@@ -826,21 +826,27 @@
 
 ;; @@@@@ DEBUGGING CODE @@@@@
 ;; @@@@@ FIXME: REMOVE  @@@@@
-;(define (p in)
-;  (parse (object-name in) in))
-;
-;(define a (p (open-input-string "
-;var a := object {
-;	var b := 4
-;	
-;	method foo(x : String, y : Number) -> Number {
-;           var c := y
-;		return b
-;	}
-;}
-;
-;var c := a.foo
-;")))
-;
-;(display
-;  (typecheck a))
+(define (p in)
+  (parse (object-name in) in))
+
+(define a (p (open-input-string "
+type Object_119 = {
+    b() -> Number
+    b:=() -> Number
+    foo(_ : Number, _ : String, _ : Boolean) -> String
+}
+
+var obj : Object_119 := object {
+    var b : Number := 2
+	method foo(x : Number, y : String, z : Boolean) -> String {
+	        var w : Boolean := z
+            print(\"World\")
+		return \"Hello\"
+	}
+}
+
+obj.foo(2, \"2\", true) 
+")))
+
+(display
+  (typecheck a))
