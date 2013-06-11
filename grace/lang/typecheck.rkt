@@ -185,7 +185,7 @@
              (new grace:type:method%
                   [name (string->symbol (format "~a:=" name-string))]
                   [signature (list (same-other (resolve-identifier type)))]
-                  [rtype type-type])))
+                  [rtype (get-type "Done")])))
           (void))
       
       ; Set the type of the variable in the environment
@@ -290,7 +290,7 @@
         ; For a variable declaration, check the declared type, if any, against
         ; the type of the expression given by value.
         ((grace:var-decl name type value)
-         (resolve-declaration "var" name type value))
+         (resolve-declaration "var " name type value))
         
         ; For a constant declaration, check the declared type, if any, against
         ; the type of the expression given by value.
@@ -298,7 +298,7 @@
         ; TODO: Make sure this and the var-decl work properly and clean it up.
         ; @@@@@
         ((grace:def-decl name type value)
-         (resolve-declaration "def" name type value))
+         (resolve-declaration "def " name type value))
         
         ; For a return statement, check its type against specified return type.
         ((grace:return value)
@@ -413,7 +413,7 @@
     
     ;; Error if the declared type and the type of the value are not the same.
     (when (not (conforms-to? value-type type-type))
-      (tc-error "initializing ~a of type ~a with expression of type ~a"
+      (tc-error "initializing ~aof type ~a with expression of type ~a"
                 decl-type
                 (send type-type readable-name)
                 (send value-type readable-name)))))
@@ -682,7 +682,7 @@
                        [name (string->symbol (format "~a:=" name-string))]
                        [signature (list (same-other (resolve-identifier type)))]
                        ;[signature (list)]
-                       [rtype (resolve-identifier type)])))))
+                       [rtype (get-type "Done")])))))
         
         ; A method declaration is added to the method list.
         ((grace:method method-name signature body rtype)
