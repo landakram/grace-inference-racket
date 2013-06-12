@@ -157,29 +157,7 @@
             (add-method name signature body rtype))
            
            ((grace:class-decl name body)
-            (let* ([name-string (format "Class_~a" name)]
-                   ;[name-string (grace:identifier-value (unwrap name))]
-                   [obj-name (format "Object_~a" name)]
-                   [obj-methods (foldl
-                                 body-stmt-to-method-type
-                                 (list)
-                                 (unwrap-list body))]
-                   [obj-type (new grace:type:object%
-                                  [internal-name obj-name]
-                                  [methods obj-methods])]
-                   [class-type 
-                    (new grace:type:object%
-                         [internal-name name-string]
-                         [methods 
-                          (list (new grace:type:method%
-                                     [name 'new]
-                                     [signature (list)]
-                                     [rtype obj-type]))])])
-              (set-type obj-name obj-type)
-              (set-type name-string class-type)
-              ; FIXME
-              ;(set-type (grace:identifier-value (unwrap name)) class-type)
-              (add-var name (grace:identifier name-string class-type) class-type)))
+            (add-class name body))
            ;; TODO: TYPE actually needs to be the name of a type in the environment,
            ;; so here, we need to set the type in the environment so add-var and
            ;; eventually, resolve-identifier can find it.
@@ -246,6 +224,34 @@
 ;; Adds method to the selftype if inside object declaration.
 (define (add-method-to-selftype method)
   (set-field! methods (selftype) (cons method (get-field methods (selftype)))))
+
+
+;; Adds a class to the environment as an object type with a method called 'new'
+;; that returns an object as defined in the body.
+(define (add-class name body)
+  (let* ([name-string (format "Class_~a" name)]
+         ;[name-string (grace:identifier-value (unwrap name))]
+         [obj-name (format "Object_~a" name)]
+                   [obj-methods (foldl
+                                 body-stmt-to-method-type
+                                 (list)
+                                 (unwrap-list body))]
+                   [obj-type (new grace:type:object%
+                                  [internal-name obj-name]
+                                  [methods obj-methods])]
+                   [class-type 
+                    (new grace:type:object%
+                         [internal-name name-string]
+                         [methods 
+                          (list (new grace:type:method%
+                                     [name 'new]
+                                     [signature (list)]
+                                     [rtype obj-type]))])])
+    (set-type obj-name obj-type)
+    (set-type name-string class-type)
+              ; FIXME
+              ;(set-type (grace:identifier-value (unwrap name)) class-type)
+    (add-var name (grace:identifier name-string class-type) class-type)))
 
 
 ;; @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
@@ -851,19 +857,19 @@
 
 ;; @@@@@ DEBUGGING CODE @@@@@
 ;; @@@@@ FIXME: REMOVE  @@@@@
-(define (p in)
-  (parse (object-name in) in))
-
-(define a (p (open-input-string "
-var a := 2
-
-class foo {
-  var b := 2
-}
-
-var c := foo.new()
-//var c := hello
-")))
-
-(display (format "RETURN @@@@\n~a"
-                 (typecheck a)))
+;(define (p in)
+;  (parse (object-name in) in))
+;
+;(define a (p (open-input-string "
+;var a := 2
+;
+;class foo {
+;  var b := 2
+;}
+;
+;var c := foo.new()
+;//var c := hello
+;")))
+;
+;(display 
+; (typecheck a))
