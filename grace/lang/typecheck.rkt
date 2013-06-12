@@ -53,9 +53,8 @@
       ; Find a method that matches the name given.
       (findf (λ (a) (let* ([temp (get-field name a)])
                       ; Fix for when the method name was given as symbol.
-                      (if (symbol? temp)
-                          (set! temp (symbol->string temp))
-                          (void))
+                      (when (symbol? temp)
+                        (set! temp (symbol->string temp)))
                       (equal? temp name)))
              ; Check user-defined and builtin methods.
              (append (get-field builtins (expression-type parent))
@@ -98,8 +97,6 @@
     (set-type "List"    (new grace:type:list%))
     (set-type "Boolean" (new grace:type:boolean%))
     (set-type "Dynamic" (new grace:type:dynamic%))
-    ; @@@@@ TODO: VOID IS DEPRECATED, REPLACED BY DONE @@@@@
-    (set-type "Void"    (new grace:type:void%))
     (set-type "Done"    (new grace:type:done%))
     (set-type "Object"  (new grace:type:object% [internal-name "Object"]))
     (set-type "true"    (new grace:type:boolean%))
@@ -192,33 +189,27 @@
 
 ;; Adds a variable to the environment with given value.
 (define (add-var name type value)
-    (let* ([name-string (grace:identifier-value (syntax->datum name))]
+  (let* ([name-string (grace:identifier-value (syntax->datum name))]
          [type-type   (resolve-identifier type)])
-    (begin
-;      (if (equal? type-type 'missing)
-;          (set! type-type (new grace:type:dynamic%))
-;          (void))
+    ; If we are in the scope of an object, add getter and setter.
+    ; @@@@@ TODO: Only add setter if var is public @@@@@
+    (when (in-object?)
+      ; Getter.
+      (add-method-to-selftype
+       (new grace:type:method%
+            [name name-string]
+            [signature (list)]
+            [rtype type-type]))
       
-      ; If we are in the scope of an object, add getter and setter.
-      (if (in-object?)
-          (begin
-            ; Getter.
-            (add-method-to-selftype
-             (new grace:type:method%
-                  [name name-string]
-                  [signature (list)]
-                  [rtype type-type]))
-            
-            ; Setter.
-            (add-method-to-selftype
-             (new grace:type:method%
-                  [name (string->symbol (format "~a:=" name-string))]
-                  [signature (list (same-other (resolve-identifier type)))]
-                  [rtype (get-type "Done")])))
-          (void))
-      
-      ; Set the type of the variable in the environment
-      (set-type name-string type-type))))
+      ; Setter.
+      (add-method-to-selftype
+       (new grace:type:method%
+            [name (string->symbol (format "~a:=" name-string))]
+            [signature (list (same-other (resolve-identifier type)))]
+            [rtype (get-type "Done")])))
+    
+    ; Set the type of the variable in the environment
+    (set-type name-string type-type)))
 
 
 ;; Adds a definition to the environment with given value.
@@ -228,14 +219,13 @@
     
     ; Add a getter if in the scope of an object.
     ; @@@@@ TODO: Similar to above 'var', only add getter if public. @@@@@
-    (if (in-object?)
-        (begin
-          (add-method-to-selftype
-           (new grace:type:method%
-                [name name-string]
-                [signature (list type-type)]
-                [rtype type-type])))
-        (void))
+    (when (in-object?)
+      (begin
+        (add-method-to-selftype
+         (new grace:type:method%
+              [name name-string]
+              [signature (list type-type)]
+              [rtype type-type]))))
     
     ; Set the type of the constant in the environment
     (set-type name-string type-type)))
