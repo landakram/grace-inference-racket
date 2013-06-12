@@ -17,6 +17,10 @@ var obj := object {
 	}
 }
 
+if (2 == 2) then { 
+                2 
+                 }
+
 obj.foo(2, "2", true) // TODO FIGURE OUT IN TYPECHECKER WHY APPEND IS NOT GETTING A LIST (LOOK AT BODY-STMT-TO-...)
 
 self.print("hello")
@@ -29,6 +33,11 @@ method bar(z : Number) {
 }
 
 var a : Dynamic := 2
+
+class foo { 
+	var b := 2
+}
+
 
 //var d := object {
 //    var a : Number := 4

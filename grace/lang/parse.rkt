@@ -64,7 +64,8 @@
     (declaration
      ((var-declaration) $1)
      ((def-declaration) $1)
-     ((type-declaration) $1))
+     ((type-declaration) $1)
+     ((class-declaration) $1))
     
     (type-declaration
      ((TYPE identifier = LBRACE NEWLINE method-signatures RBRACE)
@@ -227,8 +228,11 @@
      ((IF LPAREN expression RPAREN THEN LBRACE if-body RBRACE)
       (at-src (grace:if-then $3 $7))))
     
-    ;(class-decl
-    ; ((CLASS identifier LBRACE class-body RBRACE)) (at-src (grace:object )))
+    (class-declaration
+     ((CLASS identifier LBRACE class-body RBRACE) (at-src (grace:class-decl $2 $4))))
+    
+    (class-body
+     ((_code-sequence) $1))
     
     (object-decl
      ((OBJECT LBRACE object-body RBRACE) (at-src (grace:object $3)))

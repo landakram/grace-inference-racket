@@ -37,6 +37,7 @@
   (member (parent name))
   (return (value))
   (if-then (check body))
+  (class-decl (name body))
 
   (code-seq (code)))
 

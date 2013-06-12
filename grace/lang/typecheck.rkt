@@ -159,6 +159,22 @@
            ((grace:method name signature body rtype)
             (add-method name signature body rtype))
            
+           ((grace:class-decl name body)
+            (let* ([class-type 
+                    (new grace:type:object%
+                         [internal-name (format "Class_~a" name)]
+                         [methods 
+                          (list (new grace:type:method%
+                                     [name 'new]
+                                     [signature (list)]
+                                     [rtype 
+                                      (expression-type
+                                       (grace:object body))]))])])
+              (add-var name class-type #f)))
+           ;; TODO: TYPE actually needs to be the name of a type in the environment,
+           ;; so here, we need to set the type in the environment so add-var and
+           ;; eventually, resolve-identifier can find it.
+           
            (else 'success))))))
 
 
@@ -837,9 +853,11 @@
   (parse (object-name in) in))
 
 (define a (p (open-input-string "
-if (2 > 1) then { 
-                2 
-                 }
+class foo {
+  var b := 2
+}
+
+var c := hello.new()
 ")))
 
 (display
