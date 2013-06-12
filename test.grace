@@ -8,8 +8,13 @@ type Object_3 = {
     c:=() -> Number
 }
 
-var obj := object {
-	method foo() -> String {
+type Object_119 = {
+    foo() -> String
+}
+
+var obj : Object_119 := object {
+	method foo(y : Dynamic, x) -> String {
+            var z := x
             print("World")
 		return "Hello"
 	}

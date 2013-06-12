@@ -47,7 +47,7 @@
   (match exp
     [(? symbol?)          (env-lookup env exp)]
     [(? number?)          exp] ;Replace this with a new structure that includes the number
-    [(? boolean?)         (print "bool")] ;should never be called because I've created my own tru and fals to replace racket #t and #f.  
+    [(? boolean?)         (print "bool") exp] ;should never be called because I've created my own tru and fals to replace racket #t and #f.  
     [(? string?)          exp] ;Replace this with a new structure that holds the string
     [(? hash?)            exp] ;Objects are represented as hash tables with all the primitive methods, and cells for each def, var, and method
     [(? box?)             exp] ;Boxes are containers used to hold hash tables.  
@@ -177,9 +177,12 @@
   (define methvals  (map (eval-with env4) methexps))
   (env-set!* env4 methvars methvals)
   (set-box! env1 (unbox env4))
+  (print fieldexps)
+  ;(print (map (eval-with env4) fieldexps))
   ;now, with methods defined, get proper values for fields and bind to those values
   (define fieldvals (map (eval-with env4) fieldexps))
   (env-Cset!* env4 fieldvars fieldvals)
+  (print ((car (map (eval-with env4) fieldvars))))
   ;then eval the body term
   (eval body env4)
   ;finally, return that environment as the representation of the given object
@@ -410,7 +413,7 @@
 
 ; looks up a value:
 (define (env-lookup env var)
-  (if (primitive? var) var 
+  (if (primitive? var) ((lambda (s) (list 'primitive s)) var) 
   (match (hash-ref (unbox env) var)
     [(? cell?)  
      (cell-value (hash-ref (unbox env) var))]
@@ -548,7 +551,11 @@
         '()
         (cons next (read-all)))))
 
+;Testing env-lookup
+;(print (env-lookup (env-initial) '+))
+
 ; read in a program, and evaluate:
 (eval-program (read-all))
- 
+
+
  

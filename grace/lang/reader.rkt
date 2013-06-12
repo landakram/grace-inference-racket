@@ -22,8 +22,11 @@
                       (path->string (path-replace-suffix name #""))))
                    'anonymous)])
     (define datum (syntax->datum stx))
+    (display (syntax->datum stx))
     (define env (typecheck stx))
-    (display (list? env))
+    (newline)
+    (display (first env))
+    ;(display (list? env))
     (datum->syntax #f `(module ,name racket 
                          (provide st env)
                          (require grace/lang/ast)

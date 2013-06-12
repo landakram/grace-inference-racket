@@ -111,7 +111,6 @@
 
 ; looks up a value:
 (define (env-lookup env var)
-  (print "looking up")
   (match (hash-ref (unbox env) var)
     [(? cell?)  
      (cell-value (hash-ref (unbox env) var))]
@@ -180,16 +179,9 @@
    ;first takes a whole list of primitives and binds them to racket equivalents
    ;many of these will need to be replaced: all the math ones will need to extract values out of new number objects
    ;and then call primitive version rather than being in current form
-   `(,+ ,- ,/ ,* ,modulo ,<= ,>= ,eq? ,void ,display ,newline ,string-append ,cons ,list ,eval ,false? ,number->string ,null ,list? ,equal? 
-        ,(lambda (x) (match x 
-                       ;if x is an object, check if it has an asString method defined, and call that
-                       ;ideally, all objects will have asString defined
-                       [(? box?) (if (hash-has-key? (unbox x) 'asString) (begin (display (eval `asString x)) (newline)) (begin (display x) (newline)))]
-                       [any (begin (display x) (newline))])))
+   `(,+ ,- ,/ ,* ,modulo ,<= ,>= ,eq? )
    (map (lambda (s) (list 'primitive s))
-        '(+ -  /  *  %   <= >= eq? void  display  newline string-append cons list eval false? number->string null list? == 
-            print)
-        )))
+        '(+ -  /  *  %   <= >= eq? ))))
 
 ;;TODO: Wrap vars in parens when passed in as parameters to a method:
 ;;i.e. ((send2 self print) (y)) instead of ((send2 self print) y) 
@@ -209,7 +201,10 @@
             ('() (print "found it"))
             ((grace:code-seq num) (map AST-to-RG (syntax->datum num)))
             ((grace:object body) 
-             (string-append "(objectC (" (car (extract-vardecs body)) ") (" (car (extract-methods body))")" "(begin (list"(foldr string-append ""(all-but-methods-vars body)) ")))"))
+             (string-append "(objectC (" (string-append* (extract-vardecs body)) ") ("
+                            (string-append* (extract-methods body))")" 
+                            "(begin (list"
+                            (foldr string-append "" (all-but-methods-vars body)) ")))"))
             ((grace:method name signature body type) 
              (string-append 
               "(" (AST-to-RG name) "(lambda (" 
@@ -225,6 +220,19 @@
                             " " (AST-to-RG e1) " " (AST-to-RG e2) ")"))
             (else (print "elt"))))))
 
+(define (wrap-idents elt)
+  (if (syntax? elt)
+      (parameterize ((stx elt))
+        (AST-to-RG (syntax-e elt)))
+      (if (list? elt)
+          (begin
+            (if (eq? 1 1)
+                (map AST-to-RG elt)
+                (print (length elt))))
+          (match elt
+            ((grace:identifier value type) (string-append "(" value ")"))
+            (else (AST-to-RG elt))))))
+          
 (define (extract-methods elt)
   (if (syntax? elt)
       (parameterize ((stx elt))
@@ -267,6 +275,7 @@
 
 (define a (p (open-input-string " object{ var y:= 2
 print(\"Hello, World!\")
+var x:=y
 print(y+2)
 }
 ")))
