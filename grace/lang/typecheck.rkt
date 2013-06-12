@@ -53,9 +53,8 @@
       ; Find a method that matches the name given.
       (findf (λ (a) (let* ([temp (get-field name a)])
                       ; Fix for when the method name was given as symbol.
-                      (if (symbol? temp)
-                          (set! temp (symbol->string temp))
-                          (void))
+                      (when (symbol? temp)
+                        (set! temp (symbol->string temp)))
                       (equal? temp name)))
              ; Check user-defined and builtin methods.
              (append (get-field builtins (expression-type parent))
@@ -98,12 +97,11 @@
     (set-type "List"    (new grace:type:list%))
     (set-type "Boolean" (new grace:type:boolean%))
     (set-type "Dynamic" (new grace:type:dynamic%))
-    ; @@@@@ TODO: VOID IS DEPRECATED, REPLACED BY DONE @@@@@
-    (set-type "Void"    (new grace:type:void%))
     (set-type "Done"    (new grace:type:done%))
     (set-type "Object"  (new grace:type:object% [internal-name "Object"]))
     (set-type "true"    (new grace:type:boolean%))
     (set-type "false"   (new grace:type:boolean%))
+    (set-type "Top"     (new grace:type:top%))
     (set-type "self"    (selftype))
     
     ; Resolve types in the program.
@@ -158,6 +156,12 @@
            ((grace:method name signature body rtype)
             (add-method name signature body rtype))
            
+           ((grace:class-decl name body)
+            (add-class name body))
+           ;; TODO: TYPE actually needs to be the name of a type in the environment,
+           ;; so here, we need to set the type in the environment so add-var and
+           ;; eventually, resolve-identifier can find it.
+           
            (else 'success))))))
 
 
@@ -165,31 +169,25 @@
 (define (add-var name type value)
   (let* ([name-string (grace:identifier-value (syntax->datum name))]
          [type-type   (resolve-identifier type)])
-    (begin
-      (if (equal? type-type 'missing)
-          (set! type-type (new grace:type:dynamic%))
-          (void))
+    ; If we are in the scope of an object, add getter and setter.
+    ; @@@@@ TODO: Only add setter if var is public @@@@@
+    (when (in-object?)
+      ; Getter.
+      (add-method-to-selftype
+       (new grace:type:method%
+            [name name-string]
+            [signature (list)]
+            [rtype type-type]))
       
-      ; If we are in the scope of an object, add getter and setter.
-      (if (in-object?)
-          (begin
-            ; Getter.
-            (add-method-to-selftype
-             (new grace:type:method%
-                  [name name-string]
-                  [signature (list)]
-                  [rtype type-type]))
-            
-            ; Setter.
-            (add-method-to-selftype
-             (new grace:type:method%
-                  [name (string->symbol (format "~a:=" name-string))]
-                  [signature (list (same-other (resolve-identifier type)))]
-                  [rtype (get-type "Done")])))
-          (void))
-      
-      ; Set the type of the variable in the environment
-      (set-type name-string type-type))))
+      ; Setter.
+      (add-method-to-selftype
+       (new grace:type:method%
+            [name (string->symbol (format "~a:=" name-string))]
+            [signature (list (same-other (resolve-identifier type)))]
+            [rtype (get-type "Done")])))
+    
+    ; Set the type of the variable in the environment
+    (set-type name-string type-type)))
 
 
 ;; Adds a definition to the environment with given value.
@@ -199,14 +197,13 @@
     
     ; Add a getter if in the scope of an object.
     ; @@@@@ TODO: Similar to above 'var', only add getter if public. @@@@@
-    (if (in-object?)
-        (begin
-          (add-method-to-selftype
-           (new grace:type:method%
-                [name name-string]
-                [signature (list type-type)]
-                [rtype type-type])))
-        (void))
+    (when (in-object?)
+      (begin
+        (add-method-to-selftype
+         (new grace:type:method%
+              [name name-string]
+              [signature (list type-type)]
+              [rtype type-type]))))
     
     ; Set the type of the constant in the environment
     (set-type name-string type-type)))
@@ -227,6 +224,34 @@
 ;; Adds method to the selftype if inside object declaration.
 (define (add-method-to-selftype method)
   (set-field! methods (selftype) (cons method (get-field methods (selftype)))))
+
+
+;; Adds a class to the environment as an object type with a method called 'new'
+;; that returns an object as defined in the body.
+(define (add-class name body)
+  (let* ([name-string (format "Class_~a" name)]
+         ;[name-string (grace:identifier-value (unwrap name))]
+         [obj-name (format "Object_~a" name)]
+                   [obj-methods (foldl
+                                 body-stmt-to-method-type
+                                 (list)
+                                 (unwrap-list body))]
+                   [obj-type (new grace:type:object%
+                                  [internal-name obj-name]
+                                  [methods obj-methods])]
+                   [class-type 
+                    (new grace:type:object%
+                         [internal-name name-string]
+                         [methods 
+                          (list (new grace:type:method%
+                                     [name 'new]
+                                     [signature (list)]
+                                     [rtype obj-type]))])])
+    (set-type obj-name obj-type)
+    (set-type name-string class-type)
+              ; FIXME
+              ;(set-type (grace:identifier-value (unwrap name)) class-type)
+    (add-var name (grace:identifier name-string class-type) class-type)))
 
 
 ;; @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
@@ -311,7 +336,8 @@
 ;; Returns missing if the identifier is nil.
 (define (resolve-identifier ident)
   (if (false? (unwrap ident))
-      'missing
+      ;'missing ;FIXME
+      (new grace:type:dynamic*%)
       (get-type (grace:identifier-value (unwrap ident)))))
 
 
@@ -444,13 +470,16 @@
 ;; Returns true if the two types conform, meaning one is dynamic, or that
 ;; 'conforming-type' is of the same type or a subtype of 'type'.
 (define (conforms-to? conforming-type type)
-  (let* ([dynamic-type (new grace:type:dynamic%)])
+  (let* ([dynamic-type (new grace:type:dynamic%)]
+         [missing-type (new grace:type:dynamic*%)]
+         [top-type (new grace:type:top%)]) ;FIXME
     (cond
       ((equal? type dynamic-type) #t)
-      ((equal? type 'missing) #t)
+      ((equal? type missing-type) #t)
       ((equal? conforming-type dynamic-type) #t)
-      ((equal? conforming-type 'missing) #t)
+      ((equal? conforming-type missing-type) #t)
       ((equal? conforming-type type) #t)
+      ((equal? type top-type) #t)
       
       ; @@@@@ TODO: Subtyping, etc. @@@@@
       
@@ -509,6 +538,7 @@
         ; For an if-then statement, make sure the condition is a boolean.
         ((grace:if-then condition body)
          (let* ([cond-type (expression-type condition)])
+           ;FIXME (displayln condition)
            (unless (conforms-to? cond-type (new grace:type:boolean%))
              (tc-error "if-then takes boolean but got ~a"
                        (send cond-type readable-name)))))
@@ -619,7 +649,7 @@
                               [arg-type (expression-type arg)])
                          
                          ; If they don't match up, error.
-                         (unless (conforms-to? param-type arg-type)
+                         (unless (conforms-to? arg-type param-type)
                            (tc-error
                             "argument in ~a must be of type ~a, given ~a"
                             name-string
@@ -760,7 +790,7 @@
       (set! annotation-string (get-field internal-name existing-type))))
   
   ; If the type of the variable was not given, add it to our inference list.
-  (when (equal? var-type 'missing)
+  (when (equal? var-type (new grace:type:dynamic*%))
     (set! inference-list
           (append inference-list
                   (list (list start
@@ -831,17 +861,15 @@
 ;  (parse (object-name in) in))
 ;
 ;(define a (p (open-input-string "
-;var obj := object {
-;    var b : Number := 2
-;	method foo(x : Number, y : String, z : Boolean) -> String {
-;	        var w : Boolean := z
-;            print(\"World\")
-;		return \"Hello\"
-;	}
+;var a := 2
+;
+;class foo {
+;  var b := 2
 ;}
 ;
-;obj.foo(2, \"2\", true) 
+;var c := foo.new()
+;//var c := hello
 ;")))
 ;
-;(display
-;  (typecheck a))
+;(display 
+; (typecheck a))

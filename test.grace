@@ -1,51 +1,51 @@
 #lang grace
 
-type Object_3 = {
-    a() -> Number
-    a:=() -> Number
-    bar() -> Number
-    c() -> Number
-    c:=() -> Number
+// TESTING CLASSES
+
+class Cat {
+  def name : String = "kitty"
+   
+  method purr {
+    print("Purr")
+  }
+   
+  method mew {
+    print("Meow")
+  }
 }
 
-type Object_119 = {
-    b() -> Number
-    b:=(_ : Number) -> Done
-    foo(_ : Number, _ : String, _ : Boolean) -> String
+var c := Cat.new()
+
+c.purr()
+c.mew()
+
+
+// TESTING TYPES
+
+type X = {
+  foo(_ : String) -> String
 }
 
-var obj : Object_119 := object {
-    var b : Number := 2
-	method foo(x : Number, y : String, z : Boolean) -> String {
-	        var w : Boolean := z
-            print("World")
-		return "Hello"
-	}
+var x : X := object {
+  method foo(s : String) -> String {
+    s
+  }
 }
 
-obj.foo(2, "2", true)
+def y : String = x.foo("Hello")
 
-self.print("hello")
+print(y)
 
-method foo() -> String {
-	"Hello"
+
+// TESTING OBJECTS
+
+var x := object {
+  var val := 1
+      
+  method foo {
+    print(self.val)
+    self.val := self.val + 1
+  }
 }
-method bar(z : Number) {
-	foo()
-}
 
-//var d := object {
-//    var a : Number := 4
-//    method bar()-> Number {
-//        4
-//    }
-//    var c : Number := self.bar
-//    self.c:= 3
-//}
-
-//var h:= d
-//var z := d.c
-
-//d+4
-
-//string::117: typecheck: initializing var  of type type Object_119 = { b() -> Number b:=() -> Number...#f) #s(grace:identifier "Number" #f) #s(grace:number 2)) #s(grace:method #s(grace:identifier "f...
+x.foo

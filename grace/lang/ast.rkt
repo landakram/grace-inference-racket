@@ -37,6 +37,7 @@
   (member (parent name))
   (return (value))
   (if-then (check body))
+  (class-decl (name body))
 
   (code-seq (code)))
 
@@ -47,11 +48,12 @@
 (define list-identifier (grace:identifier "List" #f))
 (define void-identifier (grace:identifier "Void" #f))
 (define done-identifier (grace:identifier "Done" #f))
+(define top-identifier (grace:identifier "Top" #f))
 
 (define number-other (grace:identifier "other" number-identifier))
 (define boolean-othter (grace:identifier "other" boolean-identifier))
 (define string-other (grace:identifier "other" string-identifier))
-(define top-other (grace:identifier "other" dynamic-identifier))
+(define top-other (grace:identifier "other" top-identifier))
 (define list-other (grace:identifier "other" list-identifier))
 
 ;; Adds methods to a type where new-methods should be passed in as a (list ...)
@@ -166,8 +168,8 @@
       (define o (open-output-string))
       (displayln (format "type ~a = {" internal-name) o)
       (for ([method methods])
-        (displayln method) ; TODO REMOVE
-        (displayln (send method readable-signature))
+        ;(displayln method) ; TODO REMOVE
+        ;(displayln (send method readable-signature))
         (displayln (format "    ~a" (send method readable-signature)) o))
       (displayln "}" o)
       (get-output-string o))
@@ -211,12 +213,12 @@
 
     (new grace:type:method%
          [name equal?]
-         [signature (list number-other)]
-         [rtype top-other])
+         [signature (list top-other)]
+         [rtype boolean-identifier])
     (new grace:type:method%
          [name 'not]
          [signature (list number-other)]
-         [rtype top-other])
+         [rtype boolean-identifier])
     (new grace:type:method%
          [name <]
          [signature (list number-other)]
@@ -279,6 +281,27 @@
     (super-new)
     (inherit-field methods)
     (define/override (readable-name)
-      "Dynamic")))
+      "Dynamic")
+    (define/public (internal-name)
+      "Dynamic")
+    (define/override (equal-to? other recur)
+      (if (recur (send other readable-name) "Dynamic")
+          (recur (send other internal-name) (internal-name))
+          #f))))
+
+(define grace:type:dynamic*%
+  (class* grace:type:dynamic% ()
+    (super-new)
+    (inherit-field methods)
+    (define/override (internal-name)
+      "Missing")))
+
+
+(define grace:type:top%
+  (class* grace:type% ()
+    (super-new)
+    (inherit-field methods)
+    (define/override (readable-name)
+      "Top")))
 
 (provide (all-defined-out))
