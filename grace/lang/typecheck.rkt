@@ -160,17 +160,29 @@
             (add-method name signature body rtype))
            
            ((grace:class-decl name body)
-            (let* ([class-type 
+            (let* ([name-string (format "Class_~a" name)]
+                   ;[name-string (grace:identifier-value (unwrap name))]
+                   [obj-name (format "Object_~a" name)]
+                   [obj-methods (foldl
+                                 body-stmt-to-method-type
+                                 (list)
+                                 (unwrap-list body))]
+                   [obj-type (new grace:type:object%
+                                  [internal-name obj-name]
+                                  [methods obj-methods])]
+                   [class-type 
                     (new grace:type:object%
-                         [internal-name (format "Class_~a" name)]
+                         [internal-name name-string]
                          [methods 
                           (list (new grace:type:method%
                                      [name 'new]
                                      [signature (list)]
-                                     [rtype 
-                                      (expression-type
-                                       (grace:object body))]))])])
-              (add-var name class-type #f)))
+                                     [rtype obj-type]))])])
+              (set-type obj-name obj-type)
+              (set-type name-string class-type)
+              ; FIXME
+              ;(set-type (grace:identifier-value (unwrap name)) class-type)
+              (add-var name (grace:identifier name-string class-type) class-type)))
            ;; TODO: TYPE actually needs to be the name of a type in the environment,
            ;; so here, we need to set the type in the environment so add-var and
            ;; eventually, resolve-identifier can find it.
@@ -180,7 +192,7 @@
 
 ;; Adds a variable to the environment with given value.
 (define (add-var name type value)
-  (let* ([name-string (grace:identifier-value (syntax->datum name))]
+    (let* ([name-string (grace:identifier-value (syntax->datum name))]
          [type-type   (resolve-identifier type)])
     (begin
 ;      (if (equal? type-type 'missing)
@@ -530,7 +542,7 @@
         ; For an if-then statement, make sure the condition is a boolean.
         ((grace:if-then condition body)
          (let* ([cond-type (expression-type condition)])
-           (displayln condition)
+           ;FIXME (displayln condition)
            (unless (conforms-to? cond-type (new grace:type:boolean%))
              (tc-error "if-then takes boolean but got ~a"
                        (send cond-type readable-name)))))
@@ -853,12 +865,15 @@
   (parse (object-name in) in))
 
 (define a (p (open-input-string "
+var a := 2
+
 class foo {
   var b := 2
 }
 
-var c := hello.new()
+var c := foo.new()
+//var c := hello
 ")))
 
-(display
-  (typecheck a))
+(display (format "RETURN @@@@\n~a"
+                 (typecheck a)))

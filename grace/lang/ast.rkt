@@ -168,8 +168,8 @@
       (define o (open-output-string))
       (displayln (format "type ~a = {" internal-name) o)
       (for ([method methods])
-        (displayln method) ; TODO REMOVE
-        (displayln (send method readable-signature))
+        ;(displayln method) ; TODO REMOVE
+        ;(displayln (send method readable-signature))
         (displayln (format "    ~a" (send method readable-signature)) o))
       (displayln "}" o)
       (get-output-string o))
