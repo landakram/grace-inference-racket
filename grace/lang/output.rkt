@@ -55,8 +55,7 @@
                 (map AST-to-RG elt)
                 (print (length elt))))
           (match elt
-            ;(NULL "")
-            ;((grace:code-seq num) (map AST-to-RG (syntax->datum num)))
+            ;(NULL (print (symbol? elt)))
             ((grace:code-seq num) (string-append* (map AST-to-RG (syntax->datum num))))
             ((grace:object body) 
              (string-append "(objectC () (" (string-append* (extract-methods body))")" 
@@ -69,7 +68,6 @@
               (string-append* (AST-to-RG body)) "))"))
             ((grace:method-call name args) 
              (string-append "(" (dont-wrap name) " " (string-append* (AST-to-RG args)) ")"))
-            ;(string-append "((send2 self " (dont-wrap name) ") " (AST-to-RG (car args)) ")"))
             ((grace:identifier value type) (string-append "(" value ")"))
             ((grace:var-decl name type value) (string-append "(initvar " (dont-wrap name) " " (AST-to-RG value) ")"))
             ((grace:str str) (string-append "\"" str "\""))
@@ -116,7 +114,6 @@
                 (print elt)))
           (match elt
             ((grace:method name signature body type) "  ")
-            ;((grace:var-decl name type value) "  ")
             (else (AST-to-RG elt))))))
 
 (define (p in) (parse (object-name in) in))
@@ -132,5 +129,3 @@ x.foo
 ;(display (syntax-e a))
 ;(display (car (AST-to-RG (syntax-e a))))
 (display (AST-to-RG (syntax-e a)))
-;(display (syntax->datum a))
-;(map (lambda (x) (test-eval x (env-initial))) (syntax->list (grace:code-seq-code (syntax-e a))))

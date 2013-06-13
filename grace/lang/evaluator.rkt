@@ -187,8 +187,6 @@
   ;(print fieldvals)
   ;then eval the body term
   (eval body env4)
-  (void)
-  ;CHECK HERE IF WE GET WEIRD ERRORS
   ;finally, return that environment as the representation of the given object
   env4
   )
