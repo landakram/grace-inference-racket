@@ -201,10 +201,10 @@
             ('() (print "found it"))
             ((grace:code-seq num) (map AST-to-RG (syntax->datum num)))
             ((grace:object body) 
-             (string-append "(objectC (" (string-append* (extract-vardecs body)) ") ("
-                            (string-append* (extract-methods body))")" 
+             (string-append "(objectC ("  ;(string-append* (extract-vardecs body)) ") ("
+                            ") (" (string-append* (extract-methods body))")" 
                             "(begin (list"
-                            (foldr string-append "" (all-but-methods-vars body)) ")))"))
+                            (foldr string-append "" (all-but-methods body)) ")))"))
             ((grace:method name signature body type) 
              (string-append 
               "(" (AST-to-RG name) "(lambda (" 
@@ -212,7 +212,7 @@
               (car (AST-to-RG body)) "))"))
             ((grace:method-call name args) (string-append "((send2 self " (AST-to-RG name) ") " (AST-to-RG (car args)) ")"))
             ((grace:identifier value type) value)
-            ((grace:var-decl name type value) (string-append "(" (AST-to-RG name) " " (AST-to-RG value) ")"))
+            ((grace:var-decl name type value) (string-append "(initvar " (AST-to-RG name) " " (AST-to-RG value) ")"))
             ((grace:str str) (string-append "\"" str "\""))
             ((grace:number num) (number->string num))
             ((grace:expression op e1 e2)
@@ -245,18 +245,18 @@
           (match elt
             ((grace:method name signature body type) (AST-to-RG elt))
             (else "")))))
-(define (all-but-methods-vars elt)
+(define (all-but-methods elt)
   (if (syntax? elt)
       (parameterize ((stx elt))
-        (all-but-methods-vars(syntax-e elt)))
+        (all-but-methods(syntax-e elt)))
       (if (list? elt)
           (begin
             (if (eq? 1 1)
-                (map all-but-methods-vars elt)
+                (map all-but-methods elt)
                 (print elt)))
           (match elt
             ((grace:method name signature body type) "  ")
-            ((grace:var-decl name type value) "  ")
+            ;((grace:var-decl name type value) "  ")
             (else (AST-to-RG elt))))))
 
 (define (extract-vardecs elt)
@@ -274,8 +274,7 @@
 (define (p in) (parse (object-name in) in))
 
 (define a (p (open-input-string " object{ var y:= 2
-print(\"Hello, World!\")
-var x:=y
+var z:=y
 print(y+2)
 }
 ")))

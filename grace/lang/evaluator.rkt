@@ -42,10 +42,13 @@
 
 ;First priority: include everything necessary to turn lexer.grace, compiler.grace ast.grace, and typecheck.grace into Racket-Grace
 
+;;Consider making everything return a pair of return value and environment.  Every step would then read in the value returned
+;;and the environment, change the
+
 ; eval dispatches on the type of expression:
 (define (eval exp env)
   (match exp
-    [(? symbol?)          (env-lookup env exp)]
+    [(? symbol?)         (env-lookup env exp)]
     [(? number?)          exp] ;Replace this with a new structure that includes the number
     [(? boolean?)         (print "bool") exp] ;should never be called because I've created my own tru and fals to replace racket #t and #f.  
     [(? string?)          exp] ;Replace this with a new structure that holds the string
@@ -177,12 +180,12 @@
   (define methvals  (map (eval-with env4) methexps))
   (env-set!* env4 methvars methvals)
   (set-box! env1 (unbox env4))
-  (print fieldexps)
+  ;(print fieldexps)
   ;(print (map (eval-with env4) fieldexps))
   ;now, with methods defined, get proper values for fields and bind to those values
   (define fieldvals (map (eval-with env4) fieldexps))
   (env-Cset!* env4 fieldvars fieldvals)
-  (print ((car (map (eval-with env4) fieldvars))))
+  ;(print fieldvals)
   ;then eval the body term
   (eval body env4)
   ;finally, return that environment as the representation of the given object
@@ -298,9 +301,15 @@
   (let* ((hiddenvar (string->symbol (string-append "$" (symbol->string var))))
          (readmethod var)
          (modmethod (string->symbol (string-append (symbol->string var) ":=")))
-         (env0 (env-extend* env (list hiddenvar) (list val)))
+         (env0 (env-extend* env (list hiddenvar) (list ((eval-with env) val))))
          (env1 (env-extend* env0 (list readmethod) (list (eval `(lambda () ,hiddenvar) env0))))
          (env2 (env-extend* env1 (list modmethod) (list (eval `(lambda (x) (set! ,hiddenvar x)) env1)))))
+    ;(if (eq? val 'y) (displayln ((eval-with env) val)) (displayln "not y"))
+    ;(display env2)
+    ;(newline)
+    ;Had bug where environment would not change for next step even after initializing variable in body right before.
+    ;Solution was the following line.  Sets the original env to contain the just-added bindings
+    (set-box! env (unbox env2))
     env2))
 
 ;Allows you to initialize a list of var objects.  Takes list of vars and list of initial values.
@@ -322,6 +331,7 @@
 ;Probably wrong: rather than calling set on a var, we should be calling the var:= method in the first place to allow overriding
 (define (env-Cset! env var value)
   (let* ((hidvar (string->symbol (string-append "$" (symbol->string var)))))
+    ;(print env)
     (set-cell-value! (hash-ref (unbox env) hidvar) value)))
 
 (define (env-Cset!* env vars values)
@@ -489,10 +499,10 @@
        (when (not (equal? program value))
          (error "test failed!")))]))
 
-;(test-eval
-;  ((lambda (x) (+ 3 4)) 20)
-;  ====
-;  7)
+(test-eval
+  ((lambda (x) (+ 3 4)) 20)
+  ====
+  7)
 
 ;Commented out because it relies on <=, which returns a racket #t or #f.  
 ;Trying to phase that out, replace with one that returns my tru or false.
