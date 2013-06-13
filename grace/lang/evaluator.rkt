@@ -190,7 +190,7 @@
   (void)
   ;CHECK HERE IF WE GET WEIRD ERRORS
   ;finally, return that environment as the representation of the given object
-  ;env4
+  env4
   )
 
 ;older versions of objects: examples of how different parts can be excluded
@@ -425,6 +425,7 @@
 
 ; looks up a value:
 (define (env-lookup env var)
+  ;(displayln env) 
   (if (primitive? var) ((lambda (s) (list 'primitive s)) var) 
   (match (hash-ref (unbox env) var)
     [(? cell?)  
@@ -565,16 +566,19 @@
 
 (define (p in) (parse (object-name in) in))
 
-(define a (p (open-input-string "object{print(\"Hello, world.\")
+(define a (p (open-input-string "object{var x := object {
+    var v := 1
+}
+print(x.v)
 }
 ")))
-(define-values (in out) (make-pipe))
-(display (car (AST-to-RG (syntax-e a))) out)
-(let ((temp (read in)))
-(eval temp (env-initial)))
+;(define-values (in out) (make-pipe))
+;(display (car (AST-to-RG (syntax-e a))) out)
+;(let ((temp (read in)))
+;(eval temp (env-initial)))
 
 ; read in a program, and evaluate:
-;(eval-program (read-all))
+(eval-program (read-all))
 
 
  
