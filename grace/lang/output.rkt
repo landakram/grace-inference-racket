@@ -210,15 +210,20 @@
               "(" (AST-to-RG name) "(lambda (" 
               (foldr string-append ") " (map (lambda (x) (string-append " " x)) (AST-to-RG signature)))
               (car (AST-to-RG body)) "))"))
-            ((grace:method-call name args) (string-append "((send2 self " (AST-to-RG name) ") " (AST-to-RG (car args)) ")"))
-            ((grace:identifier value type) value)
-            ((grace:var-decl name type value) (string-append "(initvar " (AST-to-RG name) " " (AST-to-RG value) ")"))
+            ((grace:method-call name args) (string-append "((send2 self " (dont-wrap name) ") " (AST-to-RG (car args)) ")"))
+            ((grace:identifier value type) (string-append "(" value ")"))
+            ((grace:var-decl name type value) (string-append "(initvar " (dont-wrap name) " " (AST-to-RG value) ")"))
             ((grace:str str) (string-append "\"" str "\""))
             ((grace:number num) (number->string num))
             ((grace:expression op e1 e2)
              (string-append "(" (symbol->string (cadr (env-lookup env-reverse op)))
                             " " (AST-to-RG e1) " " (AST-to-RG e2) ")"))
             (else (print "elt"))))))
+
+(define (dont-wrap elt)
+  (match elt
+    ((grace:identifier value type) value)
+    (else (print "don't wrap elt"))))
 
 (define (wrap-idents elt)
   (if (syntax? elt)
