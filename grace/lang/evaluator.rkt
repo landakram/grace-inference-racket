@@ -1,6 +1,8 @@
 #lang racket
 
-(require racket/match)
+(require racket/match
+         "output.rkt"
+         "parse.rkt")
 
 ;; Evaluation toggles between eval and apply.
 
@@ -41,9 +43,6 @@
 ;Need to create my own object, with list structure inside.
 
 ;First priority: include everything necessary to turn lexer.grace, compiler.grace ast.grace, and typecheck.grace into Racket-Grace
-
-;;Consider making everything return a pair of return value and environment.  Every step would then read in the value returned
-;;and the environment, change the
 
 ; eval dispatches on the type of expression:
 (define (eval exp env)
@@ -188,8 +187,10 @@
   ;(print fieldvals)
   ;then eval the body term
   (eval body env4)
+  (void)
+  ;CHECK HERE IF WE GET WEIRD ERRORS
   ;finally, return that environment as the representation of the given object
-  env4
+  ;env4
   )
 
 ;older versions of objects: examples of how different parts can be excluded
@@ -310,7 +311,8 @@
     ;Had bug where environment would not change for next step even after initializing variable in body right before.
     ;Solution was the following line.  Sets the original env to contain the just-added bindings
     (set-box! env (unbox env2))
-    env2))
+    env2
+    ))
 
 ;Allows you to initialize a list of var objects.  Takes list of vars and list of initial values.
 (define (eval-initvar* objs vals env)
@@ -561,11 +563,18 @@
         '()
         (cons next (read-all)))))
 
-;Testing env-lookup
-;(print (env-lookup (env-initial) '+))
+(define (p in) (parse (object-name in) in))
+
+(define a (p (open-input-string "object{print(\"Hello, world.\")
+}
+")))
+(define-values (in out) (make-pipe))
+(display (car (AST-to-RG (syntax-e a))) out)
+(let ((temp (read in)))
+(eval temp (env-initial)))
 
 ; read in a program, and evaluate:
-(eval-program (read-all))
+;(eval-program (read-all))
 
 
  
