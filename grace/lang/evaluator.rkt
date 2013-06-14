@@ -166,11 +166,17 @@
   ;add bindings for outer and self
   (define env1      (env-extend* env (list 'outer) (list (eval `(lambda () ,env) env))))
   (set-box! env1    (unbox (env-extend* env1 (list 'self) (list env1))))
+  (displayln (env-lookup env1 'self))
+  (displayln env1)
   ;map all fields to false to avoid errors when they're accessed later
   (define fieldvars (map car fields))
   (define fieldexps (map cadr fields))
   (define falses    (map (lambda _ #f) fields))
   (set-box! env1    (unbox (eval-initvar* fieldvars falses env1)))
+  (newline)
+  (if (eq? fieldvars '(x)) 
+  (displayln (env-lookup (env-lookup env1 'outer) 'z)) (displayln "here"))
+  (displayln (env-lookup env1 'self))
   ;define and bind methods in standard letrec fashion, allowing mutual recursion
   (define methvars  (map car methods))
   (define methexps  (map cadr methods))
@@ -187,6 +193,7 @@
   ;(print fieldvals)
   ;then eval the body term
   (eval body env4)
+  (set-box! env1 (unbox env4))
   ;finally, return that environment as the representation of the given object
   env4
   )
@@ -423,7 +430,7 @@
 
 ; looks up a value:
 (define (env-lookup env var)
-  ;(displayln env) 
+  ;(displayln env) (displayln var)
   (if (primitive? var) ((lambda (s) (list 'primitive s)) var) 
   (match (hash-ref (unbox env) var)
     [(? cell?)  
@@ -500,10 +507,10 @@
        (when (not (equal? program value))
          (error "test failed!")))]))
 
-(test-eval
-  ((lambda (x) (+ 3 4)) 20)
-  ====
-  7)
+;(test-eval
+;  ((lambda (x) (+ 3 4)) 20)
+;  ====
+;  7)
 
 ;Commented out because it relies on <=, which returns a racket #t or #f.  
 ;Trying to phase that out, replace with one that returns my tru or false.
@@ -516,21 +523,21 @@
 ;  ====
 ;  120)
 
-(test-eval
-  (let ((x 100))
-    (begin
-      (set! x 20)
-      x))
-  ====
-  20)
+;(test-eval
+;  (let ((x 100))
+;    (begin
+;      (set! x 20)
+;      x))
+;  ====
+;  20)
 
-(test-eval
-  (let ((x 1000))
-    (begin (let ((x 10))
-             20)
-           x))
-  ====
-  1000)
+;(test-eval
+;  (let ((x 1000))
+;    (begin (let ((x 10))
+;             20)
+;           x))
+;  ====
+;  1000)
 
 
 ;; Programs are translated into a single letrec expression.
@@ -564,16 +571,23 @@
 
 (define (p in) (parse (object-name in) in))
 
-(define a (p (open-input-string "object{var x := object {
-    var v := 1
+(define a (p (open-input-string "object{var x := object {var val := 1
+    method foo {
+        print(self.val)
+        self.val := self.val + 1
+    }
 }
-print(x.v)
+x.foo
+x.foo
+x.foo
 }
 ")))
-;(define-values (in out) (make-pipe))
-;(display (car (AST-to-RG (syntax-e a))) out)
-;(let ((temp (read in)))
-;(eval temp (env-initial)))
+(define-values (in out) (make-pipe))
+;(display (AST-to-RG (syntax-e a)) out)
+;(let* ((temp (read in))
+; (out (eval temp (env-initial))))
+;  (void))
+
 
 ; read in a program, and evaluate:
 (eval-program (read-all))

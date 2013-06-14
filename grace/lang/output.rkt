@@ -76,7 +76,8 @@
              (string-append "(" (symbol->string (cadr (env-lookup env-reverse op)))
                             " " (AST-to-RG e1) " " (AST-to-RG e2) ")"))
             ((grace:member parent name) (string-append "(send2 " (AST-to-RG parent) " " (AST-to-RG name) ")"))
-            (else (print "elt"))))))
+            ((grace:bind name value) (string-append "(setC! " (dont-wrap name) " " (AST-to-RG value) ")"))
+            (else (print elt))))))
 
 (define (dont-wrap elt)
   (if (syntax? elt)
@@ -89,7 +90,8 @@
                 (print (length elt))))
           (match elt
             ((grace:identifier value type) value)
-            (else (print "don't wrap elt"))))))
+            ((grace:member parent name) (string-append "(send2 " (AST-to-RG parent) " " (dont-wrap name) ")"))
+            (else (print elt))))))
 
 (define (extract-methods elt)
   (if (syntax? elt)
@@ -118,11 +120,8 @@
 
 (define (p in) (parse (object-name in) in))
 
-(define a (p (open-input-string "object{ var x := object {method foo {
-        print(\"Hello\")
-    }
+(define a (p (open-input-string "object{var z:=object{print(2)
 }
-x.foo
 }
 ")))
 ;(print (syntax->datum a))
