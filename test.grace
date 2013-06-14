@@ -1,43 +1,51 @@
 #lang grace
 
-type Object_3 = {
-    a() -> Number
-    a:=() -> Number
-    bar() -> Number
-    c() -> Number
-    c:=() -> Number
+// TESTING CLASSES
+
+class Cat {
+    def name : String = "kitty"
+
+    method purr {
+        print("Purr")
+    }
+
+    method mew {
+        print("Meow")
+    }
 }
 
-type Object_119 = {
-    foo() -> String
+var c := Cat.new()
+
+c.purr()
+c.mew()
+
+
+// TESTING TYPES
+
+type X = {
+    foo(_ : String) -> String
 }
 
-var obj : Object_119 := object {
-	method foo(y : Dynamic, x) -> String {
-            var z := x
-            print("World")
-		return "Hello"
-	}
+var x : X := object {
+    method foo(s : String) -> String {
+        s
+    }
 }
 
-obj.foo()
+def y : String = x.foo("Hello")
 
-self.print("hello")
+print(y)
 
-method foo() -> String {
-	"Hello"
+
+// TESTING OBJECTS
+
+var x := object {
+    var val := 1
+
+    method foo {
+        print(self.val)
+        self.val := self.val + 1
+    }
 }
 
-//var d := object {
-//    var a : Number := 4
-//    method bar()-> Number {
-//        4
-//    }
-//    var c : Number := self.bar
-//    self.c:= 3
-//}
-
-//var h:= d
-//var z := d.c
-
-//d+4
+x.foo
