@@ -6,10 +6,8 @@
 
 (define stx (make-parameter #f))
 
-
 ;; Environments map variables to mutable cells 
 ;; containing values.  Also have list of objects.
-
 (define-struct cell ([value #:mutable]))
 
 ; empty environment:
@@ -105,6 +103,7 @@
           (match elt
             ((grace:method name signature body type) (AST-to-RG elt))
             (else "")))))
+
 (define (all-but-methods elt)
   (if (syntax? elt)
       (parameterize ((stx elt))
@@ -120,11 +119,17 @@
 
 (define (p in) (parse (object-name in) in))
 
-(define a (p (open-input-string "object{var z:=object{print(2)
+(define a (p (open-input-string "object{ var z:= object{var x := object {var val := 1
+method foo {
+   print(self.val)
+}
+self.foo()
+}
+var val:=2
+x.foo()
 }
 }
 ")))
 ;(print (syntax->datum a))
 ;(display (syntax-e a))
-;(display (car (AST-to-RG (syntax-e a))))
 (display (AST-to-RG (syntax-e a)))

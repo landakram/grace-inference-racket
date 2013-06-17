@@ -165,37 +165,41 @@
 (define (eval-newobjC fields methods body env)
   ;add bindings for outer and self
   (define env1      (env-extend* env (list 'outer) (list (eval `(lambda () ,env) env))))
-  (set-box! env1    (unbox (env-extend* env1 (list 'self) (list env1))))
-  (displayln (env-lookup env1 'self))
-  (displayln env1)
+  (set-box! env1    (unbox (env-extend* env1 (list 'self) (list (eval `(lambda () ,env1) env)))))
+  
+  ;(displayln env1)
   ;map all fields to false to avoid errors when they're accessed later
-  (define fieldvars (map car fields))
-  (define fieldexps (map cadr fields))
-  (define falses    (map (lambda _ #f) fields))
-  (set-box! env1    (unbox (eval-initvar* fieldvars falses env1)))
-  (newline)
-  (if (eq? fieldvars '(x)) 
-  (displayln (env-lookup (env-lookup env1 'outer) 'z)) (displayln "here"))
-  (displayln (env-lookup env1 'self))
+  ;(define fieldvars (map car fields))
+  ;(define fieldexps (map cadr fields))
+  ;(define falses    (map (lambda _ #f) fields))
+  ;(set-box! env1    (unbox (eval-initvar* fieldvars falses env1)))
+  ;(newline)
+  ;(if (eq? fieldvars '(x)) 
+  ;(displayln (env-lookup (env-lookup env1 'outer) 'z)) (displayln "here"))
+  ;(displayln (env-lookup env1 'self))
   ;define and bind methods in standard letrec fashion, allowing mutual recursion
   (define methvars  (map car methods))
   (define methexps  (map cadr methods))
   (define ffs       (map (lambda _ #f) methods))
-  (define env4      (env-extend* env1 methvars ffs))
-  (define methvals  (map (eval-with env4) methexps))
-  (env-set!* env4 methvars methvals)
-  (set-box! env1 (unbox env4))
+  (set-box! env1    (unbox (env-extend* env1 methvars ffs))) 
+  ;(define env4      (env-extend* env1 methvars ffs))
+  (define methvals  (map (eval-with env1) methexps))
+  (env-set!* env1 methvars methvals)
+  ;(set-box! env1 (unbox env4))
   ;(print fieldexps)
   ;(print (map (eval-with env4) fieldexps))
   ;now, with methods defined, get proper values for fields and bind to those values
-  (define fieldvals (map (eval-with env4) fieldexps))
-  (env-Cset!* env4 fieldvars fieldvals)
+  ;(define fieldvals (map (eval-with env4) fieldexps))
+  ;(env-Cset!* env4 fieldvars fieldvals)
   ;(print fieldvals)
   ;then eval the body term
-  (eval body env4)
-  (set-box! env1 (unbox env4))
+  ;(set-box! env1 (unbox env4))
+  (eval body env1)
+  ;(displayln (env-lookup env1 'self))
+  ;(displayln (env-lookup env1 'self))
+  ;(set-box! env1 (unbox env4))
   ;finally, return that environment as the representation of the given object
-  env4
+  env1
   )
 
 ;older versions of objects: examples of how different parts can be excluded
@@ -577,9 +581,8 @@
         self.val := self.val + 1
     }
 }
-x.foo
-x.foo
-x.foo
+var val:=2
+x.foo()
 }
 ")))
 (define-values (in out) (make-pipe))
