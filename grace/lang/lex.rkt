@@ -33,47 +33,50 @@
   (LF #\012)
   (FF #\014)
   (TAB #\011)
-
+  
   (my-whitespace
-    (:or #\space TAB FF))
-
+   (:or #\space TAB FF))
+  
   (my-newline
-    (:or (:: CR)
-         (:: LF)
-         (:seq CR LF)))
-
+   (:or (:: CR)
+        (:: LF)
+        (:seq CR LF)))
+  
   (letter
-    (:or (:/ "a" "z")
-         (:/ #\A #\Z) ))
-
+   (:or (:/ "a" "z")
+        (:/ #\A #\Z) ))
+  
   (digit
-    (:/ #\0 #\9))
-
+   (:/ #\0 #\9))
+  
   (number
-    (:+ digit))
-
+   (:+ digit))
+  
   (string
-    (:: "\"" (:* (:or letter
-                      digit
-                      "\\\""
-                      (intersection punctuation (complement (char-set "\"")))
-                      whitespace))
-        "\""))
-
+   (:: "\"" (:* (:or letter
+                     digit
+                     "\\\""
+                     (intersection punctuation (complement (char-set "\"")))
+                     whitespace))
+       "\""))
+  
+  ;(comment
+  ;  (:: "//" (:* (:or letter
+  ;                    digit
+  ;                    punctuation
+  ;                    (char-set "+-/*%><=")
+  ;                    my-whitespace))))
   (comment
-    (:: "//" (:* (:or letter
-                      digit
-                      punctuation
-                      (char-set "+-/*%><=")
-                      my-whitespace))))
-
+   (:: "//" (:* (:or any-char
+                     any-string))))
+  
   (identifier
-    (:or (:: letter (:* (:or letter digit #\_ #\?)))
-         (:: #\_)))
-
+   (:or (:: letter (:* (:or letter digit #\_ #\?)))
+        (:: #\_)))
+  
   (keyword
-    (:or "object" "method" "var" "type" "import" "class"
-         "return" "def" "inherits" "is" "dialect" "if" "then")))
+   (:or "object" "method" "var" "type" "import" "class"
+        "return" "def" "inherits" "is" "dialect" "if" "then")))
 
 
 (define simple-grace-lexer
