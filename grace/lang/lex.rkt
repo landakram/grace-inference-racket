@@ -67,8 +67,7 @@
   ;                    (char-set "+-/*%><=")
   ;                    my-whitespace))))
   (comment
-   (:: "//" (:* (:or any-char
-                     any-string))))
+   (:: "//" (:* (:or letter digit punctuation my-whitespace numeric symbolic graphic))))
   
   (identifier
    (:or (:: letter (:* (:or letter digit #\_ #\?)))
