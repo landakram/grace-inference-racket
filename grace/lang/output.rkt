@@ -119,17 +119,11 @@
 
 (define (p in) (parse (object-name in) in))
 
-(define a (p (open-input-string "object{ var z:= object{var x := object {var val := 1
-method foo {
-   print(self.val)
-}
-self.foo()
-}
-var val:=2
-x.foo()
-}
+(define a (p (open-input-string "object{ var x := 3
+x := 2
+print(x)
 }
 ")))
 ;(print (syntax->datum a))
 ;(display (syntax-e a))
-(display (AST-to-RG (syntax-e a)))
+;(display (AST-to-RG (syntax-e a)))

@@ -112,10 +112,7 @@
     [`(class ,constructor ,initargs ,fields ,methods ,body) (eval-newclass3 constructor initargs fields methods body env)]
     [`(class ,constructor ,fields ,methods) (eval-newclass2 constructor fields methods env)]
     ;different constructors for objects depending on how many arguments you want to send
-    [`(object ,initargs ,fields ,methods ,body) (eval-newobj initargs fields methods body env)]
-    ;[`(object ,initargs ,fields ,methods) (eval-newobj2 initargs fields methods env)]
     [`(object ,fields ,methods) (eval-newobj3 fields methods env)]
-    [`(object ,fields ,methods ,body) (eval-newobj4 fields methods body env)]
     [`(objectC ,fields ,methods ,body) (eval-newobjC fields methods body env)]    
     [`(initvar ,obj ,val) (eval-initvar obj val env)]
     [`(initvar* ,objs ,vals) (eval-initvar* objs vals env)]
@@ -202,53 +199,6 @@
   env1
   )
 
-;older versions of objects: examples of how different parts can be excluded
-;or how initialization arguments can be added (treated similarly to fields that are just bound first, though).
-(define (eval-newobj initargs fields methods body env)
-  (define initvars  (map car (eval initargs env)))
-  (define initexps  (map cadr (eval initargs env)))
-  (define fs        (map (lambda _ #f) (eval initargs env)))
-  (define env*      (env-extend* env initvars fs))
-  (define initvals  (map (eval-with env*) initexps))
-  (env-set!* env* initvars initvals)
-  (define fieldvars (map car fields))
-  (define fieldexps (map cadr fields))
-  (define falses    (map (lambda _ #f) fields))
-  (define env2      (env-extend* env* fieldvars falses))
-  (define methvars  (map car methods))
-  (define methexps  (map cadr methods))
-  (define ffs       (map (lambda _ #f) methods))
-  (define env4      (env-extend* env2 methvars ffs))
-  (define methvals  (map (eval-with env4) methexps))
-  (env-set!* env4 methvars methvals)
-  (define fieldvals (map (eval-with env4) fieldexps))
-  (env-set!* env4 fieldvars fieldvals)
-  (eval body env4)
-  env4
-  )
-
-(define (eval-newobj2 initargs fields methods env)
-  (define initvars  (map car (eval initargs env)))
-  (define initexps  (map cadr (eval initargs env)))
-  (define fs        (map (lambda _ #f) (eval initargs env)))
-  (define env*      (env-extend* env initvars fs))
-  (define initvals  (map (eval-with env*) initexps))
-  (env-set!* env* initvars initvals)
-  (define fieldvars (map car fields))
-  (define fieldexps (map cadr fields))
-  (define falses    (map (lambda _ #f) fields))
-  (define env2      (env-extend* env* fieldvars falses))
-  (define methvars  (map car methods))
-  (define methexps  (map cadr methods))
-  (define ffs       (map (lambda _ #f) methods))
-  (define env4      (env-extend* env2 methvars ffs))
-  (define methvals  (map (eval-with env4) methexps))
-  (env-set!* env4 methvars methvals)
-  (define fieldvals (map (eval-with env4) fieldexps))
-  (env-set!* env4 fieldvars fieldvals)
-  env4
-  )
-
 (define (eval-newobj3 fields methods env)
   (define fieldvars (map car fields))
   (define fieldexps (map cadr fields))
@@ -262,24 +212,6 @@
   (env-set!* env4 methvars methvals)
   (define fieldvals (map (eval-with env4) fieldexps))
   (env-set!* env4 fieldvars fieldvals)
-  env4
-  )
-
-(define (eval-newobj4 fields methods body env)
-  (define env1      (env-extend* env (list 'outer) (list env)))
-  (define fieldvars (map car fields))
-  (define fieldexps (map cadr fields))
-  (define falses    (map (lambda _ #f) fields))
-  (define env2      (env-extend* env1 fieldvars falses))
-  (define methvars  (map car methods))
-  (define methexps  (map cadr methods))
-  (define ffs       (map (lambda _ #f) methods))
-  (define env4      (env-extend* env2 methvars ffs))
-  (define methvals  (map (eval-with env4) methexps))
-  (env-set!* env4 methvars methvals)
-  (define fieldvals (map (eval-with env4) fieldexps))
-  (env-set!* env4 fieldvars fieldvals)
-  (eval body env4)
   env4
   )
 
@@ -445,8 +377,7 @@
 
 ; sets a value in an environment:
 (define (env-set! env var value)
-  (set-cell-value! (hash-ref (unbox env) var) value))
-    
+  (set-cell-value! (hash-ref (unbox env) var) value))    
 
 ; extends an environment with several bindings:
 (define (env-extend* env varbls values)
@@ -454,7 +385,6 @@
     [`((,v . ,varbls) (,val . ,values))
      ; =>
      (env-extend* (box (hash-set (unbox env) v (make-cell val))) varbls values)]
-    
     [`(() ())
      ; =>
      env]))
@@ -466,7 +396,6 @@
     [`((,i . ,invarbls) (,val . ,values))
      ; =>
      (set-box! env (box (env-extend* (hash-set (unbox env) i val) invarbls values)))]
-    
     [`(() ())
      ; =>
      env]))
@@ -594,6 +523,4 @@ x.foo()
 
 ; read in a program, and evaluate:
 (eval-program (read-all))
-
-
  
