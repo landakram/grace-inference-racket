@@ -135,7 +135,7 @@
   (list
     (new grace:type:method%
          [name 'print]
-         [signature (list string-other)]
+         [signature (list top-other)]
          [rtype done-identifier])))
 
 (define grace:type%
