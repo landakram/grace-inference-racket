@@ -725,6 +725,8 @@
                 (list (new grace:type:method%
                            [name (string->symbol name-string)]
                            [signature (unwrap signature)]
+                           ;; TODO: This is wrong, need to check return type
+                           ;; of last statement in method.
                            [rtype (resolve-identifier rtype)])))))
 
            (else method-type-list))))
@@ -860,24 +862,24 @@
 
 ;; @@@@@ DEBUGGING CODE @@@@@
 ;; @@@@@ FIXME: REMOVE  @@@@@
-(define (p in)
-  (parse (object-name in) in))
-
-(define a (p (open-input-string "
-class Cat {
-    def name : String = \"kitty\"
-
-    method purr {
-        print(\"Purr\")
-    }
-
-    method mew {
-        print(\"Meow\")
-    }
-}
-
-var c := Cat.new()
-")))
-
-(display
- (typecheck a))
+; (define (p in)
+;   (parse (object-name in) in))
+;
+; (define a (p (open-input-string "
+; class Cat {
+;     def name : String = \"kitty\"
+;
+;     method purr {
+;         print(\"Purr\")
+;     }
+;
+;     method mew {
+;         print(\"Meow\")
+;     }
+; }
+;
+; var c := Cat.new()
+; ")))
+;
+; (display
+;  (typecheck a))
