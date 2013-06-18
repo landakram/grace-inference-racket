@@ -504,23 +504,30 @@
 
 (define (p in) (parse (object-name in) in))
 
-(define a (p (open-input-string "object{var x := object {var val := 1
-    method foo {
-        print(self.val)
-        self.val := self.val + 1
-    }
-}
-var val:=2
-x.foo()
-}
-")))
+(define inp (open-input-file "/home/ryannow/BRUCE-TOTRANSFER2/donetests/t013_method_test.grace"))
+(define a (p inp))
+;(display (AST-to-RG (syntax-e a)))
+;(define a (p (open-input-string "object{
+;var x := object {
+;var val := 1
+;    method foo {
+;        print(self.val)
+;        self.val := self.val + 1
+;    }
+;}
+;var val:=2
+;x.foo()
+;x.foo
+;x.foo
+;}
+;")))
 (define-values (in out) (make-pipe))
-;(display (AST-to-RG (syntax-e a)) out)
-;(let* ((temp (read in))
-; (out (eval temp (env-initial))))
-;  (void))
+(display (AST-to-RG (syntax-e a)) out)
+(let* ((temp (read in))
+ (out (eval temp (env-initial))))
+  (void))
 
 
 ; read in a program, and evaluate:
-(eval-program (read-all))
+;(eval-program (read-all))
  
