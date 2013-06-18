@@ -148,21 +148,21 @@
      ((statement) (list $1)))
 
     (expression
-     ((expression + expression) (at-src (grace:expression + $1 $3)))
-     ((expression - expression) (at-src (grace:expression - $1 $3)))
-     ((expression * expression) (at-src (grace:expression * $1 $3)))
-     ((expression / expression) (at-src (grace:expression / $1 $3)))
-     ((expression % expression) (at-src (grace:expression modulo $1 $3)))
-     ((expression ^ expression) (at-src (grace:expression exp $1 $3)))
+     ((expression +  expression) (at-src (grace:expression +      $1 $3)))
+     ((expression -  expression) (at-src (grace:expression -      $1 $3)))
+     ((expression *  expression) (at-src (grace:expression *      $1 $3)))
+     ((expression /  expression) (at-src (grace:expression /      $1 $3)))
+     ((expression %  expression) (at-src (grace:expression modulo $1 $3)))
+     ((expression ^  expression) (at-src (grace:expression exp    $1 $3)))
 
-     ((expression && expression) (at-src (grace:expression 'and $1 $3)))
-     ((expression OR expression) (at-src (grace:expression 'or $1 $3)))
+     ((expression && expression) (at-src (grace:expression 'and   $1 $3)))
+     ((expression OR expression) (at-src (grace:expression 'or    $1 $3)))
 
      ((expression == expression) (at-src (grace:expression equal? $1 $3)))
-     ((expression < expression) (at-src (grace:expression < $1 $3)))
-     ((expression > expression) (at-src (grace:expression > $1 $3)))
-     ((expression <= expression) (at-src (grace:expression <= $1 $3)))
-     ((expression >= expression) (at-src (grace:expression >= $1 $3)))
+     ((expression <  expression) (at-src (grace:expression <      $1 $3)))
+     ((expression >  expression) (at-src (grace:expression >      $1 $3)))
+     ((expression <= expression) (at-src (grace:expression <=     $1 $3)))
+     ((expression >= expression) (at-src (grace:expression >=     $1 $3)))
 
      ((term) $1))
     ; multi-part method names
