@@ -2,6 +2,8 @@
 (require "parse.rkt"
          "ast.rkt"
          "typecheck.rkt"
+         "output.rkt"
+         "evaluator.rkt"
          parser-tools/lex)
 
 (provide read-syntax
@@ -22,7 +24,12 @@
                       (path->string (path-replace-suffix name #""))))
                    'anonymous)])
     (define datum (syntax->datum stx))
+    ;(display (syntax->datum stx))
     (define env (typecheck stx))
+    (define sp (AST-to-RG (syntax-e stx)))
+    (define-values (in out) (make-pipe))
+    (display sp out)
+    (let*  ((toeval (read in))) ((eval-with (env-initial)) toeval))
     ;(display (list? env))
     (datum->syntax #f `(module ,name racket 
                          (provide st env)
@@ -34,8 +41,8 @@
 (define (p in) (parse (object-name in) in))
 
 ;; In case `read' is used, instead of `read-syntax':
-(define (read in)
-  (syntax->datum (read-syntax (object-name in) in)))
+;(define (read in)
+;  (syntax->datum (read-syntax (object-name in) in)))
 
 ;; To get info about the language's environment support:
 (define (get-info in mod line col pos)
