@@ -87,7 +87,7 @@
         ;(displayln t)
         ; (displayln unwrapped)
         (define type-name
-          (cond ((equal? unwrapped #f) "Dyanmic")
+          (cond ((equal? unwrapped #f) "Dynamic")
                 ((grace:identifier? unwrapped)
                  (grace:identifier-value unwrapped))
                 ((is-a? unwrapped grace:type%)
