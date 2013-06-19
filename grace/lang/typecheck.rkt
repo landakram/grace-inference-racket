@@ -121,7 +121,6 @@
   (parameterize ([env (hash-copy (env))])
     (map maybe-bind-name lst)
     (map resolve-identifiers lst)
-    ;(displayln lst)
     (map expression-type lst)))
 
 
