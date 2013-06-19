@@ -4,7 +4,7 @@
   (syntax-case stx ()
     [(_ (struct-name (field ...) struct-option ...) ...)
      (with-syntax
-       ([(grace:struct ...) (map (lambda (id)
+       ([(grace:struct ...) (map (λ (id)
                                    (datum->syntax
                                      id
                                      (string->symbol
