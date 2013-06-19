@@ -51,7 +51,7 @@
     [(? symbol?)         (env-lookup env exp)]
     [(? number?)          exp] ;Replace this with a new structure that includes the number
     [(? boolean?)         (print "bool") exp] ;should never be called because I've created my own tru and fals to replace racket #t and #f.  
-    [(? string?)          (print "exp") exp] ;Replace this with a new structure that holds the string
+    [(? string?)          exp] ;Replace this with a new structure that holds the string
     [(? hash?)            exp] ;Objects are represented as hash tables with all the primitive methods, and cells for each def, var, and method
     [(? box?)             exp] ;Boxes are containers used to hold hash tables.  
     ;They allow me to replace an old immutable hash with a new one but have all the old pointers in still work.
