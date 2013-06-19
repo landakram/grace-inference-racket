@@ -62,7 +62,7 @@
              (string-append 
               "(" (dont-wrap name) "(lambda (" 
               (foldr string-append ") " (map (lambda (x) (string-append " " x)) (dont-wrap signature)))
-              "(list (begin "
+              "(begin (list "
               (string-append* (AST-to-RG body)) "))))"))
             ((grace:method-call name args) 
              (string-append "(" (dont-wrap name) " " (string-append* (AST-to-RG args)) ")"))
@@ -120,11 +120,23 @@
 
 (define (p in) (parse (object-name in) in))
 
-(define a (p (open-input-string "
-object{ 
-var x := 3
+(define a (p (open-input-string "object{
+print(2)
 }
 ")))
-;(print (syntax->datum a))
+(define b (p (open-input-string "method foo {
+    print(\"OK 1\")
+}
+method bar(x) {
+    print(\"OK \")
+}
+foo
+bar(2)
+bar(3)
+")))
+;(equal? a b)
+;(displayln (grace:object a))
+;(displayln (syntax->datum b))
 ;(display (syntax-e a))
 ;(display (AST-to-RG (syntax-e a)))
+;(display (AST-to-RG (grace:object a)))

@@ -3,6 +3,7 @@
 (require racket/match
          "output.rkt"
          "parse.rkt")
+(provide env-initial eval-with eval-string)
 
 ;; Evaluation toggles between eval and apply.
 
@@ -50,7 +51,7 @@
     [(? symbol?)         (env-lookup env exp)]
     [(? number?)          exp] ;Replace this with a new structure that includes the number
     [(? boolean?)         (print "bool") exp] ;should never be called because I've created my own tru and fals to replace racket #t and #f.  
-    [(? string?)          exp] ;Replace this with a new structure that holds the string
+    [(? string?)          (print "exp") exp] ;Replace this with a new structure that holds the string
     [(? hash?)            exp] ;Objects are represented as hash tables with all the primitive methods, and cells for each def, var, and method
     [(? box?)             exp] ;Boxes are containers used to hold hash tables.  
     ;They allow me to replace an old immutable hash with a new one but have all the old pointers in still work.
@@ -504,28 +505,23 @@
 
 (define (p in) (parse (object-name in) in))
 
-(define inp (open-input-file "/home/ryannow/BRUCE-TOTRANSFER2/donetests/t013_method_test.grace"))
-(define a (p inp))
+(define (eval-string str) (print (string->symbol str)))
+
+;(define inp (open-input-file "/home/ryannow/BRUCE-TOTRANSFER2/donetests/t016_objectmeth_test.grace"))
+;(define a (p inp))
 ;(display (AST-to-RG (syntax-e a)))
-;(define a (p (open-input-string "object{
-;var x := object {
-;var val := 1
-;    method foo {
-;        print(self.val)
-;        self.val := self.val + 1
-;    }
-;}
-;var val:=2
-;x.foo()
-;x.foo
-;x.foo
-;}
-;")))
-(define-values (in out) (make-pipe))
-(display (AST-to-RG (syntax-e a)) out)
-(let* ((temp (read in))
- (out (eval temp (env-initial))))
-  (void))
+(define a (p (open-input-string "object{
+print(1)
+}
+"
+)))
+;(define-values (in out) (make-pipe))
+;(display (AST-to-RG (syntax-e a)))
+;(display (AST-to-RG (syntax-e a)) out)
+;(let* ((temp (read in))
+;       (test (print (cdr temp)))
+; (out (eval temp (env-initial))))
+; (void))
 
 
 ; read in a program, and evaluate:
