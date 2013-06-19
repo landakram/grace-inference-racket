@@ -83,9 +83,11 @@
       (for ([i (in-range (length signature))])
         (define t (list-ref signature i))
         (define unwrapped (grace:identifier-type (unwrap t)))
+        ; TODO REMOVE
         ;(displayln t)
+        ; (displayln unwrapped)
         (define type-name
-          (cond ((equal? unwrapped 'missing) "Dyanmic")
+          (cond ((equal? unwrapped #f) "Dynamic")
                 ((grace:identifier? unwrapped)
                  (grace:identifier-value unwrapped))
                 ((is-a? unwrapped grace:type%)
@@ -93,7 +95,7 @@
         (if (equal? i (- (length signature) 1))
             (display (format "_ : ~a" type-name) o)
             (display (format "_ : ~a, " type-name) o)))
-                
+
       ;(for ([t signature])
       ;  (define unwrapped (grace:identifier-type (unwrap t)))
       ;  (displayln t)

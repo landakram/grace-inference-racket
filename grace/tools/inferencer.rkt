@@ -65,6 +65,7 @@
     (define/public (insert-type)
       (match-define (list start end var-name type-name type-def primitive? inf-type) current-entry)
       (when (not primitive?)
+        (displayln type-def)
         (send definitions-text insert type-def (+ start offset))
         (set! offset (+ offset (string-length type-def))))
       (define to-insert (format " : ~a" type-name))

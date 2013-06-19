@@ -2,6 +2,7 @@
 *~
 lang/compiled/
 compiled/
+**/compiled/
 ._*
 **/._*
 .DS_Store
