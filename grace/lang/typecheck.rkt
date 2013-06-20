@@ -196,7 +196,7 @@
         (add-method-to-selftype
          (new grace:type:method%
               [name name-string]
-              [signature (list type-type)]
+              [signature (list)]
               [rtype type-type]))))
 
     ; Set the type of the constant in the environment

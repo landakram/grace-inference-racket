@@ -117,6 +117,8 @@
     [`(objectC ,fields ,methods ,body) (eval-newobjC fields methods body env)]    
     [`(initvar ,obj ,val) (eval-initvar obj val env)]
     [`(initvar* ,objs ,vals) (eval-initvar* objs vals env)]
+    [`(initdef ,obj ,val) (eval-initdef obj val env)]
+    [`(initdef* ,objs ,vals) (eval-initdef* objs vals env)]
 
 
     [`(,f . ,args)         (apply-proc
@@ -269,7 +271,34 @@
      ;(display env)
      ;(newline)
      env]))
+
+(define (eval-initdef var val env)
+  (let* ((hiddenvar (string->symbol (string-append "$" (symbol->string var))))
+         (readmethod var)
+         (env0 (env-extend* env (list hiddenvar) (list ((eval-with env) val))))
+         (env1 (env-extend* env0 (list readmethod) (list (eval `(lambda () ,hiddenvar) env0)))))
+    ;(if (eq? val 'y) (displayln ((eval-with env) val)) (displayln "not y"))
+    ;(display env2)
+    ;(newline)
+    ;Had bug where environment would not change for next step even after initializing variable in body right before.
+    ;Solution was the following line.  Sets the original env to contain the just-added bindings
+    (set-box! env (unbox env1))
+    env1
+    ))
+
+;Allows you to initialize a list of var objects.  Takes list of vars and list of initial values.
+(define (eval-initdef* objs vals env)
+  (match `(,objs ,vals)
+    [`((,o . ,objs) (,v . ,vals))
+     ;=>
+     (eval-initdef* objs vals (eval-initdef o v env))]
     
+        
+    [`(() ())
+     ; =>
+     ;(display env)
+     ;(newline)
+     env]))
 
 ;This is what the var:= methods should be doing
 ;Probably wrong: rather than calling set on a var, we should be calling the var:= method in the first place to allow overriding

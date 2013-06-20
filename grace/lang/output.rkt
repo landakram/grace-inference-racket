@@ -68,6 +68,7 @@
              (string-append "(" (dont-wrap name) " " (string-append* (AST-to-RG args)) ")"))
             ((grace:identifier value type) (string-append "(" value ")"))
             ((grace:var-decl name type value) (string-append "(initvar " (dont-wrap name) " " (AST-to-RG value) ")"))
+            ((grace:def-decl name type value) (string-append "(initdef " (dont-wrap name) " " (AST-to-RG value) ")"))
             ((grace:str str) (string-append "\"" str "\""))
             ((grace:number num) (number->string num))
             ((grace:expression op e1 e2)
