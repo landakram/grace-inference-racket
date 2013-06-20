@@ -107,6 +107,7 @@
     (">=" (token->=))
     ("="  (token-=))
     (":=" (token-:=))
+    ("++" (token-++))
     ("{"  (token-LBRACE))
     ("}"  (token-RBRACE))
     ("("  (token-LPAREN))

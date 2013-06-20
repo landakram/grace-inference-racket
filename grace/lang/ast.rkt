@@ -249,7 +249,11 @@
 ; List of methods for string types.
 ; Empty for now. TODO: Implement if there are any.
 (define string-methods
-  (list))
+  (list
+    (new grace:type:method%
+         [name 'concat]
+         [signature (list string-other)]
+         [rtype string-identifier])))
 
 (define grace:type:string%
   (class* grace:type% ()

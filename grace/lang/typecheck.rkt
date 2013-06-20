@@ -48,23 +48,28 @@
 ;; Finds a method in an the object type of a parent and returns it. Returns #t
 ;; if the parent type is dynamic.
 (define (find-method-in name parent)
-  (if (check-if-dynamic parent)
+  (let* ([name-string name])
+    ; Fix string/symbol issue with name.
+    (when (symbol? name)
+      (set! name-string (symbol->string name)))
+
+    (if (check-if-dynamic parent)
       #t
       ; Find a method that matches the name given.
       (findf (λ (a) (let* ([temp (get-field name a)])
-                      ; Fix for when the method name was given as symbol.
-                      (when (symbol? temp)
-                        (set! temp (symbol->string temp)))
-                      (equal? temp name)))
+                          ; Fix for when the method name was given as symbol.
+                          (when (symbol? temp)
+                            (set! temp (symbol->string temp)))
+                          (equal? temp name-string)))
              ; Check user-defined and builtin methods.
              (append (get-field builtins (expression-type parent))
-                     (get-field methods (expression-type parent))))))
+                     (get-field methods (expression-type parent)))))))
 
 
 ;; Checks whether the object type of an identifier is dynamic.
 (define (check-if-dynamic obj)
-  (displayln "HERE")
-  (displayln obj)
+  ; (displayln "HERE")
+  ; (displayln obj)
   (eq? (send (expression-type obj) readable-name)
        "Dynamic"))
 
@@ -649,10 +654,10 @@
 ;                                                 (unwrap param))))
 ;                                              (new grace:type:dynamic*%))]
                        ; TODO REMOVE
-                       (let* ([param-type-defined (grace:identifier-type 
+                       (let* ([param-type-defined (grace:identifier-type
                                                    (unwrap param))]
                               [param-type (if param-type-defined
-                                              (get-type 
+                                              (get-type
                                                (grace:identifier-value
                                                 param-type-defined))
                                               (new grace:type:dynamic*%))]
@@ -869,18 +874,18 @@
 
 ;; @@@@@ DEBUGGING CODE @@@@@
 ;; @@@@@ FIXME: REMOVE  @@@@@
-(define (p in)
-  (parse (object-name in) in))
-
-(define a (p (open-input-string "
-object {
-    method foo(b) {
-        print(\"Test\")
-    }
-    
-    foo(1)
-} 
-")))
-
-(display
- (typecheck a))
+; (define (p in)
+;   (parse (object-name in) in))
+;
+; (define a (p (open-input-string "
+; object {
+;     method foo(b) {
+;         print(\"Test\")
+;     }
+;
+;     foo(1)
+; }
+; ")))
+;
+; (display
+;  (typecheck a))
