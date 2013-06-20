@@ -135,7 +135,7 @@
 
      ((IDENTIFIER : identifier COMMA signature-list)
       (append
-       (list (at-src (grace:identifier (symbol->string $1) $3))) $5)))
+       (list (at-src (grace:identifier (symbol->string (quote $1)) $3))) $5)))
 
     (method-return-type
      ((ARROW identifier) $2)
@@ -259,24 +259,14 @@
 
 ;; @@@@@ DEBUGGING CODE @@@@@
 
-;(define (p in)
-;  (parse (object-name in) in))
+(define (p in)
+  (parse (object-name in) in))
 ;
 ;(define a (p (open-input-string "
-;type Object_119 = {
-;    b() -> Number
-;    b:=() -> Number
-;    foo(_ : Number, _ : String, _ : Boolean) -> String
+;object{      method foo(b) {
+;         print(3)
+;                }
+;    var z := 4
 ;}
-;
-;var obj : Object_119 := object {
-;    var b : Number := 2
-;	method foo(x : Number, y : String, z : Boolean) -> String {
-;	        var w : Boolean := z
-;            print(\"World\")
-;		return \"Hello\"
-;	}
-;}
-;
-;obj.foo(2, \"2\", true)
 ;")))
+;(displayln (syntax->datum a))
