@@ -152,9 +152,9 @@
 
            ((grace:class-decl name body)
             (add-class name body))
-           ;; TODO: TYPE actually needs to be the name of a type in the environment,
-           ;; so here, we need to set the type in the environment so add-var and
-           ;; eventually, resolve-identifier can find it.
+           ;; TODO: TYPE actually needs to be the name of a type in the
+           ;; environment, so here, we need to set the type in the environment
+           ;; so add-var and eventually, resolve-identifier can find it.
 
            (else 'success))))))
 
