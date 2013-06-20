@@ -63,6 +63,8 @@
 
 ;; Checks whether the object type of an identifier is dynamic.
 (define (check-if-dynamic obj)
+  (displayln "HERE")
+  (displayln obj)
   (eq? (send (expression-type obj) readable-name)
        "Dynamic"))
 
@@ -196,7 +198,7 @@
         (add-method-to-selftype
          (new grace:type:method%
               [name name-string]
-              [signature (list type-type)]
+              [signature (list)]
               [rtype type-type]))))
 
     ; Set the type of the constant in the environment
@@ -641,10 +643,19 @@
               (begin
                 (map (λ (arg param)
                        ; Get the types of the parameter and argument.
-                       (let* ([param-type (get-type
-                                           (grace:identifier-value
-                                            (grace:identifier-type
-                                             (unwrap param))))]
+;                       (let* ([param-type (or (get-type
+;                                               (grace:identifier-value
+;                                                (grace:identifier-type
+;                                                 (unwrap param))))
+;                                              (new grace:type:dynamic*%))]
+                       ; TODO REMOVE
+                       (let* ([param-type-defined (grace:identifier-type 
+                                                   (unwrap param))]
+                              [param-type (if param-type-defined
+                                              (get-type 
+                                               (grace:identifier-value
+                                                param-type-defined))
+                                              (new grace:type:dynamic*%))]
                               [arg-type (expression-type arg)])
 
                          ; If they don't match up, error.
@@ -858,24 +869,18 @@
 
 ;; @@@@@ DEBUGGING CODE @@@@@
 ;; @@@@@ FIXME: REMOVE  @@@@@
-; (define (p in)
-;   (parse (object-name in) in))
-;
-; (define a (p (open-input-string "
-; class Cat {
-;     def name : String = \"kitty\"
-;
-;     method purr {
-;         print(\"Purr\")
-;     }
-;
-;     method mew {
-;         print(\"Meow\")
-;     }
-; }
-;
-; var c := Cat.new()
-; ")))
-;
-; (display
-;  (typecheck a))
+(define (p in)
+  (parse (object-name in) in))
+
+(define a (p (open-input-string "
+object {
+    method foo(b) {
+        print(\"Test\")
+    }
+    
+    foo(1)
+} 
+")))
+
+(display
+ (typecheck a))
