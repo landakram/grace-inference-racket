@@ -135,7 +135,7 @@
 
      ((IDENTIFIER : identifier COMMA signature-list)
       (append
-       (list (at-src (grace:identifier (symbol->string (quote $1)) $3))) $5)))
+       (list (at-src (grace:identifier (symbol->string $1) $3))) $5)))
 
     (method-return-type
      ((ARROW identifier) $2)
