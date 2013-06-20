@@ -249,11 +249,6 @@
          (env0 (env-extend* env (list hiddenvar) (list ((eval-with env) val))))
          (env1 (env-extend* env0 (list readmethod) (list (eval `(lambda () ,hiddenvar) env0))))
          (env2 (env-extend* env1 (list modmethod) (list (eval `(lambda (x) (set! ,hiddenvar x)) env1)))))
-    ;(if (eq? val 'y) (displayln ((eval-with env) val)) (displayln "not y"))
-    ;(display env2)
-    ;(newline)
-    ;Had bug where environment would not change for next step even after initializing variable in body right before.
-    ;Solution was the following line.  Sets the original env to contain the just-added bindings
     (set-box! env (unbox env2))
     env2
     ))
@@ -277,11 +272,6 @@
          (readmethod var)
          (env0 (env-extend* env (list hiddenvar) (list ((eval-with env) val))))
          (env1 (env-extend* env0 (list readmethod) (list (eval `(lambda () ,hiddenvar) env0)))))
-    ;(if (eq? val 'y) (displayln ((eval-with env) val)) (displayln "not y"))
-    ;(display env2)
-    ;(newline)
-    ;Had bug where environment would not change for next step even after initializing variable in body right before.
-    ;Solution was the following line.  Sets the original env to contain the just-added bindings
     (set-box! env (unbox env1))
     env1
     ))
