@@ -11,9 +11,9 @@
          get-info)
 
 ;; Parses the grace syntax for a module
-;; 
+;;
 ;; Without a backend for Grace, this function simply creates
-;; a fresh racket module, requires all grace AST structures, 
+;; a fresh racket module, requires all grace AST structures,
 ;; and provides the root of the parsed AST.
 (define (read-syntax src-name in)
   (let* ([p-name (object-name in)]
@@ -26,10 +26,10 @@
     (define datum (syntax->datum stx))
     ;(display (syntax->datum stx))
     (define env (typecheck stx))
-    (define sp (AST-to-RG (syntax-e stx)))
+    ;(define sp (AST-to-RG (syntax-e stx)))
     ;(display sp)
-    (define-values (in out) (make-pipe))
-    (display sp out)
+    ;(define-values (in out) (make-pipe))
+    ;(display sp out)
     ;(let* ((toeval (read in))) ((eval-with (env-initial)) toeval))
     ;(display (list? env))
     (datum->syntax #f `(module ,name racket 
@@ -47,8 +47,8 @@
 
 ;; To get info about the language's environment support:
 (define (get-info in mod line col pos)
-  (lambda (key default) 
-    (case key 
+  (lambda (key default)
+    (case key
       [(drracket:toolbar-buttons)
        (dynamic-require 'grace/tools/drracket-buttons 'drracket-buttons)]
       [else default])))

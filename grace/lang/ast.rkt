@@ -4,12 +4,12 @@
   (syntax-case stx ()
     [(_ (struct-name (field ...) struct-option ...) ...)
      (with-syntax
-       ([(grace:struct ...) (map (lambda (id)
-                                   (datum->syntax
-                                     id
-                                     (string->symbol
-                                       (format "~a:~a" prefix (syntax-e id)))))
-                                 (syntax->list (syntax (struct-name ...))))])
+       ([(grace:struct ...)
+         (map (λ (id)
+                 (datum->syntax
+                   id
+                   (string->symbol (format "~a:~a" prefix (syntax-e id)))))
+              (syntax->list (syntax (struct-name ...))))])
        (syntax
          (begin
            (define-struct grace:struct (field ...) struct-option ... #:prefab)
@@ -135,10 +135,18 @@
 
 (define builtin-methods
   (list
+    ; Print method takes any top type.
     (new grace:type:method%
          [name 'print]
          [signature (list top-other)]
-         [rtype done-identifier])))
+         [rtype done-identifier])
+
+    ; Concatenate likewise works on any top type.
+    (new grace:type:method%
+         [name 'concat]
+         [signature (list top-other)]
+         [rtype string-identifier])))
+
 
 (define grace:type%
   (class* object% (grace:type<%> equal<%>)
