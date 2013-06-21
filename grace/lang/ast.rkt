@@ -140,11 +140,19 @@
          [signature (list top-other)]
          [rtype done-identifier])))
 
+(define top-methods
+  (list
+    (new grace:type:method%
+         [name 'concat]
+         [signature (list top-other)]
+         [rtype string-identifier])))
+
 (define grace:type%
   (class* object% (grace:type<%> equal<%>)
     (super-new)
     (init-field (methods (list)))
     (init-field (builtins builtin-methods))
+    (add-methods this top-methods)
     (define/public (readable-name)
       "Dynamic")
     (define/public (equal-to? other recur)
@@ -249,11 +257,7 @@
 ; List of methods for string types.
 ; Empty for now. TODO: Implement if there are any.
 (define string-methods
-  (list
-    (new grace:type:method%
-         [name 'concat]
-         [signature (list string-other)]
-         [rtype string-identifier])))
+  (list))
 
 (define grace:type:string%
   (class* grace:type% ()

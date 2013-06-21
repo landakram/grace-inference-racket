@@ -5,18 +5,18 @@ print("Hello, world.")
 
 
 // Test 2 : FIXME (need to add concatenate method)
-//print("Hello " ++ "world.")
-//print("Line " ++ 2)
-//print(3 ++ "rd line")
+print("Hello " ++ "world.")
+print("Line " ++ 2)
+print(3 ++ "rd line")
 
 
-// Test 3 : FIXME (print can't take numbers)
-//print(2 - 1)
-//print(1 + 1)
-//print(6 / 2)
-//print(2 * 2)
-//print(15 % 10)
-//print(3 ^ 4)
+// Test 3 : FIXME (decimals/floats are not in)
+print(2 - 1)
+print(1 + 1)
+print(6 / 2)
+print(2 * 2)
+print(15 % 10)
+print(3 ^ 4)
 //print(4 ^ 0.5)
 
 
@@ -32,8 +32,8 @@ print(y)
 
 
 // Test 5 : FIXME (print can't take booleans and || and && are not in)
-//print(true)
-//print(false)
+print(true)
+print(false)
 //print(true || false)
 //print(true && false)
 
@@ -51,7 +51,7 @@ print(x && false.not)
 var x := 4
 print(x / 2 - 1)
 print(x - 2 / 1)
-//print(2 * 1 + 4 / x)
+print(2 * 1 + 4 / x)
 print((x * (6 - 2) - x) /3)
 print(x - 0 + 1)
 print(x * 3 / 2)
