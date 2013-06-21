@@ -42,6 +42,9 @@
 
 ;; Returns whether a syntax element is an object.
 (define (is-object? elt)
+    ; (if (is-a? (unwrap elt) grace:type%)
+    ;   (equal? (send (unwrap elt) readable-name) "Object")
+    ;   #f))
   (is-a? (unwrap elt) grace:type:object%))
 
 
@@ -445,7 +448,7 @@
 
     ;; Error if the declared type and the type of the value are not the same.
     (when (not (conforms-to? value-type type-type))
-      (tc-error "initializing ~aof type ~a with expression of type ~a"
+      (tc-error "initializing ~a of type ~a with expression of type ~a"
                 decl-type
                 (send type-type readable-name)
                 (send value-type readable-name)))))
@@ -799,7 +802,7 @@
   (when (not primitive?)
     (define existing-type
       (findf
-       (λ (x) (equal? x value-type))
+       (λ (x) (equal? value-type x))
        (hash-values (env))))
 
     ; Don't decalre the type again, and annotate using the existing type.
@@ -873,20 +876,14 @@
  infer-objects)
 
 
-;; @@@@@ DEBUGGING CODE @@@@@
-;; @@@@@ FIXME: REMOVE  @@@@@
-; (define (p in)
-;   (parse (object-name in) in))
-;
-; (define a (p (open-input-string "
-; object {
-;     method foo(b) {
-;         print(\"Test\")
-;     }
-;
-;     foo(1)
-; }
-; ")))
-;
-; (display
-;  (typecheck a))
+; @@@@@ DEBUGGING CODE @@@@@
+; @@@@@ FIXME: REMOVE  @@@@@
+ (define (p in)
+   (parse (object-name in) in))
+
+ (define a (p (open-input-string "
+ var x := object {}
+ ")))
+
+ (display
+  (typecheck a))
