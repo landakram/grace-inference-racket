@@ -53,7 +53,7 @@
                 (map AST-to-RG elt)
                 (print (length elt))))
           (match elt
-            ((grace:code-seq num) (string-append* (map AST-to-RG (syntax->datum num))))
+            ((grace:code-seq num) (if (list? num) '("") (string-append* (map AST-to-RG (syntax->datum num)))))
             ((grace:object body) 
              (string-append "(objectC () (" (string-append* (extract-methods body))")" 
                             "(begin (list" (foldr string-append "" (all-but-methods body)) ")))"))
@@ -68,6 +68,7 @@
              (string-append "(" (dont-wrap name) " " (string-append* (AST-to-RG args)) ")"))
             ((grace:identifier value type) (string-append "(" value ")"))
             ((grace:var-decl name type value) (string-append "(initvar " (dont-wrap name) " " (AST-to-RG value) ")"))
+            ((grace:def-decl name type value) (string-append "(initdef " (dont-wrap name) " " (AST-to-RG value) ")"))
             ((grace:str str) (string-append "\"" str "\""))
             ((grace:number num) (number->string num))
             ((grace:expression op e1 e2)
@@ -75,6 +76,9 @@
                             " " (AST-to-RG e1) " " (AST-to-RG e2) ")"))
             ((grace:member parent name) (string-append "(send2 " (AST-to-RG parent) " " (AST-to-RG name) ")"))
             ((grace:bind name value) (string-append "(setC! " (dont-wrap name) " " (AST-to-RG value) ")"))
+            ((grace:if-then-else cond tbody ebody) (string-append "(myif " (AST-to-RG cond)  
+                                                                  "(begin (list" (string-append* (AST-to-RG tbody)) 
+                                                                  ")) (begin (list" (string-append* (AST-to-RG ebody))  ")))"))
             (void "")
             (else (print elt))))))
 
@@ -121,8 +125,9 @@
 (define (p in) (parse (object-name in) in))
 
 (define a (p (open-input-string "object{
-print(2)
-}
+  if (true) then { print (2)
+                         }
+        }
 ")))
 (define b (p (open-input-string "method foo {
     print(\"OK 1\")
