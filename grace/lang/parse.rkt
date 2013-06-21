@@ -54,7 +54,7 @@
      ((declaration NEWLINE) $1)
      ((expression NEWLINE) $1)
      ((return NEWLINE) $1)
-     ((if-then NEWLINE) $1)
+     ((if-then-else NEWLINE) $1)
      ((any := expression NEWLINE) (at-src (grace:bind $1 $3))))
 
     (return
@@ -164,6 +164,7 @@
      ((expression <= expression) (at-src (grace:expression <=     $1 $3)))
      ((expression >= expression) (at-src (grace:expression >=     $1 $3)))
 
+     ((expression ++ expression) (at-src (grace:expression 'concat $1 $3)))
      ((term) $1))
     ; multi-part method names
     ;((postfixsquare) $1)
@@ -224,9 +225,12 @@
     (identifier
      ((IDENTIFIER) (at-src (grace:identifier (symbol->string $1) #f))))
 
-    (if-then
+    
+    (if-then-else
+     ((IF LPAREN expression RPAREN THEN LBRACE if-body RBRACE ELSE LBRACE if-body RBRACE)
+      (at-src (grace:if-then-else $3 $7 $11)))
      ((IF LPAREN expression RPAREN THEN LBRACE if-body RBRACE)
-      (at-src (grace:if-then $3 $7))))
+      (at-src (grace:if-then-else $3 $7 (grace:code-seq empty)))))
 
     (class-declaration
      ((CLASS identifier LBRACE class-body RBRACE)
@@ -251,11 +255,8 @@
      (() (void))))))
 
 
-;To test lexing and parsing without typechecking, copy your program into
-;open-input-string
-;(define (p in) (parse (object-name in) in))
-;(define a (p (open-input-string "if (true) then (var z := 4 \n)\n")))
-;(display a)
+
+
 
 ;; @@@@@ DEBUGGING CODE @@@@@
 

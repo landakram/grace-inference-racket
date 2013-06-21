@@ -24,7 +24,7 @@
                        SEMICOLON
                        NEWLINE
                        OBJECT METHOD VAR TYPE IMPORT CLASS
-                       RETURN DEF INHERITS IS DIALECT IF THEN
+                       RETURN DEF INHERITS IS DIALECT IF THEN ELSE
                        UNARY METHODCALL))
 
 
@@ -107,6 +107,7 @@
     (">=" (token->=))
     ("="  (token-=))
     (":=" (token-:=))
+    ("++" (token-++))
     ("{"  (token-LBRACE))
     ("}"  (token-RBRACE))
     ("("  (token-LPAREN))

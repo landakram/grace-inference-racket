@@ -48,17 +48,22 @@
 ;; Finds a method in an the object type of a parent and returns it. Returns #t
 ;; if the parent type is dynamic.
 (define (find-method-in name parent)
-  (if (check-if-dynamic parent)
+  (let* ([name-string name])
+    ; Fix string/symbol issue with name.
+    (when (symbol? name)
+      (set! name-string (symbol->string name)))
+
+    (if (check-if-dynamic parent)
       #t
       ; Find a method that matches the name given.
       (findf (λ (a) (let* ([temp (get-field name a)])
-                      ; Fix for when the method name was given as symbol.
-                      (when (symbol? temp)
-                        (set! temp (symbol->string temp)))
-                      (equal? temp name)))
+                          ; Fix for when the method name was given as symbol.
+                          (when (symbol? temp)
+                            (set! temp (symbol->string temp)))
+                          (equal? temp name-string)))
              ; Check user-defined and builtin methods.
              (append (get-field builtins (expression-type parent))
-                     (get-field methods (expression-type parent))))))
+                     (get-field methods (expression-type parent)))))))
 
 
 ;; Checks whether the object type of an identifier is dynamic.
@@ -112,6 +117,7 @@
 
 ;; Resolve identifiers in a code sequence.
 (define (resolve-identifiers-list lst)
+  ;(display lst)
   (parameterize ([env (hash-copy (env))])
     (map maybe-bind-name lst)
     (map resolve-identifiers lst)
@@ -292,9 +298,12 @@
 
         ; For an if-then clause, resolves identifiers in the condition, then
         ; does so for the entire body statement.
-        ((grace:if-then condition body)
+        ((grace:if-then-else condition tbody ebody)
          (begin (resolve-identifiers condition)
-                (resolve-identifiers-list (syntax->list body))))
+                (resolve-identifiers-list (syntax->list tbody))
+                (if (list? (syntax->list ebody))
+                (resolve-identifiers-list (syntax->list ebody))
+                ebody)))
 
         ; Calls a helper that looks for type errors in a method declaration.
         ((grace:method method-name signature body rtype)
@@ -535,11 +544,11 @@
          (get-type-of-expression op e1 e2))
 
         ; For an if-then statement, make sure the condition is a boolean.
-        ((grace:if-then condition body)
+        ((grace:if-then-else condition tbody ebody)
          (let* ([cond-type (expression-type condition)])
            ;FIXME (displayln condition)
            (unless (conforms-to? cond-type (new grace:type:boolean%))
-             (tc-error "if-then takes boolean but got ~a"
+             (tc-error "if-then-else takes boolean but got ~a"
                        (send cond-type readable-name)))))
 
         ; For a member access, call a helper.
@@ -647,10 +656,10 @@
 ;                                                 (unwrap param))))
 ;                                              (new grace:type:dynamic*%))]
                        ; TODO REMOVE
-                       (let* ([param-type-defined (grace:identifier-type 
+                       (let* ([param-type-defined (grace:identifier-type
                                                    (unwrap param))]
                               [param-type (if param-type-defined
-                                              (get-type 
+                                              (get-type
                                                (grace:identifier-value
                                                 param-type-defined))
                                               (new grace:type:dynamic*%))]
@@ -712,15 +721,16 @@
          (let* ([name-string (grace:identifier-value (unwrap name))])
            (append
             method-type-list
-            (list (new grace:type:method%
-                       [name (string->symbol name-string)]
-                       [signature (list)]
-                       [rtype (resolve-identifier type)])
-                  (new grace:type:method%
-                       [name (string->symbol (format "~a:=" name-string))]
-                       [signature (list (same-other (resolve-identifier type)))]
-                       ;[signature (list)]
-                       [rtype (get-type "Done")])))))
+            (list
+              (new grace:type:method%
+                  [name (string->symbol name-string)]
+                  [signature (list)]
+                  [rtype (resolve-identifier type)])
+              (new grace:type:method%
+                  [name (string->symbol (format "~a:=" name-string))]
+                  [signature (list (same-other (resolve-identifier type)))]
+                  ;[signature (list)]
+                  [rtype (get-type "Done")])))))
 
         ; A method declaration is added to the method list.
         ((grace:method method-name signature body rtype)
@@ -867,18 +877,12 @@
 
 ;; @@@@@ DEBUGGING CODE @@@@@
 ;; @@@@@ FIXME: REMOVE  @@@@@
-(define (p in)
-  (parse (object-name in) in))
+ (define (p in)
+   (parse (object-name in) in))
 
-(define a (p (open-input-string "
-object {
-    method foo(b) {
-        print(\"Test\")
-    }
-    
-    foo(1)
-} 
-")))
+; (define a (p (open-input-string "
+; ")))
 
-(display
- (typecheck a))
+ ;(display
+  ;(typecheck a)
+  ;)

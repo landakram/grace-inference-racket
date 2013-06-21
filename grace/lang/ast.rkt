@@ -36,7 +36,7 @@
   (method (name signature body type))
   (member (parent name))
   (return (value))
-  (if-then (check body))
+  (if-then-else (check tbody ebody))
   (class-decl (name body))
 
   (code-seq (code)))
@@ -135,10 +135,18 @@
 
 (define builtin-methods
   (list
+    ; Print method takes any top type.
     (new grace:type:method%
          [name 'print]
          [signature (list top-other)]
-         [rtype done-identifier])))
+         [rtype done-identifier])
+
+    ; Concatenate likewise works on any top type.
+    (new grace:type:method%
+         [name 'concat]
+         [signature (list top-other)]
+         [rtype string-identifier])))
+
 
 (define grace:type%
   (class* object% (grace:type<%> equal<%>)
