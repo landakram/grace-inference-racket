@@ -1,4 +1,6 @@
 #lang grace
 object{
-    print(2)
-}
+  if (true) then { print (2)
+                         } else {
+                                 }
+        }
