@@ -225,9 +225,6 @@
     (identifier
      ((IDENTIFIER) (at-src (grace:identifier (symbol->string $1) #f))))
 
-   ; (if-then
-   ;  ((IF LPAREN expression RPAREN THEN LBRACE if-body RBRACE)
-   ;   (at-src (grace:if-then $3 $7))))
     
     (if-then-else
      ((IF LPAREN expression RPAREN THEN LBRACE if-body RBRACE ELSE LBRACE if-body RBRACE)
