@@ -112,6 +112,7 @@
 
 ;; Resolve identifiers in a code sequence.
 (define (resolve-identifiers-list lst)
+  ;(display lst)
   (parameterize ([env (hash-copy (env))])
     (map maybe-bind-name lst)
     (map resolve-identifiers lst)
@@ -292,9 +293,12 @@
 
         ; For an if-then clause, resolves identifiers in the condition, then
         ; does so for the entire body statement.
-        ((grace:if-then condition body)
+        ((grace:if-then-else condition tbody ebody)
          (begin (resolve-identifiers condition)
-                (resolve-identifiers-list (syntax->list body))))
+                (resolve-identifiers-list (syntax->list tbody))
+                (if (list? (syntax->list ebody))
+                (resolve-identifiers-list (syntax->list ebody))
+                ebody)))
 
         ; Calls a helper that looks for type errors in a method declaration.
         ((grace:method method-name signature body rtype)
@@ -535,11 +539,11 @@
          (get-type-of-expression op e1 e2))
 
         ; For an if-then statement, make sure the condition is a boolean.
-        ((grace:if-then condition body)
+        ((grace:if-then-else condition tbody ebody)
          (let* ([cond-type (expression-type condition)])
            ;FIXME (displayln condition)
            (unless (conforms-to? cond-type (new grace:type:boolean%))
-             (tc-error "if-then takes boolean but got ~a"
+             (tc-error "if-then-else takes boolean but got ~a"
                        (send cond-type readable-name)))))
 
         ; For a member access, call a helper.
@@ -858,24 +862,16 @@
 
 ;; @@@@@ DEBUGGING CODE @@@@@
 ;; @@@@@ FIXME: REMOVE  @@@@@
-; (define (p in)
-;   (parse (object-name in) in))
-;
+ (define (p in)
+   (parse (object-name in) in))
+
 ; (define a (p (open-input-string "
-; class Cat {
-;     def name : String = \"kitty\"
-;
-;     method purr {
-;         print(\"Purr\")
-;     }
-;
-;     method mew {
-;         print(\"Meow\")
-;     }
-; }
-;
-; var c := Cat.new()
+;object{
+;  if (true) then { print (2)
+;                         }
+;        }
 ; ")))
-;
-; (display
-;  (typecheck a))
+
+ ;(display
+  ;(typecheck a)
+  ;)

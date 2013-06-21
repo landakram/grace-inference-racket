@@ -36,7 +36,7 @@
   (method (name signature body type))
   (member (parent name))
   (return (value))
-  (if-then (check body))
+  (if-then-else (check tbody ebody))
   (class-decl (name body))
 
   (code-seq (code)))
