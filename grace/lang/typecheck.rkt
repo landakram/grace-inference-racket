@@ -719,15 +719,16 @@
          (let* ([name-string (grace:identifier-value (unwrap name))])
            (append
             method-type-list
-            (list (new grace:type:method%
-                       [name (string->symbol name-string)]
-                       [signature (list)]
-                       [rtype (resolve-identifier type)])
-                  (new grace:type:method%
-                       [name (string->symbol (format "~a:=" name-string))]
-                       [signature (list (same-other (resolve-identifier type)))]
-                       ;[signature (list)]
-                       [rtype (get-type "Done")])))))
+            (list
+              (new grace:type:method%
+                  [name (string->symbol name-string)]
+                  [signature (list)]
+                  [rtype (resolve-identifier type)])
+              (new grace:type:method%
+                  [name (string->symbol (format "~a:=" name-string))]
+                  [signature (list (same-other (resolve-identifier type)))]
+                  ;[signature (list)]
+                  [rtype (get-type "Done")])))))
 
         ; A method declaration is added to the method list.
         ((grace:method method-name signature body rtype)
