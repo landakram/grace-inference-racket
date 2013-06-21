@@ -164,6 +164,7 @@
      ((expression <= expression) (at-src (grace:expression <=     $1 $3)))
      ((expression >= expression) (at-src (grace:expression >=     $1 $3)))
 
+     ((expression ++ expression) (at-src (grace:expression 'concat $1 $3)))
      ((term) $1))
     ; multi-part method names
     ;((postfixsquare) $1)

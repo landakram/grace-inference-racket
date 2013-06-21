@@ -140,11 +140,19 @@
          [signature (list top-other)]
          [rtype done-identifier])))
 
+(define top-methods
+  (list
+    (new grace:type:method%
+         [name 'concat]
+         [signature (list top-other)]
+         [rtype string-identifier])))
+
 (define grace:type%
   (class* object% (grace:type<%> equal<%>)
     (super-new)
     (init-field (methods (list)))
     (init-field (builtins builtin-methods))
+    (add-methods this top-methods)
     (define/public (readable-name)
       "Dynamic")
     (define/public (equal-to? other recur)
