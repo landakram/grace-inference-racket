@@ -63,7 +63,7 @@
     [`(letC   ,binds ,eb) (eval-letC    binds eb env)]
     [`(lambda ,vs ,e)    `(closure ,exp ,env)]
     ;These shouldn't be here: current code will print ASTs that uses this : instead, it should call the "{var}:=" method to allow overriding to work properly
-    [`(set! ,v ,e)        (begin (print v)(print (eval v env)) (match v
+    [`(set! ,v ,e)        (begin (match v
                             [(? symbol?) (env-set! env v (eval e env))]
                             [`(send2 ,obj ,meth) (eval `(set! ,meth ,e) (eval obj env))]))]
     [`(setC! ,v ,e)       (match v
@@ -228,7 +228,6 @@
          (fs   (map (lambda _ #f) bindings))
          (env* (env-extend* env vars fs))
          (vals (map (eval-with env*) exps)))
-    (print "done")
     (env-set!* env* vars vals)
     (eval body env*)))
 
@@ -247,8 +246,8 @@
          (env0 (env-extend* env (list hiddenvar) (list ((eval-with env) val))))
          (env1 (env-extend* env0 (list readmethod) (list (eval `(lambda () ,hiddenvar) env0))))
          ;Fix this!!!  Find out why changes to vars aren't sticking
-         (env2 (env-extend* env1 (list modmethod) (list (eval `(lambda (b) (begin (list (print b) 
-                                                                                        ;(set! ,hiddenvar x)
+         (env2 (env-extend* env1 (list modmethod) (list (eval `(lambda (b) (begin (list  ;(print b)
+                                                                                        (set! ,hiddenvar (b))
                                                                                         ))) env1)))))
     (set-box! env (unbox env2))
     env2
