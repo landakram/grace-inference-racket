@@ -68,8 +68,6 @@
 
 ;; Checks whether the object type of an identifier is dynamic.
 (define (check-if-dynamic obj)
-  ; (displayln "HERE")
-  ; (displayln obj)
   (eq? (send (expression-type obj) readable-name)
        "Dynamic"))
 

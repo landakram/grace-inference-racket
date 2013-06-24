@@ -38,9 +38,9 @@
    ;first takes a whole list of primitives and binds them to racket equivalents
    ;many of these will need to be replaced: all the math ones will need to extract values out of new number objects
    ;and then call primitive version rather than being in current form
-   `(,+ ,- ,/ ,* ,modulo ,<= ,>= ,eq? )
+   `(,+ ,- ,/ ,* ,modulo ,<= ,>= ,eq? concat ,exp)
    (map (lambda (s) (list 'primitive s))
-        '(+ -  /  *  %   <= >= eq? ))))
+        '(+ -  /  *  %   <= >= eq? ++ expt))))
 
 ;;TODO: Deal with newlines somehow so they are ignored rather than gumming things up
 (define (AST-to-RG elt)
@@ -53,8 +53,12 @@
                 (map AST-to-RG elt)
                 (print (length elt))))
           (match elt
-            ((grace:code-seq num) (if (list? num) '("") (string-append* (map AST-to-RG (syntax->datum num)))))
-            ((grace:object body) 
+            ((grace:code-seq code) 
+             (set! code (syntax->datum code))
+             (string-append "(objectC () (" (string-append* (extract-methods code))")" 
+                            "(begin (list" (foldr string-append "" (all-but-methods code)) ")))"))
+            ;(if (list? num) '("") (string-append* (map AST-to-RG (syntax->datum num)))))
+            ((grace:object body)
              (string-append "(objectC () (" (string-append* (extract-methods body))")" 
                             "(begin (list" (foldr string-append "" (all-but-methods body)) ")))"))
             ((grace:method name signature body type)
@@ -75,7 +79,7 @@
              (string-append "(" (symbol->string (cadr (env-lookup env-reverse op)))
                             " " (AST-to-RG e1) " " (AST-to-RG e2) ")"))
             ((grace:member parent name) (string-append "(send2 " (AST-to-RG parent) " " (AST-to-RG name) ")"))
-            ((grace:bind name value) (string-append "(setC! " (dont-wrap name) " " (AST-to-RG value) ")"))
+            ((grace:bind name value) (string-append "(" (dont-wrap name) ":= " (AST-to-RG value) ")"))
             ((grace:if-then-else cond tbody ebody) (string-append "(myif " (AST-to-RG cond)  
                                                                   "(begin (list" (string-append* (AST-to-RG tbody)) 
                                                                   ")) (begin (list" (string-append* (AST-to-RG ebody))  ")))"))
@@ -124,24 +128,9 @@
 
 (define (p in) (parse (object-name in) in))
 
-(define a (p (open-input-string "object{
-  if (true) then { print (2)
-                         }
-        }
+(define a (p (open-input-string "
+print(3 ^ 4)
 ")))
-(define b (p (open-input-string "method foo {
-    print(\"OK 1\")
-}
-method bar(x) {
-    print(\"OK \")
-}
-foo
-bar(2)
-bar(3)
-")))
-;(equal? a b)
 ;(displayln (grace:object a))
-;(displayln (syntax->datum b))
-;(display (syntax-e a))
+;(displayln (syntax->datum a))
 ;(display (AST-to-RG (syntax-e a)))
-;(display (AST-to-RG (grace:object a)))

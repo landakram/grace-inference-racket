@@ -136,7 +136,7 @@
 
      ((IDENTIFIER : identifier COMMA signature-list)
       (append
-       (list (at-src (grace:identifier (symbol->string $1) $3))) $5)))
+       (list (at-src (grace:identifier (symbol->string (quote $1)) $3))) $5)))
 
     (method-return-type
      ((ARROW identifier) $2)
@@ -274,9 +274,10 @@
   (parse (object-name in) in))
 ;
 ;(define a (p (open-input-string "
-;object{
-;  if (true) then { print (2)
-;                         }
-;        }
+;object{      method foo(b) {
+;         print(3)
+;                }
+;    var z := 4
+;}
 ;")))
-;(display (syntax->datum a))
+;(displayln (syntax->datum a))
