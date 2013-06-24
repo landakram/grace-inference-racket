@@ -75,7 +75,7 @@
              (string-append "(" (symbol->string (cadr (env-lookup env-reverse op)))
                             " " (AST-to-RG e1) " " (AST-to-RG e2) ")"))
             ((grace:member parent name) (string-append "(send2 " (AST-to-RG parent) " " (AST-to-RG name) ")"))
-            ((grace:bind name value) (string-append "(setC! " (dont-wrap name) " " (AST-to-RG value) ")"))
+            ((grace:bind name value) (string-append "(" (dont-wrap name) ":= " (AST-to-RG value) ")"))
             ((grace:if-then-else cond tbody ebody) (string-append "(myif " (AST-to-RG cond)  
                                                                   "(begin (list" (string-append* (AST-to-RG tbody)) 
                                                                   ")) (begin (list" (string-append* (AST-to-RG ebody))  ")))"))
@@ -125,8 +125,9 @@
 (define (p in) (parse (object-name in) in))
 
 (define a (p (open-input-string "object{
-  if (true) then { print (2)
-                         }
+ var x := 3
+x := 4
+print(x)
         }
 ")))
 (define b (p (open-input-string "method foo {
