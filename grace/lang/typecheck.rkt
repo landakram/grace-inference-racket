@@ -42,9 +42,6 @@
 
 ;; Returns whether a syntax element is an object.
 (define (is-object? elt)
-    ; (if (is-a? (unwrap elt) grace:type%)
-    ;   (equal? (send (unwrap elt) readable-name) "Object")
-    ;   #f))
   (is-a? (unwrap elt) grace:type:object%))
 
 
@@ -120,7 +117,6 @@
 
 ;; Resolve identifiers in a code sequence.
 (define (resolve-identifiers-list lst)
-  ;(display lst)
   (parameterize ([env (hash-copy (env))])
     (map maybe-bind-name lst)
     (map resolve-identifiers lst)
@@ -159,8 +155,8 @@
            ((grace:method name signature body rtype)
             (add-method name signature body rtype))
 
-           ((grace:class-decl name body)
-            (add-class name body))
+           ((grace:class-decl name param-name signature body)
+            (add-class name param-name signature body))
            ;; TODO: TYPE actually needs to be the name of a type in the
            ;; environment, so here, we need to set the type in the environment
            ;; so add-var and eventually, resolve-identifier can find it.
@@ -233,12 +229,12 @@
 
 ;; Adds a class to the environment as an object type with a method called 'new'
 ;; that returns an object as defined in the body.
-(define (add-class name body)
+(define (add-class name param-name signature body)
   (let* (;[name (grace:identifier-value (unwrap name))]
          [name-string (grace:identifier-value (unwrap name))]
          [class-name (format "Class_~a" name-string)]
          ;[name-string (grace:identifier-value (unwrap name))]
-         [obj-name (format "~a_Type" name-string)]
+         [obj-name (format "~aType" name-string)]
          [obj-methods (foldl
                        body-stmt-to-method-type
                        (list)
@@ -251,8 +247,8 @@
                [internal-name class-name]
                [methods
                 (list (new grace:type:method%
-                           [name 'new]
-                           [signature (list)]
+                           [name (grace:identifier-value (unwrap param-name))]
+                           [signature (unwrap signature)]
                            [rtype obj-type]))])])
     (displayln (unwrap name))
     ; (set-type obj-name obj-type)
@@ -880,12 +876,12 @@
 
 ; @@@@@ DEBUGGING CODE @@@@@
 ; @@@@@ FIXME: REMOVE  @@@@@
- (define (p in)
-   (parse (object-name in) in))
-
- (define a (p (open-input-string "
- var x := object {}
- ")))
-
- (display
-  (typecheck a))
+; (define (p in)
+;   (parse (object-name in) in))
+;
+; (define a (p (open-input-string "
+; var x := object {}
+; ")))
+;
+; (display
+;   (typecheck a))

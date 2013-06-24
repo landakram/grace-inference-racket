@@ -121,6 +121,7 @@
        (grace:identifier
         (format "~a:=" (grace:identifier-value (syntax->datum $1))) #f))))
 
+    ; TODO: Extend method-signature to take multipart methods.
     (method-signature
      ((LPAREN RPAREN) empty)
      ((LPAREN signature-list RPAREN) $2))
@@ -225,16 +226,25 @@
     (identifier
      ((IDENTIFIER) (at-src (grace:identifier (symbol->string $1) #f))))
 
-    
+    ; TODO: elseif. Should probably add some sort of recursive "else-list"
     (if-then-else
-     ((IF LPAREN expression RPAREN THEN LBRACE if-body RBRACE ELSE LBRACE if-body RBRACE)
+     ((IF LPAREN expression RPAREN THEN LBRACE if-body RBRACE
+          ELSE LBRACE if-body RBRACE)
       (at-src (grace:if-then-else $3 $7 $11)))
      ((IF LPAREN expression RPAREN THEN LBRACE if-body RBRACE)
       (at-src (grace:if-then-else $3 $7 (grace:code-seq empty)))))
 
+    ; TODO: identifier should include multipart
     (class-declaration
-     ((CLASS identifier LBRACE class-body RBRACE)
-      (at-src (grace:class-decl $2 $4))))
+     ((CLASS identifier DOT identifier method-signature
+             LBRACE class-body RBRACE)
+      (at-src (grace:class-decl $2 $4 $5 $7))))
+
+    ; (param-list
+    ;   ((identifier method-signature)
+    ;    (list (list $1 $2)))
+    ;   ((identifier method-signature param-list)
+    ;    (append (list (list $1 $2)) $3)))
 
     (class-body
      ((_code-sequence) $1))

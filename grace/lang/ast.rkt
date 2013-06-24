@@ -37,7 +37,7 @@
   (member (parent name))
   (return (value))
   (if-then-else (check tbody ebody))
-  (class-decl (name body))
+  (class-decl (name param-name signature body))
 
   (code-seq (code)))
 
@@ -132,6 +132,11 @@
     (define/public (equal-secondary-hash-code-of hash-code)
       (hash-code (readable-name)))))
 
+; TODO: REMOVE
+; (define grace:type:constructor%
+;   (class* grace:type:method% ()
+;     (super-new)
+;     (init-field param-names)))
 
 (define builtin-methods
   (list
