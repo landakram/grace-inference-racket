@@ -53,8 +53,12 @@
                 (map AST-to-RG elt)
                 (print (length elt))))
           (match elt
-            ((grace:code-seq num) (if (list? num) '("") (string-append* (map AST-to-RG (syntax->datum num)))))
-            ((grace:object body) 
+            ((grace:code-seq code) 
+             (set! code (syntax->datum code))
+             (string-append "(objectC () (" (string-append* (extract-methods code))")" 
+                            "(begin (list" (foldr string-append "" (all-but-methods code)) ")))"))
+            ;(if (list? num) '("") (string-append* (map AST-to-RG (syntax->datum num)))))
+            ((grace:object body)
              (string-append "(objectC () (" (string-append* (extract-methods body))")" 
                             "(begin (list" (foldr string-append "" (all-but-methods body)) ")))"))
             ((grace:method name signature body type)
@@ -124,11 +128,14 @@
 
 (define (p in) (parse (object-name in) in))
 
-(define a (p (open-input-string "object{
+(define a (p (open-input-string "
  var x := 3
+method foo {
+    print(\"OK 1\")
+}
 x := 4
 print(x)
-        }
+foo()
 ")))
 (define b (p (open-input-string "method foo {
     print(\"OK 1\")
@@ -144,5 +151,5 @@ bar(3)
 ;(displayln (grace:object a))
 ;(displayln (syntax->datum b))
 ;(display (syntax-e a))
-;(display (AST-to-RG (syntax-e a)))
+(display (AST-to-RG (syntax-e a)))
 ;(display (AST-to-RG (grace:object a)))
