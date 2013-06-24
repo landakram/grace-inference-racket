@@ -10,13 +10,13 @@ print("Line " ++ 2)
 print(3 ++ "rd line")
 
 
-// Test 3 : FIXME (decimals/floats are not in) (Exp is not in output.rkt)
+// Test 3 : FIXME (decimals/floats are not in)
 print(2 - 1)
 print(1 + 1)
 print(6 / 2)
 print(2 * 2)
 print(15 % 10)
-//print(3 ^ 4)
+print(3 ^ 4)
 //print(4 ^ 0.5)
 
 

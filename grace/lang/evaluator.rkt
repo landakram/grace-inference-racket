@@ -354,10 +354,10 @@
                                           ;first takes a whole list of primitives and binds them to racket equivalents
                                           ;many of these will need to be replaced: all the math ones will need to extract values out of new number objects
                                           ;and then call primitive version rather than being in current form
-                                          '(+  -  /  *  %   <= >= eq? void  display newline string-append cons list eval eval-with false? number->string null list? == 
+                                          '(+  -  /  *  %   <= >= eq? void  display newline string-append cons list eval eval-with expt false? number->string null list? == 
                                                print)
                                           (map (lambda (s) (list 'primitive s))
-                                               `(,+ ,- ,/ ,* ,modulo ,<= ,>= ,eq? ,void ,display ,newline ,string-append ,cons ,list ,eval ,eval-with ,false? ,number->string ,null ,list? ,equal? 
+                                               `(,+ ,- ,/ ,* ,modulo ,<= ,>= ,eq? ,void ,display ,newline ,string-append ,cons ,list ,eval ,eval-with ,expt ,false? ,number->string ,null ,list? ,equal? 
                                                     ,(lambda (x) (match x 
                                                                    ;if x is an object, check if it has an asString method defined, and call that
                                                                    ;ideally, all objects will have asString defined
