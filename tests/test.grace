@@ -2,8 +2,8 @@
 
 // TESTING CLASSES
 
-class Cat {
-    def name : String = "kitty"
+class Cat.new(x) {
+    def name : String = x
      
     method purr {
         print("Purr")
@@ -14,7 +14,7 @@ class Cat {
     }
 }
 
-var c := Cat.new()
+var c := Cat.new("Kitty")
 
 c.purr()
 c.mew()
@@ -39,7 +39,7 @@ print(y)
 
 // TESTING OBJECTS
 
-var x := object {
+var y := object {
     var val := 1
         
     method foo {
@@ -48,4 +48,4 @@ var x := object {
     }
 }
 
-x.foo
+y.foo
