@@ -537,4 +537,4 @@ print(1)
 
 
 ; read in a program, and evaluate:
-(eval-program (read-all))
+;(eval-program (read-all))
