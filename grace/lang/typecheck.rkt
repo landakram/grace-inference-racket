@@ -172,6 +172,7 @@
          [type-type   (resolve-identifier type)])
     ; If we are in the scope of an object, add getter and setter.
     ; @@@@@ TODO: Only add setter if var is public @@@@@
+    ; TODO self.x in outermost
     (when (in-object?)
       ; Getter.
       (add-method-to-selftype
@@ -286,7 +287,7 @@
         ; Recursively resolves identifiers for any nested expressions.
         ((grace:expression op e1 e2)
          (begin (resolve-identifiers e1)
-                (resolve-identifiers e1)))
+                (resolve-identifiers e2)))
 
         ; Recursively resovles identifiers of the arguments & the method name.
         ((grace:method-call name args)
@@ -489,6 +490,8 @@
       ((equal? conforming-type missing-type) #t)
       ((equal? conforming-type type) #t)
       ((equal? type top-type) #t)
+      
+      ; @@@@ NOTE: Unsure whether every type should conform to done @@@@
 
       ; @@@@@ TODO: Subtyping, etc. @@@@@
 
@@ -563,6 +566,10 @@
         ; For an object, call a helper that returns a formatted object name.
         ((grace:object body)
          (get-type-of-object body))
+        
+        
+        ((grace:var-decl name type value)
+         (new grace:type:done%))
 
         ; For anything else, return a dynamic type.
         (else (new grace:type:dynamic%)))))
@@ -572,7 +579,9 @@
 (define (get-type-of-expression op e1 e2)
   (if (check-if-dynamic e1)
       ; If e1 is dynamic, return a dynamic type.
-      (new grace:type:dynamic%)
+      (begin
+        (expression-type e2)
+        (new grace:type:dynamic%))
 
       ; Else, operations are methods so look for it, then check the type
       ; of the parameter.
