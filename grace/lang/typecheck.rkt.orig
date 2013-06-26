@@ -384,10 +384,17 @@
       ;'missing ;FIXME
       (new grace:type:dynamic*%)
       (begin
+<<<<<<< HEAD
+      ;(displayln "\n HERE")
+      ;(displayln (unwrap ident))
+      ;(print (grace:identifier-value (unwrap ident))) (display "\n")
+      ;(displayln (get-type (grace:identifier-value (unwrap ident))))
+=======
       ; (displayln "\n HERE")
       ; (displayln (unwrap ident))
       ; (print (grace:identifier-value (unwrap ident))) (display "\n")
       ; (displayln (get-type (grace:identifier-value (unwrap ident))))
+>>>>>>> master
       (get-type (grace:identifier-value (unwrap ident))))))
 
 
