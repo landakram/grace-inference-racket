@@ -48,22 +48,50 @@
 ;; Finds a method in an the object type of a parent and returns it. Returns #t
 ;; if the parent type is dynamic.
 (define (find-method-in name parent)
-  (let* ([name-string name])
+  (let* ([name-string name]
+         [parent (unwrap parent)])
     ; Fix string/symbol issue with name.
     (when (symbol? name)
       (set! name-string (symbol->string name)))
-
+    
+    (define parent-string "")
+    
+    (if (grace:identifier? parent)
+        (set! parent-string
+              (unwrap (grace:identifier-value parent)))
+        (set! parent-string
+              "literal"))
+    
+    (displayln "PARENT HERE:")
+    (displayln parent-string)
+    
     (if (check-if-dynamic parent)
-      #t
-      ; Find a method that matches the name given.
-      (findf (λ (a) (let* ([temp (get-field name a)])
-                          ; Fix for when the method name was given as symbol.
-                          (when (symbol? temp)
-                            (set! temp (symbol->string temp)))
-                          (equal? temp name-string)))
-             ; Check user-defined and builtin methods.
-             (append (get-field builtins (expression-type parent))
-                     (get-field methods (expression-type parent)))))))
+        #t
+        (let* ([method 
+                ; Find a method that matches the name given.
+                (findf 
+                 (λ (a) 
+                   (let* ([temp (get-field name a)])
+                     ; Fix for when the method name was given as symbol.
+                     (when (symbol? temp)
+                       (set! temp (symbol->string temp)))
+                     (equal? temp name-string)))
+                 
+                 ; Check user-defined and builtin methods.
+                 (append (get-field builtins (expression-type parent))
+                         (get-field methods (expression-type parent))))])
+          
+          ; If the method was not found and the parent name was missing,
+          ; check the parent of the parent, and so on... 
+          (if (and (not method)
+                   (equal? parent-string "missing"))
+              
+              (let* ([parent-parent (get-field parent parent)])
+                (if parent-parent
+                    (find-method-in name parent-parent)
+                    #f))
+              
+              method)))))
 
 
 ;; Checks whether the object type of an identifier is dynamic.
@@ -76,6 +104,10 @@
 
 ;; Inserts an implicit self in a method to give it a parent if it doesn't
 ;; have one.
+;;
+;; @@@@ TODO: Instead of self, insert something to indicate 'missing' so
+;; we can later check self, outer, etc... Then, once we are keeping track
+;; of parents and outers, we can keep looking at outers to find methods.
 (define (insert-implicit-self method-name)
   (if (grace:member? method-name)
       method-name
@@ -352,10 +384,10 @@
       ;'missing ;FIXME
       (new grace:type:dynamic*%)
       (begin
-      (displayln "\n HERE")
-      (displayln (unwrap ident))
-      (print (grace:identifier-value (unwrap ident))) (display "\n")
-      (displayln (get-type (grace:identifier-value (unwrap ident))))
+      ;(displayln "\n HERE")
+      ;(displayln (unwrap ident))
+      ;(print (grace:identifier-value (unwrap ident))) (display "\n")
+      ;(displayln (get-type (grace:identifier-value (unwrap ident))))
       (get-type (grace:identifier-value (unwrap ident))))))
 
 
@@ -903,15 +935,18 @@
 
 ; @@@@@ DEBUGGING CODE @@@@@
 ; @@@@@ FIXME: REMOVE  @@@@@
-; (define (p in)
-;   (parse (object-name in) in))
-;
-; (define a (p (open-input-string "
-;method foo() -> Number {
-;                        var a : Strin := \"a\"
-;                            a
-;                            }
-; ")))
-;
-; (display
-;   (typecheck a))
+(define (p in)
+  (parse (object-name in) in))
+
+(define a (p (open-input-string "
+method foo() {
+  return 1
+}
+
+def a = object {
+//  def b = foo()
+} 
+")))
+
+(display
+  (typecheck a))
