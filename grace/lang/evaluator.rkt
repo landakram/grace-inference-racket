@@ -95,12 +95,10 @@
     ;versions of ==, !=, or, and and that match my booleans
     [`(== ,e1 ,e2)     (if (equal? (eval e1 env) (eval e2 env)) (eval 'tru env) (eval 'fals env))] 
     [`(!= ,e1 ,e2)     (if (equal? (eval e1 env) (eval e2 env)) (eval 'fals env) (eval 'tru env))]
-    ;[`(or ,e1 ,e2)     (or (eval e1 env) (eval e2 env))]
-    [`(myor ,e1 ,e2)   (if (eq? e1 'fals) (if (eq? e2 'fals) (eval 'fals env) (eval 'tru env)) (eval 'tru env))]  
-    ;[`(and ,e1 ,e2)    (and (eval e1 env) (eval e2 env))]
-    [`(myand ,e1 ,e2)   (if (eq? e1 'fals) (eval 'fals env) (if (eq? e2 'fals) (eval 'fals env) (eval 'tru env)))]
+    [`(or ,e1 ,e2)     (or (eval e1 env) (eval e2 env))]
+    [`(and ,e1 ,e2)    (and (eval e1 env) (eval e2 env))]
     
-    ;    [`(object ,initargs ,fields ,methods) (eval-newobj2 initargs fields methods env)]
+    ;[`(object ,initargs ,fields ,methods) (eval-newobj2 initargs fields methods env)]
     ;different constructors for classes depending on how many arguments you want to send
     [`(class ,constructor ,initargs ,fields ,methods) (eval-newclass constructor initargs fields methods env)]
     [`(class ,constructor ,initargs ,fields ,methods ,body) (eval-newclass3 constructor initargs fields methods body env)]
@@ -354,7 +352,7 @@
                                           ;first takes a whole list of primitives and binds them to racket equivalents
                                           ;many of these will need to be replaced: all the math ones will need to extract values out of new number objects
                                           ;and then call primitive version rather than being in current form
-                                          '(+  -  /  *  %   <= >= eq? void  display newline string-append cons list eval eval-with expt false? number->string null list? == 
+                                          '(+  -  /  *  %   <= >= eq? void  display newline string-append cons list eval eval-with expt false? number->string null list? ==
                                                print)
                                           (map (lambda (s) (list 'primitive s))
                                                `(,+ ,- ,/ ,* ,modulo ,<= ,>= ,eq? ,void ,display ,newline ,string-append ,cons ,list ,eval ,eval-with ,expt ,false? ,number->string ,null ,list? ,equal? 

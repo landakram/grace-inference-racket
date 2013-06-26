@@ -38,9 +38,9 @@
    ;first takes a whole list of primitives and binds them to racket equivalents
    ;many of these will need to be replaced: all the math ones will need to extract values out of new number objects
    ;and then call primitive version rather than being in current form
-   `(,+ ,- ,/ ,* ,modulo ,<= ,>= ,eq? concat ,exp)
+   `(,+ ,- ,/ ,* ,modulo ,<= ,>= ,eq? concat ,exp or and)
    (map (lambda (s) (list 'primitive s))
-        '(+ -  /  *  %   <= >= eq? ++ expt))))
+        '(+ -  /  *  %   <= >= eq? ++ expt or and))))
 
 ;;TODO: Deal with newlines somehow so they are ignored rather than gumming things up
 (define (AST-to-RG elt)
@@ -129,7 +129,10 @@
 (define (p in) (parse (object-name in) in))
 
 (define a (p (open-input-string "
-print(3 ^ 4)
+print(true)
+print(false)
+print(true || false)
+print(true && false)
 ")))
 ;(displayln (grace:object a))
 ;(displayln (syntax->datum a))

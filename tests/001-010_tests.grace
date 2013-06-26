@@ -34,14 +34,14 @@ print(y)
 // Test 5 : FIXME (|| and && are not in)
 print(true)
 print(false)
-//print(true || false)
-//print(true && false)
+print(true || false)
+print(true && false)
 
 
 // Test 6 : FIXME (.not is not implemented for booleans, && is not in)
 //print(true.not)
 var x := false
-//print(x.not)
+//print(false || true)
 //print(x.not.not)
 //x := x.not
 //print(x && false.not)

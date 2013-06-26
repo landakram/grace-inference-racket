@@ -51,7 +51,7 @@
 (define top-identifier (grace:identifier "Top" #f))
 
 (define number-other (grace:identifier "other" number-identifier))
-(define boolean-othter (grace:identifier "other" boolean-identifier))
+(define boolean-other (grace:identifier "other" boolean-identifier))
 (define string-other (grace:identifier "other" string-identifier))
 (define top-other (grace:identifier "other" top-identifier))
 (define list-other (grace:identifier "other" list-identifier))
@@ -264,6 +264,17 @@
 (define string-methods
   (list))
 
+(define boolean-methods
+  (list
+    (new grace:type:method%
+         [name 'and]
+         [signature (list boolean-other)]
+         [rtype boolean-identifier])
+    (new grace:type:method%
+         [name 'or]
+         [signature (list boolean-other)]
+         [rtype boolean-identifier])))
+
 (define grace:type:string%
   (class* grace:type% ()
     (super-new)
@@ -279,6 +290,8 @@
 (define grace:type:boolean%
   (class* grace:type% ()
     (super-new)
+    (inherit-field methods)
+    (add-methods this boolean-methods)
     (define/override (readable-name) "Boolean")))
 
 (define grace:type:void%
