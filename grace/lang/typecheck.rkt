@@ -13,7 +13,7 @@
 (define selftype (make-parameter (new grace:type:module%)))
 
 ;; Keeps track of whether the typechecking is in the scope of an object
-(define in-object? (make-parameter #f))
+(define in-object? (make-parameter #t))
 
 ;; The syntax currently being resolved.
 (define stx (make-parameter #f))
@@ -253,7 +253,7 @@
                            [name (grace:identifier-value (unwrap param-name))]
                            [signature (unwrap signature)]
                            [rtype obj-type]))])])
-    (displayln (unwrap name))
+    ; (displayln (unwrap name))
     ; (set-type obj-name obj-type)
     (set-type class-name class-type)
     ; FIXME
@@ -352,10 +352,10 @@
       ;'missing ;FIXME
       (new grace:type:dynamic*%)
       (begin
-      (displayln "\n HERE")
-      (displayln (unwrap ident))
-      (print (grace:identifier-value (unwrap ident))) (display "\n")
-      (displayln (get-type (grace:identifier-value (unwrap ident))))
+      ; (displayln "\n HERE")
+      ; (displayln (unwrap ident))
+      ; (print (grace:identifier-value (unwrap ident))) (display "\n")
+      ; (displayln (get-type (grace:identifier-value (unwrap ident))))
       (get-type (grace:identifier-value (unwrap ident))))))
 
 
@@ -382,8 +382,8 @@
              [real-type (last body-stmt-types)])
         (when (and (not (grace:return? last-statement))
                    (not (conforms-to? real-type (current-return-type))))
-          (displayln "\n Last-statement:")
-          (displayln last-statement)
+          ; (displayln "\n Last-statement:")
+          ; (displayln last-statement)
           (tc-error "Returning type ~a from method of return type ~a."
                     (send real-type readable-name)
                     (send (current-return-type) readable-name)))))))
@@ -457,12 +457,12 @@
          [start (syntax-position (stx))]
          [end (+ start (string-length decl-type) (syntax-span name))])
     (inference-hook start end name-string type-type value-type 'var)
-    
+
     ;; Check if annotated type exists.
     (when (not type-type)
         (tc-error "No such type ~a exists"
                   type-type))
-        
+
     ;; Error if the declared type and the type of the value are not the same.
     (when (not (conforms-to? value-type type-type))
       (tc-error "initializing ~a of type ~a with expression of type ~a"
@@ -506,7 +506,7 @@
       ((equal? conforming-type missing-type) #t)
       ((equal? conforming-type type) #t)
       ((equal? type top-type) #t)
-      
+
       ; @@@@ NOTE: Unsure whether every type should conform to done @@@@
 
       ; @@@@@ TODO: Subtyping, etc. @@@@@
@@ -582,8 +582,8 @@
         ; For an object, call a helper that returns a formatted object name.
         ((grace:object body)
          (get-type-of-object body))
-        
-        
+
+
         ((grace:var-decl name type value)
          (new grace:type:done%))
 
