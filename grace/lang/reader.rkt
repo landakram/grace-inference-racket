@@ -32,7 +32,7 @@
     (display sp out)
     (let* ((toeval (read in))) ((eval-with (env-initial)) toeval))
     ;(display (list? env))
-    (datum->syntax #f `(module ,name racket 
+    (datum->syntax #f `(module ,name racket
                          (provide st env)
                          (require grace/lang/ast)
                          (require grace/lang/typecheck)

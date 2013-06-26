@@ -13,7 +13,7 @@
 (define selftype (make-parameter (new grace:type:module%)))
 
 ;; Keeps track of whether the typechecking is in the scope of an object
-(define in-object? (make-parameter #f))
+(define in-object? (make-parameter #t))
 
 ;; The syntax currently being resolved.
 (define stx (make-parameter #f))
@@ -68,6 +68,8 @@
 
 ;; Checks whether the object type of an identifier is dynamic.
 (define (check-if-dynamic obj)
+  ; (displayln "HERE")
+  ; (displayln obj)
   (eq? (send (expression-type obj) readable-name)
        "Dynamic"))
 
@@ -170,6 +172,7 @@
          [type-type   (resolve-identifier type)])
     ; If we are in the scope of an object, add getter and setter.
     ; @@@@@ TODO: Only add setter if var is public @@@@@
+    ; TODO self.x in outermost
     (when (in-object?)
       ; Getter.
       (add-method-to-selftype
@@ -250,7 +253,7 @@
                            [name (grace:identifier-value (unwrap param-name))]
                            [signature (unwrap signature)]
                            [rtype obj-type]))])])
-    (displayln (unwrap name))
+    ; (displayln (unwrap name))
     ; (set-type obj-name obj-type)
     (set-type class-name class-type)
     ; FIXME
@@ -284,7 +287,7 @@
         ; Recursively resolves identifiers for any nested expressions.
         ((grace:expression op e1 e2)
          (begin (resolve-identifiers e1)
-                (resolve-identifiers e1)))
+                (resolve-identifiers e2)))
 
         ; Recursively resovles identifiers of the arguments & the method name.
         ((grace:method-call name args)
@@ -342,10 +345,18 @@
 ;; Gets the type of an identifier in the environment by calling get-type.
 ;; Returns missing if the identifier is nil.
 (define (resolve-identifier ident)
+;  (displayln "\n IDENT:")
+;  (displayln ident)
+;  (displayln (unwrap ident))
   (if (false? (unwrap ident))
       ;'missing ;FIXME
       (new grace:type:dynamic*%)
-      (get-type (grace:identifier-value (unwrap ident)))))
+      (begin
+      ; (displayln "\n HERE")
+      ; (displayln (unwrap ident))
+      ; (print (grace:identifier-value (unwrap ident))) (display "\n")
+      ; (displayln (get-type (grace:identifier-value (unwrap ident))))
+      (get-type (grace:identifier-value (unwrap ident))))))
 
 
 ;; Resolve the identifiers in a method call.
@@ -367,9 +378,12 @@
       ; Error for incorrent return type.
       (let* ([body-stmt-types (resolve-identifiers-list (syntax->list body))]
              [last-statement (last (syntax->datum body))]
-             [real-type (expression-type last-statement)])
+             ;[real-type (expression-type last-statement)])
+             [real-type (last body-stmt-types)])
         (when (and (not (grace:return? last-statement))
                    (not (conforms-to? real-type (current-return-type))))
+          ; (displayln "\n Last-statement:")
+          ; (displayln last-statement)
           (tc-error "Returning type ~a from method of return type ~a."
                     (send real-type readable-name)
                     (send (current-return-type) readable-name)))))))
@@ -444,6 +458,11 @@
          [end (+ start (string-length decl-type) (syntax-span name))])
     (inference-hook start end name-string type-type value-type 'var)
 
+    ;; Check if annotated type exists.
+    (when (not type-type)
+        (tc-error "No such type ~a exists"
+                  type-type))
+
     ;; Error if the declared type and the type of the value are not the same.
     (when (not (conforms-to? value-type type-type))
       (tc-error "initializing ~a of type ~a with expression of type ~a"
@@ -487,6 +506,8 @@
       ((equal? conforming-type missing-type) #t)
       ((equal? conforming-type type) #t)
       ((equal? type top-type) #t)
+
+      ; @@@@ NOTE: Unsure whether every type should conform to done @@@@
 
       ; @@@@@ TODO: Subtyping, etc. @@@@@
 
@@ -562,6 +583,10 @@
         ((grace:object body)
          (get-type-of-object body))
 
+
+        ((grace:var-decl name type value)
+         (new grace:type:done%))
+
         ; For anything else, return a dynamic type.
         (else (new grace:type:dynamic%)))))
 
@@ -570,7 +595,9 @@
 (define (get-type-of-expression op e1 e2)
   (if (check-if-dynamic e1)
       ; If e1 is dynamic, return a dynamic type.
-      (new grace:type:dynamic%)
+      (begin
+        (expression-type e2)
+        (new grace:type:dynamic%))
 
       ; Else, operations are methods so look for it, then check the type
       ; of the parameter.
@@ -880,7 +907,10 @@
 ;   (parse (object-name in) in))
 ;
 ; (define a (p (open-input-string "
-; var x := object {}
+;method foo() -> Number {
+;                        var a : Strin := \"a\"
+;                            a
+;                            }
 ; ")))
 ;
 ; (display
