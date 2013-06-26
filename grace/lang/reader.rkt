@@ -28,7 +28,7 @@
     (define env (typecheck stx))
     ;(define sp (AST-to-RG (syntax-e stx)))
     ;(display sp)
-    ;(define-values (in out) (make-pipe))
+    (define-values (in out) (make-pipe))
     ;(display sp out)
     ;(let* ((toeval (read in))) ((eval-with (env-initial)) toeval))
     ;(display (list? env))

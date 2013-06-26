@@ -345,10 +345,18 @@
 ;; Gets the type of an identifier in the environment by calling get-type.
 ;; Returns missing if the identifier is nil.
 (define (resolve-identifier ident)
+;  (displayln "\n IDENT:")
+;  (displayln ident)
+;  (displayln (unwrap ident))
   (if (false? (unwrap ident))
       ;'missing ;FIXME
       (new grace:type:dynamic*%)
-      (get-type (grace:identifier-value (unwrap ident)))))
+      (begin
+      (displayln "\n HERE")
+      (displayln (unwrap ident))
+      (print (grace:identifier-value (unwrap ident))) (display "\n")
+      (displayln (get-type (grace:identifier-value (unwrap ident))))
+      (get-type (grace:identifier-value (unwrap ident))))))
 
 
 ;; Resolve the identifiers in a method call.
@@ -370,9 +378,12 @@
       ; Error for incorrent return type.
       (let* ([body-stmt-types (resolve-identifiers-list (syntax->list body))]
              [last-statement (last (syntax->datum body))]
-             [real-type (expression-type last-statement)])
+             ;[real-type (expression-type last-statement)])
+             [real-type (last body-stmt-types)])
         (when (and (not (grace:return? last-statement))
                    (not (conforms-to? real-type (current-return-type))))
+          (displayln "\n Last-statement:")
+          (displayln last-statement)
           (tc-error "Returning type ~a from method of return type ~a."
                     (send real-type readable-name)
                     (send (current-return-type) readable-name)))))))
@@ -446,7 +457,12 @@
          [start (syntax-position (stx))]
          [end (+ start (string-length decl-type) (syntax-span name))])
     (inference-hook start end name-string type-type value-type 'var)
-
+    
+    ;; Check if annotated type exists.
+    (when (not type-type)
+        (tc-error "No such type ~a exists"
+                  type-type))
+        
     ;; Error if the declared type and the type of the value are not the same.
     (when (not (conforms-to? value-type type-type))
       (tc-error "initializing ~a of type ~a with expression of type ~a"
@@ -891,7 +907,10 @@
 ;   (parse (object-name in) in))
 ;
 ; (define a (p (open-input-string "
-; var x := object {}
+;method foo() -> Number {
+;                        var a : Strin := \"a\"
+;                            a
+;                            }
 ; ")))
 ;
 ; (display
