@@ -64,8 +64,8 @@
     [`(lambda ,vs ,e)    `(closure ,exp ,env)]
     ;These shouldn't be here: current code will print ASTs that uses this : instead, it should call the "{var}:=" method to allow overriding to work properly
     [`(set! ,v ,e)        (begin (match v
-                            [(? symbol?) (env-set! env v (eval e env))]
-                            [`(send2 ,obj ,meth) (eval `(set! ,meth ,e) (eval obj env))]))]
+                                   [(? symbol?) (env-set! env v (eval e env))]
+                                   [`(send2 ,obj ,meth) (eval `(set! ,meth ,e) (eval obj env))]))]
     [`(setC! ,v ,e)       (match v
                             [(? symbol?) (env-Cset! env v (eval e env))]
                             [`(send2 ,obj ,meth) (eval `(setC! ,meth ,e) (eval obj env))])]
@@ -75,7 +75,7 @@
     ;Solution is to have that one term be (begin (list (method 1) (method 2) etc.))
     [`(begin ,e1 ,e2)     (begin (eval e1 env)
                                  (eval e2 env))]
-    [`(begin ,es)         (map (eval-with env) es)] 
+    [`(begin ,es)         (last (map (eval-with env) es))] 
     [`(while ,test ,body) (local [(define (loop)
                                     (if ((eval-with env) test)
                                         (begin (eval body env)
@@ -93,7 +93,8 @@
                                             [(? number?) (string-append ex1 (number->string ex2))]
                                             [(? string?) (string-append ex1 ex2)])])))]
     ;versions of ==, !=, or, and and that match my booleans
-    [`(== ,e1 ,e2)     (if (equal? (eval e1 env) (eval e2 env)) (eval 'tru env) (eval 'fals env))] 
+    ;[`(== ,e1 ,e2)     (if (equal? (eval e1 env) (eval e2 env)) (eval 'tru env) (eval 'fals env))] 
+    [`(== ,e1 ,e2)     (equal? (eval e1 env) (eval e2 env))] 
     [`(!= ,e1 ,e2)     (if (equal? (eval e1 env) (eval e2 env)) (eval 'fals env) (eval 'tru env))]
     [`(or ,e1 ,e2)     (or (eval e1 env) (eval e2 env))]
     [`(and ,e1 ,e2)    (and (eval e1 env) (eval e2 env))]
@@ -115,8 +116,8 @@
     [`(,f . ,args)         (begin 
                              ;(displayln env)
                              (apply-proc
-                            (eval f env) 
-                            (map (eval-with env) args)))]))
+                              (eval f env) 
+                              (map (eval-with env) args)))]))
 
 
 ; a handy wrapper for Currying eval:
@@ -126,8 +127,12 @@
 ;This code needs work: the instance variables are not being properly passed in
 (define (eval-newclass constructor initargs fields methods env)
   ;This is having trouble getting x to keep its value
-  (eval-newobj3 '() (list (list constructor `(lambda (x) 
-                                               (let ((newinits (liststopairs ,initargs ((eval x ,env))))) (object newinits ,fields ,methods))))) env)
+  (eval-newobj3 '() (list (list constructor 
+                                `(lambda (x) (let ((newinits 
+                                                    (liststopairs 
+                                                     ,initargs
+                                                     ((eval x ,env)))))
+                                               (object newinits ,fields ,methods))))) env)
   )
 
 (define (eval-newclass3 constructor initargs fields methods body env)
@@ -236,8 +241,8 @@
 ;Makes a method with same names as var that returns value of hiddenva
 ;Makes a method with name ____:= that takes a value and sets hiddenvar to that value
 (define (eval-initvar var val env)
-     ; (displayln var)
-    ;(displayln val)
+  ; (displayln var)
+  ;(displayln val)
   (let* ((hiddenvar (string->symbol (string-append "$" (symbol->string var))))
          (readmethod var)
          (modmethod (string->symbol (string-append (symbol->string var) ":=")))      
@@ -245,8 +250,8 @@
          (env1 (env-extend* env0 (list readmethod) (list (eval `(lambda () ,hiddenvar) env0))))
          ;Fix this!!!  Find out why changes to vars aren't sticking
          (env2 (env-extend* env1 (list modmethod) (list (eval `(lambda (b) (begin (list  ;(print b)
-                                                                                        (set! ,hiddenvar (b))
-                                                                                        ))) env1)))))
+                                                                                   (set! ,hiddenvar (b))
+                                                                                   ))) env1)))))
     (set-box! env (unbox env2))
     env2
     ))
@@ -346,8 +351,9 @@
 
 ; initial environment, with bindings for primitives:
 (define (env-initial)
-  ;  (env-extend* 
-  (eval-initdef* '(true false)  '(#t #f) (env-extend*
+    (env-extend* 
+  ;(eval-initdef* '(tr fls) 
+                 (env-extend*
                                           (box (env-empty))
                                           ;first takes a whole list of primitives and binds them to racket equivalents
                                           ;many of these will need to be replaced: all the math ones will need to extract values out of new number objects
@@ -361,18 +367,18 @@
                                                                    ;ideally, all objects will have asString defined
                                                                    [(? box?) (if (hash-has-key? (unbox x) 'asString) (begin (display (eval `asString x)) (newline)) (begin (display x) (newline)))]
                                                                    [any (begin (display x) (newline))])))))
-                 )
-  ;   ;next, extends environment further to add tru and fals objects
-  ;   ;naming is intentional to avoid any confusion with primitive true and false but should be changeable without causing any issues.
-  ;   ;The only thing users should see is the asString method, so it may be fine as-is.
-  ;   '(tru fals 
-  ;         ;<
-  ;         )
-  ;   (let* ((env0 (env-extend* (box (env-empty)) '(asString) `("true"))) 
-  ;          (env1 (env-extend* (box (env-empty)) '(asString) `("false")))) 
-  ;     (begin (set-box! env0 (unbox (env-extend* env0 '(not prefix!) `((closure (lambda () ,env1) ,env1) (closure (lambda () ,env1) ,env1)))))
-  ;            (set-box! env1 (unbox (env-extend* env1 '(not prefix!) `((closure (lambda () ,env0) ,env0) (closure (lambda () ,env0) ,env0)))))
-  ;            `(,env0 ,env1))))
+    ;             )
+     ;next, extends environment further to add tru and fals objects
+     ;naming is intentional to avoid any confusion with primitive true and false but should be changeable without causing any issues.
+     ;The only thing users should see is the asString method, so it may be fine as-is.
+     '(tru fals 
+           ;<
+           )
+     (let* ((env0 (env-extend* (box (env-empty)) '(asString) `("true"))) 
+            (env1 (env-extend* (box (env-empty)) '(asString) `("false")))) 
+       (begin (set-box! env0 (unbox (env-extend* env0 '(not prefix!) `((closure (lambda () ,env1) ,env1) (closure (lambda () ,env1) ,env1)))))
+              (set-box! env1 (unbox (env-extend* env1 '(not prefix!) `((closure (lambda () ,env0) ,env0) (closure (lambda () ,env0) ,env0)))))
+              `(,env0 ,env1))))
   )
 
 

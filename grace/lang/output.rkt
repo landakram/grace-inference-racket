@@ -39,9 +39,9 @@
    ;(many of these will need to be replaced:
    ;all the math ones will need to extract values out of new number objects
    ;and then call primitive version rather than being in current form)
-   `(,+ ,- ,/ ,* ,modulo ,<= ,>= ,eq? concat ,exp or and)
+   `(,+ ,- ,/ ,* ,modulo ,<= ,>= ,equal? ,eq? concat ,exp or and)
    (map (lambda (s) (list 'primitive s))
-        '(+ -  /  *  %   <= >= eq? ++ expt or and))))
+        '(+ -  /  *  %   <= >= == eq? ++ expt or and))))
 
 (define (AST-to-RG elt)
   (if (syntax? elt)
@@ -85,7 +85,7 @@
             ((grace:def-decl name type value)
              (string-append "(initdef " (dont-wrap name) " " (AST-to-RG value) ")"))
             ((grace:str str) (string-append "\"" str "\""))
-            ((grace:number num) (number->string num))
+            ((grace:number num) (string-append " " (number->string num) " "))
             ((grace:expression op e1 e2)
              (string-append "(" (symbol->string (cadr (env-lookup env-reverse op)))
                             " " (AST-to-RG e1) " " (AST-to-RG e2) ")"))
@@ -151,14 +151,6 @@
 (define (p in) (parse (object-name in) in))
 
 (define a (p (open-input-string "
-var x := object {
-    var y := object {
-    var val := 1    
-}
-}
-print(x.y.val)
-x.y.val := 2
-print(x.y.val)
 ")))
 ;(displayln (grace:object a))
 ;(displayln (syntax->datum a))
