@@ -54,44 +54,44 @@
     ; Fix string/symbol issue with name.
     (when (symbol? name)
       (set! name-string (symbol->string name)))
-    
+
     (define parent-string "")
-    
+
     (if (grace:identifier? parent)
         (set! parent-string
               (unwrap (grace:identifier-value parent)))
         (set! parent-string
               "literal"))
-    
-    (displayln "PARENT HERE:")
-    (displayln parent-string)
-    
+
+    ; (displayln "PARENT HERE:")
+    ; (displayln parent-string)
+
     (if (check-if-dynamic parent)
         #t
-        (let* ([method 
+        (let* ([method
                 ; Find a method that matches the name given.
-                (findf 
-                 (λ (a) 
+                (findf
+                 (λ (a)
                    (let* ([temp (get-field name a)])
                      ; Fix for when the method name was given as symbol.
                      (when (symbol? temp)
                        (set! temp (symbol->string temp)))
                      (equal? temp name-string)))
-                 
+
                  ; Check user-defined and builtin methods.
                  (append (get-field builtins (expression-type parent))
                          (get-field methods (expression-type parent))))])
-          
+
           ; If the method was not found and the parent name was missing,
-          ; check the parent of the parent, and so on... 
+          ; check the parent of the parent, and so on...
           (if (and (not method)
                    (equal? parent-string "implied"))
-              
+
               (let* ([parent-parent (get-field parent parent)])
                 (if parent-parent
                     (find-method-in name parent-parent)
                     #f))
-              
+
               method)))))
 
 
@@ -139,7 +139,7 @@
     (set-type "Boolean" (new grace:type:boolean%))
     (set-type "Dynamic" (new grace:type:dynamic%))
     (set-type "Done"    (new grace:type:done%))
-    (set-type "Object"  (new grace:type:object% 
+    (set-type "Object"  (new grace:type:object%
                              [internal-name "Object"]
                              [parent #f]))
     (set-type "true"    (new grace:type:boolean%))
@@ -433,7 +433,7 @@
   (define new-selftype (new grace:type:object%
                             [internal-name "self"]
                             [parent selftype]))
-  
+
   (parameterize* ([selftype new-selftype]
                   [env (hash-copy (env))]
                   [in-object? #t])
@@ -947,18 +947,18 @@
 
 ; @@@@@ DEBUGGING CODE @@@@@
 ; @@@@@ FIXME: REMOVE  @@@@@
-(define (p in)
-  (parse (object-name in) in))
-
-(define a (p (open-input-string "
-method foo() {
-  return 1
-}
-
-def a = object {
-//  def b = foo()
-} 
-")))
-
-(display
-  (typecheck a))
+; (define (p in)
+;   (parse (object-name in) in))
+;
+; (define a (p (open-input-string "
+; method foo() {
+;   return 1
+; }
+;
+; def a = object {
+; //  def b = foo()
+; }
+; ")))
+;
+; (display
+;   (typecheck a))
