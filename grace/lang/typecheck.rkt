@@ -54,44 +54,44 @@
     ; Fix string/symbol issue with name.
     (when (symbol? name)
       (set! name-string (symbol->string name)))
-    
+
     (define parent-string "")
-    
+
     (if (grace:identifier? parent)
         (set! parent-string
               (unwrap (grace:identifier-value parent)))
         (set! parent-string
               "literal"))
-    
-    (displayln "PARENT HERE:")
-    (displayln parent-string)
-    
+
+    ; (displayln "PARENT HERE:")
+    ; (displayln parent-string)
+
     (if (check-if-dynamic parent)
         #t
-        (let* ([method 
+        (let* ([method
                 ; Find a method that matches the name given.
-                (findf 
-                 (λ (a) 
+                (findf
+                 (λ (a)
                    (let* ([temp (get-field name a)])
                      ; Fix for when the method name was given as symbol.
                      (when (symbol? temp)
                        (set! temp (symbol->string temp)))
                      (equal? temp name-string)))
-                 
+
                  ; Check user-defined and builtin methods.
                  (append (get-field builtins (expression-type parent))
                          (get-field methods (expression-type parent))))])
-          
+
           ; If the method was not found and the parent name was missing,
-          ; check the parent of the parent, and so on... 
+          ; check the parent of the parent, and so on...
           (if (and (not method)
                    (equal? parent-string "implied"))
-              
+
               (let* ([parent-parent (get-field parent parent)])
                 (if parent-parent
                     (find-method-in name parent-parent)
                     #f))
-              
+
               method)))))
 
 
@@ -139,7 +139,7 @@
     (set-type "Boolean" (new grace:type:boolean%))
     (set-type "Dynamic" (new grace:type:dynamic%))
     (set-type "Done"    (new grace:type:done%))
-    (set-type "Object"  (new grace:type:object% 
+    (set-type "Object"  (new grace:type:object%
                              [internal-name "Object"]
                              [parent #f]))
     (set-type "true"    (new grace:type:boolean%))
@@ -174,7 +174,7 @@
 (define (maybe-bind-name elt)
   ; Recursively call maybe-bind-name to embedded syntax elements.
   (if (syntax? elt)
-      (parameterize ((stx elt))
+      (parameterize ([stx elt])
         (maybe-bind-name (syntax-e elt)))
       (cond
         ; If the element is an object, add it's type to the environment here.
@@ -419,7 +419,8 @@
              ;[real-type (expression-type last-statement)])
              [real-type (last body-stmt-types)])
         (when (and (not (grace:return? last-statement))
-                   (not (conforms-to? real-type (current-return-type))))
+                   ;(not (conforms-to? real-type (current-return-type))))
+                   (not { real-type . conforms-to? . (current-return-type) }))
           ; (displayln "\n Last-statement:")
           ; (displayln last-statement)
           (tc-error "Returning type ~a from method of return type ~a."
@@ -433,7 +434,7 @@
   (define new-selftype (new grace:type:object%
                             [internal-name "self"]
                             [parent selftype]))
-  
+
   (parameterize* ([selftype new-selftype]
                   [env (hash-copy (env))]
                   [in-object? #t])
@@ -459,7 +460,8 @@
             (tc-error "assignment to undeclared ~a" name-string))
 
            ; The types of the assignment don't match.
-           ((not (conforms-to? value-type name-type))
+           ;;((not (conforms-to? value-type name-type))
+           ((not { value-type . conforms-to? . name-type })
             (tc-error
              "assigning value of nonconforming type ~a to var of type ~a"
              (send value-type readable-name)
@@ -477,7 +479,8 @@
          ; Ensures that we are working on a mutable variable.
          (if member-op
              ; If the assignment types do not conform, error.
-             (when (not (conforms-to? value-type name-type))
+             ;(when (not (conforms-to? value-type name-type))
+             (when (not { value-type . conforms-to? . name-type })
                (tc-error
                 "assigning value of nonconforming type ~a to var of type ~a"
                 (send value-type readable-name)
@@ -507,7 +510,8 @@
                   type-type))
 
     ;; Error if the declared type and the type of the value are not the same.
-    (when (not (conforms-to? value-type type-type))
+    ;(when (not (conforms-to? value-type type-type))
+    (when (not { value-type . conforms-to? . type-type })
       (tc-error "initializing ~a of type ~a with expression of type ~a"
                 decl-type
                 (send type-type readable-name)
@@ -527,7 +531,8 @@
 
       ; If the return type given does not match with the return type specified
       ; by the surrouding method, error.
-      ((not (conforms-to? value-type (current-return-type)))
+      ;((not (conforms-to? value-type (current-return-type)))
+      ((not { value-type . conforms-to? . (current-return-type) })
        (tc-error "returning type ~a from method of return type ~a"
                  (send value-type readable-name)
                  (send (current-return-type) readable-name)))
@@ -573,7 +578,7 @@
 ;; an identifier, it searches for that string, and returns the proper type
 ;; with all associated methods.
 (define (expression-type elt)
-  (let* ((first-type (expression-type-helper elt)))
+  (let* ([first-type (expression-type-helper elt)])
     (match first-type
       ((grace:identifier str bool)
        (get-type str))
@@ -610,7 +615,8 @@
         ((grace:if-then-else condition tbody ebody)
          (let* ([cond-type (expression-type condition)])
            ;FIXME (displayln condition)
-           (unless (conforms-to? cond-type (new grace:type:boolean%))
+           ;(unless (conforms-to? cond-type (new grace:type:boolean%))
+           (unless { cond-type . conforms-to? . (new grace:type:boolean%) }
              (tc-error "if-then-else takes boolean but got ~a"
                        (send cond-type readable-name)))))
 
@@ -656,7 +662,8 @@
                                 (grace:identifier-type
                                  (car (get-field signature method)))))])
              ; Make sure e2 conforms to the type it needs to be.
-             (if (conforms-to? e2-type param-type)
+             ;(if (conforms-to? e2-type param-type)
+             (if { e2-type . conforms-to? . param-type }
                  (get-type (grace:identifier-value (get-field rtype method)))
 
                  ; If they don't conform, send an error.
@@ -735,7 +742,8 @@
                               [arg-type (expression-type arg)])
 
                          ; If they don't match up, error.
-                         (unless (conforms-to? arg-type param-type)
+                         ;(unless (conforms-to? arg-type param-type)
+                         (unless { arg-type . conforms-to? . param-type }
                            (tc-error
                             "argument in ~a must be of type ~a, given ~a"
                             name-string
@@ -947,18 +955,18 @@
 
 ; @@@@@ DEBUGGING CODE @@@@@
 ; @@@@@ FIXME: REMOVE  @@@@@
-(define (p in)
-  (parse (object-name in) in))
-
-(define a (p (open-input-string "
-method foo() {
-  return 1
-}
-
-def a = object {
-//  def b = foo()
-} 
-")))
-
-(display
-  (typecheck a))
+; (define (p in)
+;   (parse (object-name in) in))
+;
+; (define a (p (open-input-string "
+; method foo() {
+;   return 1
+; }
+;
+; def a = object {
+; //  def b = foo()
+; }
+; ")))
+;
+; (display
+;   (typecheck a))

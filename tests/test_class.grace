@@ -23,3 +23,8 @@ dog.changeName("Max")
 
 dog.bark()
 
+if (dog.name() == "Max") then {
+  print("All is well")
+} else {
+  print("Your poor dog is confused")
+}       
