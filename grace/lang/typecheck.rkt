@@ -10,7 +10,8 @@
 (define env (make-parameter (make-hash)))
 
 ;; Type for the self keyword.
-(define selftype (make-parameter (new grace:type:module%)))
+(define selftype (make-parameter (new grace:type:module%
+                                      [parent #f])))
 
 ;; Keeps track of whether the typechecking is in the scope of an object
 (define in-object? (make-parameter #t))
@@ -84,7 +85,7 @@
           ; If the method was not found and the parent name was missing,
           ; check the parent of the parent, and so on... 
           (if (and (not method)
-                   (equal? parent-string "missing"))
+                   (equal? parent-string "implied"))
               
               (let* ([parent-parent (get-field parent parent)])
                 (if parent-parent
@@ -112,7 +113,7 @@
   (if (grace:member? method-name)
       method-name
       (grace:member
-       (grace:identifier (datum->syntax (stx) "self" (stx)) #f)
+       (grace:identifier (datum->syntax (stx) "implied" (stx)) #f)
        method-name)))
 
 
@@ -138,11 +139,14 @@
     (set-type "Boolean" (new grace:type:boolean%))
     (set-type "Dynamic" (new grace:type:dynamic%))
     (set-type "Done"    (new grace:type:done%))
-    (set-type "Object"  (new grace:type:object% [internal-name "Object"]))
+    (set-type "Object"  (new grace:type:object% 
+                             [internal-name "Object"]
+                             [parent #f]))
     (set-type "true"    (new grace:type:boolean%))
     (set-type "false"   (new grace:type:boolean%))
     (set-type "Top"     (new grace:type:top%))
     (set-type "self"    (selftype))
+    (set-type "implied"   (selftype)) ; FIXME
 
     ; Resolve types in the program.
     (resolve-identifiers-list
@@ -276,10 +280,12 @@
                        (unwrap-list body))]
          [obj-type (new grace:type:object%
                         [internal-name obj-name]
-                        [methods obj-methods])]
+                        [methods obj-methods]
+                        [parent selftype])] ;; FIXME: this was a totally random guess
          [class-type
           (new grace:type:object%
                [internal-name class-name]
+               [parent selftype] ; TODO: FIXME: guess
                [methods
                 (list (new grace:type:method%
                            [name (grace:identifier-value (unwrap param-name))]
@@ -423,7 +429,12 @@
 
 ;; Resolve the identifiers in an object declaration.
 (define (resolve-object body)
-  (parameterize* ([selftype (new grace:type:object% [internal-name "self"])]
+  ; TODO: cleanup
+  (define new-selftype (new grace:type:object%
+                            [internal-name "self"]
+                            [parent selftype]))
+  
+  (parameterize* ([selftype new-selftype]
                   [env (hash-copy (env))]
                   [in-object? #t])
     (set-type "self" (selftype))
@@ -749,7 +760,8 @@
                          (unwrap-list body))])
     (new grace:type:object%
          [methods inner-methods]
-         [internal-name (format "Object_~a" (syntax-position (stx)))])))
+         [internal-name (format "Object_~a" (syntax-position (stx)))]
+         [parent selftype]))) ; FIXME: TODO: guess at parent.
 
 
 ;; Takes the one statement in the body of an object and returns a method
