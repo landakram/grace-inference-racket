@@ -151,22 +151,12 @@
 (define (p in) (parse (object-name in) in))
 
 (define a (p (open-input-string "
-print(1 == 1)
-print(1 == 2)
-print (2 == (1 + 1))
-print(false == true)
-print(false == false)
-print(\"Hello\" == \"world\")
-print(\"Hello\" == \"Hello\")
-var x := object {
-    var v := 1
-}
-var y := object {
-    var v := 1
-}
-print(x == y)
-print(x == x)
 
+method fact(n) {
+                print (n == 0)
+                }
+
+fact(5)
 ")))
 ;(displayln (grace:object a))
 ;(displayln (syntax->datum a))

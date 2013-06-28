@@ -94,8 +94,8 @@
                                             [(? number?) (string-append ex1 (number->string ex2))]
                                             [(? string?) (string-append ex1 ex2)])])))]
     ;versions of ==, !=, or, and and that match my booleans
-    [`(== ,e1 ,e2)     (eval `(if (equal? (eval ,e1 ,env) (eval ,e2 ,env)) (true) (false)) env)] 
-    [`(!= ,e1 ,e2)     (eval `(if (equal? (eval ,e1 ,env) (eval ,e2 ,env)) (false) (true)) env)] 
+    [`(== ,e1 ,e2)      (eval `(myif (equal? (eval ,e1 ,env) (eval ,e2 ,env))  (true) (false)) env)] 
+    [`(!= ,e1 ,e2)     (eval `(myif (equal? (eval ,e1 ,env) (eval ,e2 ,env)) (false) (true)) env)] 
     [`(or ,e1 ,e2)  (eval `(myif (eval ,e1 ,env) (true) (eval ,e2 ,env)) env)]
     [`(and ,e1 ,e2)  (eval `(myif (eval ,e1 ,env) (eval ,e2 ,env) (false)) env)]
     ;[`(object ,initargs ,fields ,methods) (eval-newobj2 initargs fields methods env)]
