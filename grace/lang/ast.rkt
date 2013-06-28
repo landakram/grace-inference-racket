@@ -188,6 +188,7 @@
     (inherit-field methods)
     (inherit-field builtins)
     (init-field internal-name)
+    (init-field parent)
     (define/override (readable-name)
       (define o (open-output-string))
       (displayln (format "type ~a = {" internal-name) o)
@@ -205,6 +206,7 @@
     (super-new)
     (inherit-field methods)
     (inherit-field builtins)
+    (init-field parent)
     (define/override (readable-name) "Module")))
 
 ; List of methods for number types.

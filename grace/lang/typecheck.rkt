@@ -10,7 +10,8 @@
 (define env (make-parameter (make-hash)))
 
 ;; Type for the self keyword.
-(define selftype (make-parameter (new grace:type:module%)))
+(define selftype (make-parameter (new grace:type:module%
+                                      [parent #f])))
 
 ;; Keeps track of whether the typechecking is in the scope of an object
 (define in-object? (make-parameter #t))
@@ -48,22 +49,50 @@
 ;; Finds a method in an the object type of a parent and returns it. Returns #t
 ;; if the parent type is dynamic.
 (define (find-method-in name parent)
-  (let* ([name-string name])
+  (let* ([name-string name]
+         [parent (unwrap parent)])
     ; Fix string/symbol issue with name.
     (when (symbol? name)
       (set! name-string (symbol->string name)))
 
+    (define parent-string "")
+
+    (if (grace:identifier? parent)
+        (set! parent-string
+              (unwrap (grace:identifier-value parent)))
+        (set! parent-string
+              "literal"))
+
+    ; (displayln "PARENT HERE:")
+    ; (displayln parent-string)
+
     (if (check-if-dynamic parent)
-      #t
-      ; Find a method that matches the name given.
-      (findf (λ (a) (let* ([temp (get-field name a)])
-                          ; Fix for when the method name was given as symbol.
-                          (when (symbol? temp)
-                            (set! temp (symbol->string temp)))
-                          (equal? temp name-string)))
-             ; Check user-defined and builtin methods.
-             (append (get-field builtins (expression-type parent))
-                     (get-field methods (expression-type parent)))))))
+        #t
+        (let* ([method
+                ; Find a method that matches the name given.
+                (findf
+                 (λ (a)
+                   (let* ([temp (get-field name a)])
+                     ; Fix for when the method name was given as symbol.
+                     (when (symbol? temp)
+                       (set! temp (symbol->string temp)))
+                     (equal? temp name-string)))
+
+                 ; Check user-defined and builtin methods.
+                 (append (get-field builtins (expression-type parent))
+                         (get-field methods (expression-type parent))))])
+
+          ; If the method was not found and the parent name was missing,
+          ; check the parent of the parent, and so on...
+          (if (and (not method)
+                   (equal? parent-string "implied"))
+
+              (let* ([parent-parent (get-field parent parent)])
+                (if parent-parent
+                    (find-method-in name parent-parent)
+                    #f))
+
+              method)))))
 
 
 ;; Checks whether the object type of an identifier is dynamic.
@@ -76,11 +105,15 @@
 
 ;; Inserts an implicit self in a method to give it a parent if it doesn't
 ;; have one.
+;;
+;; @@@@ TODO: Instead of self, insert something to indicate 'missing' so
+;; we can later check self, outer, etc... Then, once we are keeping track
+;; of parents and outers, we can keep looking at outers to find methods.
 (define (insert-implicit-self method-name)
   (if (grace:member? method-name)
       method-name
       (grace:member
-       (grace:identifier (datum->syntax (stx) "self" (stx)) #f)
+       (grace:identifier (datum->syntax (stx) "implied" (stx)) #f)
        method-name)))
 
 
@@ -106,11 +139,14 @@
     (set-type "Boolean" (new grace:type:boolean%))
     (set-type "Dynamic" (new grace:type:dynamic%))
     (set-type "Done"    (new grace:type:done%))
-    (set-type "Object"  (new grace:type:object% [internal-name "Object"]))
+    (set-type "Object"  (new grace:type:object%
+                             [internal-name "Object"]
+                             [parent #f]))
     (set-type "true"    (new grace:type:boolean%))
     (set-type "false"   (new grace:type:boolean%))
     (set-type "Top"     (new grace:type:top%))
     (set-type "self"    (selftype))
+    (set-type "implied"   (selftype)) ; FIXME
 
     ; Resolve types in the program.
     (resolve-identifiers-list
@@ -244,10 +280,12 @@
                        (unwrap-list body))]
          [obj-type (new grace:type:object%
                         [internal-name obj-name]
-                        [methods obj-methods])]
+                        [methods obj-methods]
+                        [parent selftype])] ;; FIXME: this was a totally random guess
          [class-type
           (new grace:type:object%
                [internal-name class-name]
+               [parent selftype] ; TODO: FIXME: guess
                [methods
                 (list (new grace:type:method%
                            [name (grace:identifier-value (unwrap param-name))]
@@ -391,7 +429,12 @@
 
 ;; Resolve the identifiers in an object declaration.
 (define (resolve-object body)
-  (parameterize* ([selftype (new grace:type:object% [internal-name "self"])]
+  ; TODO: cleanup
+  (define new-selftype (new grace:type:object%
+                            [internal-name "self"]
+                            [parent selftype]))
+
+  (parameterize* ([selftype new-selftype]
                   [env (hash-copy (env))]
                   [in-object? #t])
     (set-type "self" (selftype))
@@ -717,7 +760,8 @@
                          (unwrap-list body))])
     (new grace:type:object%
          [methods inner-methods]
-         [internal-name (format "Object_~a" (syntax-position (stx)))])))
+         [internal-name (format "Object_~a" (syntax-position (stx)))]
+         [parent selftype]))) ; FIXME: TODO: guess at parent.
 
 
 ;; Takes the one statement in the body of an object and returns a method
@@ -907,10 +951,13 @@
 ;   (parse (object-name in) in))
 ;
 ; (define a (p (open-input-string "
-;method foo() -> Number {
-;                        var a : Strin := \"a\"
-;                            a
-;                            }
+; method foo() {
+;   return 1
+; }
+;
+; def a = object {
+; //  def b = foo()
+; }
 ; ")))
 ;
 ; (display
