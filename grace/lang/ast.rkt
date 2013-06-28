@@ -62,7 +62,9 @@
          [all-methods (append new-methods old-methods)])
     (set-field! methods parent all-methods)))
 
-(define (same-other type-identifier) (grace:identifier "_" type-identifier))
+(define (same-other type-identifier) 
+  ;FIXME(displayln type-identifier)
+  (grace:identifier "_" type-identifier))
 
 (define grace:type<%>
   (interface () readable-name))

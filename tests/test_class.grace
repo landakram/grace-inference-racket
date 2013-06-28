@@ -27,4 +27,25 @@ if (dog.name() == "Max") then {
   print("All is well")
 } else {
   print("Your poor dog is confused")
-}       
+}
+
+type S = {
+  a() -> Number
+}
+
+type T = {
+  a() -> Number
+  a:=(_ : Number) -> Done
+}
+
+method foo(arg : S) -> String{
+  print(S)
+  return "Done!"       
+}
+
+def x : T = object {
+  var a := 2
+}
+
+foo(x)
+  
