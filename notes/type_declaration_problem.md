@@ -20,7 +20,7 @@ When trying to implement subtyping, checking subtyping of methods runs into issu
 
     method foo(arg : S) -> String {
       print(S)
-      return \"Done!\"
+      return "Done!"
     }
 
     def x : T = object {
@@ -49,7 +49,7 @@ subtype =>
 
         "Object_157"
 
-        #\<procedure:parameter-procedure\>
+        #\procedure:parameter-procedure\
     )
 </pre>
 
@@ -62,7 +62,7 @@ supertype =>
         (
             #(struct:object:grace:type:method% a () #s(grace:identifier "Number" #f))
 
-            #(struct:object:grace:type:method% a:= (#\<syntax::65 #s(grace:identifier "_" #s(gr...\>) #s(grace:identifier "Done" #f))))
+            #(struct:object:grace:type:method% a:= (#\syntax::65 #s(grace:identifier "_" #s(gr...\) #s(grace:identifier "Done" #f))))
         )
 
         (
