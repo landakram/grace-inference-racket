@@ -2,6 +2,33 @@
 
 When trying to implement subtyping, checking subtyping of methods runs into issues because the methods have different forms for their signatures and return types. This examples does not necessarily demosntrate subtyping, but shows the difference in formats of the signatures and return types.
 
+## Notes
+
+- There are issues with the grace:object being formed in the parser for type-declarations.
+- One way to solve would be have a grace:struct for type declarations then to convert it into a type object in the typechecker like with other declarations.
+
+## The program
+
+    type S = {
+      a() -> Number
+    }
+
+    type T = {
+      a() -> Number
+      a:=(_ : Number) -> Done
+    }
+
+    method foo(arg : S) -> String {
+      print(S)
+      return \"Done!\"
+    }
+
+    def x : T = object {
+      var a := 2
+    }
+
+    foo(x)
+    
 
 ## Type implicitly stored by typechecker.
 
@@ -49,31 +76,3 @@ supertype =>
         #f
     )
 </pre>
-
-
-## The program
-
-    type S = {
-      a() -> Number
-    }
-
-    type T = {
-      a() -> Number
-      a:=(_ : Number) -> Done
-    }
-
-    method foo(arg : S) -> String {
-      print(S)
-      return \"Done!\"
-    }
-
-    def x : T = object {
-      var a := 2
-    }
-
-    foo(x)
-
-## Notes
-
-- There are issues with the grace:object being formed in the parser for type-declarations.
-- One way to solve would be have a grace:struct for type declarations then to convert it into a type object in the typechecker like with other declarations.
