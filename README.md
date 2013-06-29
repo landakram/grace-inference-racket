@@ -18,30 +18,30 @@ Then do:
 ## Language Features Implemented
 
 <pre>
-- [-] Primitives
+ [-] Primitives
     - [ ] non-integer numbers
-- [x] Variables
-- [x] Definitions
-- [x] Objects
-- [-] Methods
+ [x] Variables
+ [x] Definitions
+ [x] Objects
+ [-] Methods
     - [ ] Mixfix notation
     - [x] Method overriding
-- [-] Types
+ [-] Types
     - [ ] Subtyping
-- [-] Standard Functions
+ [-] Standard Functions
     - [-] Print
-        - [ ] taking a string without surrounding parentheses
+        * [ ] taking a string without surrounding parentheses
     - [ ] String Interpolation
-- [-] Conditionals
+ [-] Conditionals
     - [x] if
     - [ ] elseif
     - [x] else
     - [ ] match/case
-- [-] Operators
-- [ ] Loops
-- [ ] Lists
-- [ ] Classes
+ [-] Operators
+ [ ] Loops
+ [ ] Lists
+ [ ] Classes
     - [ ] Inheritance
-- [ ] Blocks
-- [ ] Modules
+ [ ] Blocks
+ [ ] Modules
 </pre>
