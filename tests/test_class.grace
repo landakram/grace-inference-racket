@@ -44,7 +44,7 @@ method foo(arg : S) -> String{
 }
 
 def x : T = object {
-  var a := 2
+  var a : Number := 2
 }
 
 foo(x)

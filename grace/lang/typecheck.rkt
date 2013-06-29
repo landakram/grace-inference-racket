@@ -1042,30 +1042,30 @@
 
 ; @@@@@ DEBUGGING CODE @@@@@
 ; @@@@@ FIXME: REMOVE  @@@@@
-(define (p in)
-  (parse (object-name in) in))
-
-(define a (p (open-input-string "
-type S = {
-  a() -> Number
-}
-
-type T = {
-  a() -> Number
-  a:=(_ : Number) -> Done
-}
-
-method foo(arg : S) -> String{
-  print(S)
-  return \"Done!\"       
-}
-
-def x : T = object {
-  var a := 2
-}
-
-foo(x)
-")))
-
-(display
-  (typecheck a))
+;(define (p in)
+;  (parse (object-name in) in))
+;
+;(define a (p (open-input-string "
+;type S = {
+;  a() -> Number
+;}
+;
+;type T = {
+;  a() -> Number
+;  a:=(_ : Number) -> Done
+;}
+;
+;method foo(arg : S) -> String{
+;  print(S)
+;  return \"Done!\"       
+;}
+;
+;def x : T = object {
+;  var a := 2
+;}
+;
+;foo(x)
+;")))
+;
+;(display
+;  (typecheck a))
