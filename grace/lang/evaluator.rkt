@@ -55,9 +55,10 @@
     [(? hash?)            exp] ;Objects are represented as hash tables with all the primitive methods, and cells for each def, var, and method
     [(? box?)             exp] ;Boxes are containers used to hold hash tables.  
     ;They allow me to replace an old immutable hash with a new one but have all the old pointers in still work.
-    [`(myif ,ec ,et ,ef) (if (eval ec env) ;Change to use my tru and fals instead of #t and #f?
+    [`(myif ,ec ,et ,ef) (if (apply-proc (eval-send3 (eval ec env) 'bval env) '()) ;Change to use my tru and fals instead of #t and #f?
                              (eval et env) 
                              (eval ef env))]
+    [`(if ,ec ,et ,ef) (if (eval ec env) (eval et env) (eval ef env))]
     [`(letrec ,binds ,eb) (eval-letrec binds eb env)] ;various forms of let take a list of pairs and then a single method to bind those pairs over
     [`(let    ,binds ,eb) (eval-let    binds eb env)]
     [`(letC   ,binds ,eb) (eval-letC    binds eb env)]
@@ -93,12 +94,10 @@
                                             [(? number?) (string-append ex1 (number->string ex2))]
                                             [(? string?) (string-append ex1 ex2)])])))]
     ;versions of ==, !=, or, and and that match my booleans
-    ;[`(== ,e1 ,e2)     (if (equal? (eval e1 env) (eval e2 env)) (eval 'tru env) (eval 'fals env))] 
-    [`(== ,e1 ,e2)     (equal? (eval e1 env) (eval e2 env))] 
-    [`(!= ,e1 ,e2)     (if (equal? (eval e1 env) (eval e2 env)) (eval 'fals env) (eval 'tru env))]
-    [`(or ,e1 ,e2)     (or (eval e1 env) (eval e2 env))]
-    [`(and ,e1 ,e2)    (and (eval e1 env) (eval e2 env))]
-    
+    [`(== ,e1 ,e2)      (eval `(myif (equal? (eval ,e1 ,env) (eval ,e2 ,env))  (true) (false)) env)] 
+    [`(!= ,e1 ,e2)     (eval `(myif (equal? (eval ,e1 ,env) (eval ,e2 ,env)) (false) (true)) env)] 
+    [`(or ,e1 ,e2)  (eval `(myif (eval ,e1 ,env) (true) (eval ,e2 ,env)) env)]
+    [`(and ,e1 ,e2)  (eval `(myif (eval ,e1 ,env) (eval ,e2 ,env) (false)) env)]
     ;[`(object ,initargs ,fields ,methods) (eval-newobj2 initargs fields methods env)]
     ;different constructors for classes depending on how many arguments you want to send
     [`(class ,constructor ,initargs ,fields ,methods) (eval-newclass constructor initargs fields methods env)]
@@ -339,7 +338,8 @@
     
     [`(primitive ,p)
      ; =>
-     (apply p values)]))
+     (let* ((val (apply p values)))
+     (if (eq? val #t) (begin (eval `(true) (env-initial))) (if (eq? val #f) (eval `(false) (env-initial)) val)))]))
 
 ;; Environments map variables to mutable cells 
 ;; containing values.  Also have list of objects.
@@ -352,22 +352,24 @@
 ; initial environment, with bindings for primitives:
 (define (env-initial)
     (env-extend* 
-  ;(eval-initdef* '(tr fls) 
+  (eval-initdef* '(boolean true false) '((objectC () ((new(lambda ( v) (begin (list (objectC () ((not(lambda () (begin (list (if (bval)(begin (list(new #f))) (begin (list(new #t))))))))(and(lambda (z) (begin (list (print (bval))(if (bval) z (false))))))(asString(lambda () (begin (list (if (bval) (begin (list "True" )) (begin (list "False" ))))))))(begin (list (initdef bval (v))    ))))))))(begin (list   (initdef gtrue (new #t))(initdef gfalse (new #f)))))
+                             (send2 (boolean) (gtrue))(send2 (boolean) (gfalse))
+                             )
                  (env-extend*
                                           (box (env-empty))
                                           ;first takes a whole list of primitives and binds them to racket equivalents
                                           ;many of these will need to be replaced: all the math ones will need to extract values out of new number objects
                                           ;and then call primitive version rather than being in current form
-                                          '(+  -  /  *  %   <= >= eq? void  display newline string-append cons list eval eval-with expt false? number->string null list? ==
+                                          '(+  -  /  *  %   <= >= < > eq? equal? void  display newline string-append cons list eval eval-with expt false? number->string null list? ==
                                                print)
                                           (map (lambda (s) (list 'primitive s))
-                                               `(,+ ,- ,/ ,* ,modulo ,<= ,>= ,eq? ,void ,display ,newline ,string-append ,cons ,list ,eval ,eval-with ,expt ,false? ,number->string ,null ,list? ,equal? 
+                                               `(,+ ,- ,/ ,* ,modulo ,<= ,>= ,< ,> ,eq? ,equal? ,void ,display ,newline ,string-append ,cons ,list ,eval ,eval-with ,expt ,false? ,number->string ,null ,list? ,equal? 
                                                     ,(lambda (x) (match x 
                                                                    ;if x is an object, check if it has an asString method defined, and call that
                                                                    ;ideally, all objects will have asString defined
-                                                                   [(? box?) (if (hash-has-key? (unbox x) 'asString) (begin (display (eval `asString x)) (newline)) (begin (display x) (newline)))]
+                                                                   [(? box?) (if (hash-has-key? (unbox x) 'asString) (begin (display (apply-proc (eval `asString x) '())) (newline)) (begin (display x) (newline)))]
                                                                    [any (begin (display x) (newline))])))))
-    ;             )
+                 )
      ;next, extends environment further to add tru and fals objects
      ;naming is intentional to avoid any confusion with primitive true and false but should be changeable without causing any issues.
      ;The only thing users should see is the asString method, so it may be fine as-is.

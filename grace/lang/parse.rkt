@@ -28,7 +28,7 @@
 
    (precs
     (left && OR)
-    (left < <= > >= ==)
+    (left < <= > >= == !=)
     (left - +)
     (left * / %)
     (right !)
@@ -160,6 +160,7 @@
      ((expression OR expression) (at-src (grace:expression 'or    $1 $3)))
 
      ((expression == expression) (at-src (grace:expression equal? $1 $3)))
+     ((expression != expression) (at-src (grace:expression '!= $1 $3)))
      ((expression <  expression) (at-src (grace:expression <      $1 $3)))
      ((expression >  expression) (at-src (grace:expression >      $1 $3)))
      ((expression <= expression) (at-src (grace:expression <=     $1 $3)))
