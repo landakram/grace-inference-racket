@@ -17,18 +17,21 @@ Then do:
     
 ## Language Features Implemented
 
+<pre>
 - [-] Primitives
     - [ ] non-integer numbers
 - [x] Variables
 - [x] Definitions
 - [x] Objects
 - [-] Methods
-    - Mixfix notation
+    - [ ] Mixfix notation
+    - [x] Method overriding
 - [-] Types
     - [ ] Subtyping
 - [-] Standard Functions
     - [-] Print
         - [ ] taking a string without surrounding parentheses
+    - [ ] String Interpolation
 - [-] Conditionals
     - [x] if
     - [ ] elseif
@@ -41,3 +44,4 @@ Then do:
     - [ ] Inheritance
 - [ ] Blocks
 - [ ] Modules
+</pre>
