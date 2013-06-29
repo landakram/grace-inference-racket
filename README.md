@@ -25,7 +25,7 @@ Then do:
  [x] Objects
  [-] Methods
     - [ ] Mixfix notation
-    - [x] Method overriding
+    - [x] Assignment overriding
  [-] Types
     - [ ] Subtyping
  [-] Standard Functions
