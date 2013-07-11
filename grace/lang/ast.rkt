@@ -26,6 +26,9 @@
   (str (value))
   (identifier (value type))
 
+  (type-def (name methods))
+  (method-def (name signature rtype))
+
   (var-decl (name type value))
   (def-decl (name type value))
   (bind (name value))
@@ -62,7 +65,7 @@
          [all-methods (append new-methods old-methods)])
     (set-field! methods parent all-methods)))
 
-(define (same-other type-identifier) 
+(define (same-other type-identifier)
   ;FIXME(displayln type-identifier)
   (grace:identifier "_" type-identifier))
 

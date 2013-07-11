@@ -1,5 +1,5 @@
 #lang racket
-(require "parse.rkt"
+(require "parseR.rkt"
          "ast.rkt"
          "typecheck.rkt"
          "output.rkt"
@@ -32,12 +32,14 @@
     ; (display sp out)
     ; (let* ((toeval (read in))) ((eval-with (env-initial)) toeval))
     ;(display (list? env))
+;    (display stx)
     (datum->syntax #f `(module ,name racket
                          (provide st env)
                          (require grace/lang/ast)
                          (require grace/lang/typecheck)
                          (define st ,datum)
-                         (define env (list ,@env))))))
+                         (define env (list ,@env))))
+    ))
 
 (define (p in) (parse (object-name in) in))
 
