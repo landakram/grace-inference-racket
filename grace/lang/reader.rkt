@@ -17,7 +17,7 @@
 ;; and provides the root of the parsed AST.
 (define (read-syntax src-name in)
   (let* ([p-name (object-name in)]
-         (stx (parse src-name in))
+         [stx (parse src-name in)]
          [name (if (path? p-name)
                    (let-values ([(base name dir?) (split-path p-name)])
                      (string->symbol
