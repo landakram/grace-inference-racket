@@ -57,11 +57,12 @@
      ((NEWLINE) (at-src (grace:newline))))
 
     (statement
-     ((declaration NEWLINE) $1)
-     ((expression NEWLINE) $1)
-     ((return NEWLINE) $1)
-     ((if-then-else NEWLINE) $1)
-     ((any := expression NEWLINE) (at-src (grace:bind $1 $3))))
+     ((declaration) $1)
+     ((expression) $1)
+     ((return) $1)
+     ((if-then-else) $1)
+     ((any := expression) (at-src (grace:bind $1 $3)))
+     ((NEWLINE) (at-src (grace:newline))))
 
     (return
      ;; TODO: Change to keyword.
@@ -145,10 +146,10 @@
      ((statement) (list $1)))
 
     (expression
-     ((expression + expression) (at-src (grace:expression + $1 $3)))
-     ((expression - expression) (at-src (grace:expression - $1 $3)))
-     ((expression * expression) (at-src (grace:expression * $1 $3)))
-     ((expression / expression) (at-src (grace:expression / $1 $3)))
+     ((expression + expression) (at-src (grace:expression 'plus $1 $3)))
+     ((expression - expression) (at-src (grace:expression 'minus $1 $3)))
+     ((expression * expression) (at-src (grace:expression 'mult $1 $3)))
+     ((expression / expression) (at-src (grace:expression 'div $1 $3)))
      ((expression % expression) (at-src (grace:expression 'modulo $1 $3)))
      ((expression ^ expression) (at-src (grace:expression 'exp $1 $3)))
 
@@ -156,10 +157,10 @@
      ((expression OR expression) (at-src (grace:expression 'or $1 $3)))
 
      ((expression == expression) (at-src (grace:expression 'equal? $1 $3)))
-     ((expression < expression) (at-src (grace:expression < $1 $3)))
-     ((expression > expression) (at-src (grace:expression > $1 $3)))
-     ((expression <= expression) (at-src (grace:expression <= $1 $3)))
-     ((expression >= expression) (at-src (grace:expression >= $1 $3)))
+     ((expression < expression) (at-src (grace:expression 'less-than $1 $3)))
+     ((expression > expression) (at-src (grace:expression 'greater-than $1 $3)))
+     ((expression <= expression) (at-src (grace:expression 'less-than-equal $1 $3)))
+     ((expression >= expression) (at-src (grace:expression 'greather-than-equal $1 $3)))
 
      ((expression ++ expression) (at-src (grace:expression 'concat $1 $3)))
      ((term) $1))

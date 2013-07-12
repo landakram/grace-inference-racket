@@ -48,4 +48,3 @@ def x : T = object {
 }
 
 foo(x)
-  

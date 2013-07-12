@@ -74,7 +74,7 @@
 
 (struct: grace:if-then-else
   ;; TODO: Might need fixing.
-  ([check : (Syntaxof grace:expression)]
+  ([check : (U (Syntaxof grace:identifier) (Syntaxof grace:expression))]
    [tbody : (Listof (Syntaxof Any))]
    [ebody : (Listof (Syntaxof Any))]))
 
