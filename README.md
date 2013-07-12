@@ -18,8 +18,7 @@ Then do:
 ## Language Features Implemented
 
 <pre>
- [-] Primitives
-    - [ ] non-integer numbers
+ [x] Primitives
  [x] Variables
  [x] Definitions
  [x] Objects
