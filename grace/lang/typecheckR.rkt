@@ -1,15 +1,24 @@
 #lang typed/racket
 
-(require "ast.rkt"
-         "parseR.rkt")
+;(require "ast.rkt"
+;         "parseR.rkt")
 
-(struct: method-type
-  ([name : String]
-   [signature : (Listof String)]
-   [rtype : String]))
+;(require/typed "ast.rkt"
+;               [grace:code-seq-code ((Syntaxof (Listof Any)) -> (Listof (Syntaxof Any)))])
+
+;(struct: method-type
+;  ([name : String]
+;   [signature : (Listof String)]
+;   [rtype : String]))
+
+
+(require "astR.rkt")
+
+(define-type method-list
+  (Listof method-type))
 
 (define-type scope-type-defs
-  (HashTable String (Listof method-type)))
+  (HashTable String (Listof method-list)))
 
 (define-type scope-type-env
   (HashTable String String))
@@ -46,6 +55,17 @@
     
     ;; TODO: implement
     (void)))
+
+;; Entry program
+;; TODO: Fix return
+;(: typecheck-prog ((Syntaxof grace:code-seq) -> (Listof Any)))
+(: typecheck-prog ((Syntaxof grace:code-seq) -> Any))
+(define (typecheck-prog prog)
+;  (syntax->list (grace:code-seq-code (syntax-e prog)))
+  (grace:code-seq-code (syntax-e prog))
+  
+  ;; TODO: Fix return
+  (void))
 
 #|
 Notes:

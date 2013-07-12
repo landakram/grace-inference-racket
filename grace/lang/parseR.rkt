@@ -4,9 +4,17 @@
          syntax/readerr
          "lex.rkt"
          "helpers.rkt"
-         "ast.rkt")
+         "astR.rkt")
 
 (provide parse)
+
+;(define (empty-line)
+;  (datum->syntax #f (list)))
+
+;(struct grace:newline ())
+
+;(define newline
+;  (at-src (grace:newline)))
 
 (define (parse src-name in)
   (parameterize ([current-source src-name])
@@ -46,7 +54,7 @@
     (code
      ((method-declaration) $1)
      ((statement) $1)
-     ((NEWLINE) (void)))
+     ((NEWLINE) (at-src (grace:newline))))
 
     (statement
      ((declaration NEWLINE) $1)
@@ -56,6 +64,7 @@
      ((any := expression NEWLINE) (at-src (grace:bind $1 $3))))
 
     (return
+     ;; TODO: Change to keyword.
      ((RETURN) (at-src (grace:return "Done")))
      ((RETURN expression) (at-src (grace:return $2))))
 
@@ -73,7 +82,7 @@
     ;; Body is made up of method definitions or newlines.
     (typedef-body
      ((method-definition typedef-body) (cons $1 $2))
-     ((NEWLINE) (void))
+     ((NEWLINE) (at-src (grace:newline)))
      ((NEWLINE typedef-body) $2)
      ((method-definition) (list $1)))
 
@@ -131,7 +140,7 @@
 
     (method-body
      ((statement method-body) (cons $1 $2))
-     ((NEWLINE) (void))
+     ((NEWLINE) (at-src (grace:newline)))
      ((NEWLINE method-body) $2)
      ((statement) (list $1)))
 
@@ -140,13 +149,13 @@
      ((expression - expression) (at-src (grace:expression - $1 $3)))
      ((expression * expression) (at-src (grace:expression * $1 $3)))
      ((expression / expression) (at-src (grace:expression / $1 $3)))
-     ((expression % expression) (at-src (grace:expression modulo $1 $3)))
-     ((expression ^ expression) (at-src (grace:expression exp $1 $3)))
+     ((expression % expression) (at-src (grace:expression 'modulo $1 $3)))
+     ((expression ^ expression) (at-src (grace:expression 'exp $1 $3)))
 
      ((expression && expression) (at-src (grace:expression 'and $1 $3)))
      ((expression OR expression) (at-src (grace:expression 'or $1 $3)))
 
-     ((expression == expression) (at-src (grace:expression equal? $1 $3)))
+     ((expression == expression) (at-src (grace:expression 'equal? $1 $3)))
      ((expression < expression) (at-src (grace:expression < $1 $3)))
      ((expression > expression) (at-src (grace:expression > $1 $3)))
      ((expression <= expression) (at-src (grace:expression <= $1 $3)))
@@ -232,5 +241,9 @@
      ((_code-sequence) $1))
 
     (possibly-newline
-     ((NEWLINE) (void))
-     (() (void))))))
+     ;; TODO: possibly reinsert below line, was giving strange error.
+     ;(() (at-src (grace:newline)))
+     ((NEWLINE) (at-src (grace:newline)))))))
+     ;((NEWLINE) (at-src (grace:newline)))
+     ;(() (at-src (grace:newline)))))))
+     ;(() (void))))))

@@ -42,7 +42,8 @@
   (if-then-else (check tbody ebody))
   (class-decl (name param-name signature body))
 
-  (code-seq (code)))
+  (code-seq (code))
+  (newline ()))
 
 (define number-identifier (grace:identifier "Number" #f))
 (define string-identifier (grace:identifier "String" #f))

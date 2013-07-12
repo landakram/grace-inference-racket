@@ -1,5 +1,5 @@
 #lang racket
-(require "parse.rkt"
+(require "parseR.rkt"
          "ast.rkt"
          "typecheck.rkt"
          "output.rkt"
@@ -25,7 +25,7 @@
                    'anonymous)])
     (define datum (syntax->datum stx))
     ;(display (syntax->datum stx))
-    (define env (typecheck stx))
+;    (define env (typecheck stx))
     ; (define sp (AST-to-RG (syntax-e stx)))
     ;(display sp)
     (define-values (in out) (make-pipe))
@@ -34,11 +34,12 @@
     ;(display (list? env))
 ;    (display stx)
     (datum->syntax #f `(module ,name racket
-                         (provide st env)
+;                         (provide st env)
                          (require grace/lang/ast)
                          (require grace/lang/typecheck)
                          (define st ,datum)
-                         (define env (list ,@env))))
+;                         (define env (list ,@env))
+                         ))
     ))
 
 (define (p in) (parse (object-name in) in))
