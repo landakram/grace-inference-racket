@@ -9,7 +9,7 @@ If you are using racket on a Mac, you may need to add raco to your path.
 In ~/.bash_profile add a line:
 
 <pre>
-    export PATH=/Applications/Racket\ <em>\<version\></em>/bin:$PATH
+    export PATH=/Applications/Racket\ <em>&lt;version&gt;</em>/bin:$PATH
 </pre>
     
 (replacing '\<version\>' with whatever version of Racket you have)
