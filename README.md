@@ -8,8 +8,11 @@ To install grace as a *#lang* language:
 If you are using racket on a Mac, you may need to add raco to your path.
 In ~/.bash_profile add a line:
 
-    export PATH=/Applications/Racket\ v5.3.5/bin:$PATH
-(replacing 'v5.3.5' with whatever version of Racket you have)
+<pre>
+    export PATH=/Applications/Racket\ <em>\<version\></em>/bin:$PATH
+</pre>
+    
+(replacing '\<version\>' with whatever version of Racket you have)
 
 Then do:
 
