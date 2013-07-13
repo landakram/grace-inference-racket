@@ -12,7 +12,7 @@ In ~/.bash_profile add a line:
     export PATH=/Applications/Racket\ <b>&lt;version&gt;</b>/bin:$PATH
 </pre>
     
-(replacing '\<version\>' with whatever version of Racket you have)
+(replacing `<version>` with whatever version of Racket you have)
 
 Then do:
 
