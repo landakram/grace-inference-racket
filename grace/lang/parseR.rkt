@@ -219,7 +219,7 @@
      ((IF LPAREN expression RPAREN THEN LBRACE if-body RBRACE ELSE LBRACE if-body RBRACE)
       (at-src (grace:if-then-else $3 $7 $11)))
      ((IF LPAREN expression RPAREN THEN LBRACE if-body RBRACE)
-      (at-src (grace:if-then-else $3 $7 (grace:code-seq empty)))))
+      (at-src (grace:if-then-else $3 $7 empty))))
 
     ; TODO: Should take multipart constructor (see: method-declaration)
     (class-declaration

@@ -1,5 +1,8 @@
 #lang typed/racket
 
+;;; TODO: Account for empty list '() that is inserted in the parser, either by
+;;;   adding them to the acceptable types below or changing the use of empty.
+
 (struct: method-type
   ([name : String]
    [signature : (Listof String)]
@@ -73,8 +76,8 @@
   ([value : Any]))
 
 (struct: grace:if-then-else
-  ;; TODO: Might need fixing.
-  ([check : (U (Syntaxof grace:identifier) (Syntaxof grace:expression))]
+  ;; TODO: Type of check definitely needs fixing.
+  ([check : (U (Syntaxof grace:identifier) (Syntaxof grace:expression) (Syntaxof grace:member) (Syntaxof grace:method-call))]
    [tbody : (Listof (Syntaxof Any))]
    [ebody : (Listof (Syntaxof Any))]))
 
