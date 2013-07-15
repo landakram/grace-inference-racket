@@ -57,12 +57,12 @@
      ((NEWLINE) (at-src (grace:newline))))
 
     (statement
-     ((declaration) $1)
-     ((expression) $1)
-     ((return) $1)
-     ((if-then-else) $1)
-     ((any := expression) (at-src (grace:bind $1 $3)))
-     ((NEWLINE) (at-src (grace:newline))))
+     ((declaration NEWLINE) $1)
+     ((expression NEWLINE) $1)
+     ((return NEWLINE) $1)
+     ((if-then-else NEWLINE) $1)
+     ((any := expression NEWLINE) (at-src (grace:bind $1 $3))))
+     ;((NEWLINE) (at-src (grace:newline))))
 
     (return
      ;; TODO: Change to keyword.
