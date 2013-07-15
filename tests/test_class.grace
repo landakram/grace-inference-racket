@@ -23,11 +23,18 @@ dog.changeName("Max")
 
 dog.bark()
 
+var rightDog := false
+
 if (dog.name() == "Max") then {
+  rightDog := true                               
   print("All is well")
 } else {
-  print("Your poor dog is confused")
+  print("Then poor dog is confused")
 }
+  
+//if (rightDog.not) then {
+//  print("You should go find the right owner")
+//}       
 
 type S = {
   a() -> Number
