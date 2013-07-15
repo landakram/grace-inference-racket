@@ -5,7 +5,7 @@
    [signature : (Listof String)]
    [rtype : String]))
 
-(define-type grace-type 
+(define-type type-name
   (U (Syntaxof grace:identifier) #f))
 
 (struct: grace:number
@@ -16,7 +16,7 @@
 
 (struct: grace:identifier
   ([value : String]
-   [type  : grace-type]))
+   [type  : type-name]))
 
 (struct: grace:method-def
   ([name      : (Syntaxof grace:identifier)]
@@ -29,12 +29,12 @@
 
 (struct: grace:var-decl
   ([name  : (Syntaxof grace:identifier)]
-   [type  : grace-type]
+   [type  : type-name]
    [value : Any]))
 
 (struct: grace:def-decl
   ([name  : (Syntaxof grace:identifier)]
-   [type  : grace-type]
+   [type  : type-name]
    ;; TODO: possibly fix type of value
    [value : Any]))
 
@@ -62,7 +62,7 @@
    [signature : (Listof (Syntaxof grace:identifier))]
    ;; TODO: Fix type of body
    [body : (Listof (Syntaxof Any))]
-   [type : grace-type]))
+   [type : type-name]))
 
 (struct: grace:member
   ([parent : (U (Syntaxof grace:identifier) (Syntaxof grace:member))]
