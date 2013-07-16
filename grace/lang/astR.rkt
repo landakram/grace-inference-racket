@@ -13,11 +13,11 @@
   (U (Syntaxof grace:identifier) #f))
 
 (struct: grace:number
-  ([value : Number])
+  ([value : (Syntaxof Number)])
   #:prefab)
 
 (struct: grace:str
-  ([value : String])
+  ([value : (Syntaxof String)])
   #:prefab)
 
 (struct: grace:identifier
@@ -27,15 +27,15 @@
 
 (struct: grace:method-def
   ([name      : (Syntaxof grace:identifier)]
-   ;[signature : (Syntaxof (Listof (Syntaxof grace:identifier)))]
-   [signature : (Listof (Syntaxof grace:identifier))]
+   [signature : (Syntaxof (Listof (Syntaxof grace:identifier)))]
+   ;[signature : (Listof (Syntaxof grace:identifier))]
    [rtype     : (Syntaxof grace:identifier)])
   #:prefab)
 
 (struct: grace:type-def
   ([name    : (Syntaxof grace:identifier)]
-   ;[methods : (Syntaxof (Listof (Syntaxof grace:method-def)))])
-   [methods : (Listof (Syntaxof grace:method-def))])
+   [methods : (Syntaxof (Listof (Syntaxof grace:method-def)))])
+   ;[methods : (Listof (Syntaxof grace:method-def))])
   #:prefab)
 
 (struct: grace:var-decl

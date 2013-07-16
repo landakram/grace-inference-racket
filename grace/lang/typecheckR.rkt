@@ -68,10 +68,16 @@
   (cdr lst))
 
 
+;; Unwraps the syntax structure off of a struct.
+(: unwrap (All (A) ((Syntaxof A) -> A)))
+(define (unwrap elt)
+  (syntax-e elt))
+
+
 ;; Does all the logic.
 ;; TODO: Fix return type.
 ;(: typecheck ((Syntaxof grace:code-seq) -> Any))
-(: typecheck ((Listof (Syntaxof Any)) -> Any))
+(: typecheck ((Syntaxof (Listof (Syntaxof Any))) -> Any))
 (define (typecheck stx)
   
   ;; Create a hash of typedefs and the type-env in the current scope.
@@ -82,23 +88,24 @@
   
   
   ;; Add any type defs to the hash.
-  ;(for ([elt stx])
-  ;  (match (syntax-e elt)
-  ;    ((grace:type-def name methods) 
-  ;     (hash-set! current-type-defs 
-  ;                (id-name name)
-  ;                (map get-method-type methods)))
-  ;    (else 'none)))
-  ;(displayln current-type-defs)
-  (for-each (lambda: ([elt : (Syntaxof Any)])
-              (match (syntax->datum elt)
-                ((grace:type-def name methods)
-                 (hash-set! current-type-defs
-                            (id-name name)
-                            (map get-method-type methods)))
-                (else 'none)))
-            stx)
+  (for ([elt (unwrap stx)])
+    (match (unwrap elt)
+      ((grace:type-def name methods) 
+       (hash-set! current-type-defs 
+                  (id-name name)
+                  (map get-method-type (unwrap methods))))
+      (else 'none)))
   (displayln current-type-defs)
+  
+  ;(for-each (lambda: ([elt : (Syntaxof Any)])
+  ;            (match (syntax->datum elt)
+  ;              ((grace:type-def name methods)
+  ;               (hash-set! current-type-defs
+  ;                          (id-name name)
+  ;                          (map get-method-type methods)))
+  ;              (else 'none)))
+  ;          stx)
+  ;(displayln current-type-defs)
   
   ;; TODO: Define stack of type envs in the prelude, then push here, and
   ;;   pop inner-scope ones after we return from the recursive call.
@@ -112,22 +119,48 @@
 (define (get-method-type method)
   (let* ([method (syntax-e method)]
          [name-string (id-name (grace:method-def-name method))]
-         [signature-string (map id-name (grace:method-def-signature method))]
+         [signature-string (map id-type (unwrap (grace:method-def-signature method)))]
          [rtype-string (id-name (grace:method-def-rtype method))])
     (method-type name-string signature-string rtype-string)))
 
 
 ;; Grabs the name of an identifier wrapped in a syntax object.
+;;
+;; Params:
+;;   id - A grace:identifier struct.
+;;
+;; NOTE: 'id' here is not unwrapped like others because unwrap pushes the syntax
+;;   structure down onto grace:identifier-value and the function actually returns 
+;;   (Syntaxof String), even though the typechecker thinks it returns String.
 (: id-name ((Syntaxof grace:identifier) -> String))
 (define (id-name id)
   (grace:identifier-value (cast (syntax->datum id) grace:identifier)))
+;;  (grace:identifier-value (unwrap id)))
+
+
+;; Gives the string form of the type of an identifier.
+;;
+;; Params:
+;;   id - A grace:identifier struct.
+;; Returns:
+;;   A string of the type of the identifier, will return "Dynamic*"
+;;   (representing missing type information) if no type was given.
+(: id-type ((Syntaxof grace:identifier) -> String))
+(define (id-type id)
+  (let* ([type (grace:identifier-type (unwrap id))])
+    (define: type-string : String
+      (if type
+          (id-name type)
+          "Dynamic*"))
+    type-string))
+    
 
 
 ;; Entry point for typechecking.
 ;; TODO: Possibly fix return type.
 (: typechecker ((Syntaxof grace:code-seq) -> Any))
 (define (typechecker program)
-  (typecheck (syntax->list (grace:code-seq-code (syntax-e program)))))
+  (typecheck (grace:code-seq-code (unwrap program))))
   ;(void))
 
 (provide typechecker)
