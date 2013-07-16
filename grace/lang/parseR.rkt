@@ -22,6 +22,9 @@
 
 (define simple-grace-parser
   (parser
+   ;; NOTE: Uncomment to print yacc ouput to file. Ignore warning.
+   ;(debug "parseR.log")
+   
    (start code-sequence)
 
    (end EOF)
@@ -36,9 +39,11 @@
    (precs
     (left && OR)
     (left < <= > >= ==)
+    (left - +)
     (left * / %)
     (right !)
     (right ^)
+    (left ++)
     (left DOT)
     (nonassoc UNARY)
     (nonassoc LPAREN RPAREN)
@@ -79,8 +84,8 @@
     (type-definition
      ((TYPE identifier = LBRACE typedef-body RBRACE)
       ;; NOTE: See method-definition comment for reasoning behind (at-src $5).
-      ;;(at-src (grace:type-def $2 (at-src $5)))))
-      (at-src (grace:type-def $2 $5))))
+      (at-src (grace:type-def $2 (at-src $5)))))
+      ;;(at-src (grace:type-def $2 $5))))
 
     ;; Body is made up of method definitions or newlines.
     (typedef-body
@@ -113,8 +118,8 @@
       ;;   contract violations telling me the signature list wasn't a syntax object,
       ;;   etc... so I just forced it onto the list. The same goes for type-def's 
       ;;   method definition list above.
-      ;;(at-src (grace:method-def $1 (at-src $2) $3))))
-      (at-src (grace:method-def $1 $2 $3))))
+      (at-src (grace:method-def $1 (at-src $2) $3))))
+      ;;(at-src (grace:method-def $1 $2 $3))))
 
     ;; A method declaration is the method's implementation
     (method-declaration
@@ -143,7 +148,8 @@
      ((identifier COMMA signature-list)
       (append (list $1) $3))
      ((IDENTIFIER : identifier COMMA signature-list)
-      (append (list (at-src (grace:identifier (symbol->string (quote $1)) $3))) $5)))
+       (append (list (at-src (grace:identifier (symbol->string $1) $3))) $5)))
+       ;(append (list (at-src (grace:identifier (symbol->string (quote $1)) $3))) $5)))
 
     (method-return-type
      ((ARROW identifier) $2)
@@ -210,8 +216,8 @@
      ((expression) (list $1)))
 
     (term
-     ((NUM) (at-src (grace:number $1)))
-     ((STRING) (at-src (grace:str $1)))
+     ((NUM) (at-src (grace:number (at-src $1))))
+     ((STRING) (at-src (grace:str (at-src $1))))
      ((any) $1)
      ((- term)
       (prec UNARY)
