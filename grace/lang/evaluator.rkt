@@ -67,10 +67,10 @@
     [`(letC   ,binds ,eb) (eval-letC    binds eb env)]
     [`(lambda ,vs ,e)    `(closure ,exp ,env)]
     ;Testing removing these.
-    ;    [`(set! ,v ,e)   (begin (match v
-    ;                              [(? symbol?) (env-set! env v (eval e env))]
-    ;                              [`(send2 ,obj ,meth) (eval `(set! ,meth ,e)
-    ;(eval obj env))]))]
+    [`(set! ,v ,e)   (begin (match v
+                              [(? symbol?) (env-set! env v (eval e env))]
+                              [`(send2 ,obj ,meth) (eval `(set! ,meth ,e)
+                                                         (eval obj env))]))]
     ;    [`(setC! ,v ,e)       (match v
     ;                            [(? symbol?) (env-Cset! env v (eval e env))]
     ;                            [`(send2 ,obj ,meth) (eval `(setC! ,meth ,e)
