@@ -18,7 +18,7 @@
 
    (end EOF)
    ;(suppress )
-    (debug "errordump")
+    ;(debug "errordump")
    (error (lambda (a t v start end)
             (raise-parse-error t v start end)))
 

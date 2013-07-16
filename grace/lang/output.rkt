@@ -81,30 +81,36 @@
                             (string-append* (AST-to-RG args)) ")"))
             ((grace:identifier value type) (string-append "(" value ")"))
             ((grace:var-decl name type value) 
-             (string-append "(initvar " (dont-wrap name) " " (AST-to-RG value) ")"))
+             (string-append "(initvar " (dont-wrap name) 
+                            " " (AST-to-RG value) ")"))
             ((grace:def-decl name type value)
-             (string-append "(initdef " (dont-wrap name) " " (AST-to-RG value) ")"))
+             (string-append "(initdef " (dont-wrap name)
+                            " " (AST-to-RG value) ")"))
             ((grace:class-decl name param-name signature body)
              (string-append "(initvar " (dont-wrap name) " (class " 
                             (dont-wrap param-name)
                             " (" (string-append* (dont-wrap signature)) ") ("
                             (string-append* (extract-methods body))
-                            ") (begin (list " (string-append* (all-but-methods body))
+                            ") (begin (list " 
+                            (string-append* (all-but-methods body))
                             "))))"))
             ((grace:str str) (string-append " \"" str "\" "))
             ((grace:number num) (string-append " " (number->string num) " "))
             ((grace:expression op e1 e2)
-             (string-append "(" (symbol->string (cadr (env-lookup env-reverse op)))
+             (string-append "(" 
+                            (symbol->string (cadr (env-lookup env-reverse op)))
                             " " (AST-to-RG e1) " " (AST-to-RG e2) ")"))
             ((grace:member parent name) 
-             (string-append "(send2 " (AST-to-RG parent) " " (AST-to-RG name) ")"))
+             (string-append "(send2 " (AST-to-RG parent) 
+                            " " (AST-to-RG name) ")"))
             ((grace:bind name value)
              (match name
                ((grace:member parent child) 
-                (string-append "((send2 " (AST-to-RG parent) " " (dont-wrap child)
-                               ":=) " (AST-to-RG value) ")"))
-                (else 
-             (string-append "(" (dont-wrap name) ":= " (AST-to-RG value) ")"))))
+                (string-append "((send2 " (AST-to-RG parent) " " 
+                               (dont-wrap child) ":=) " (AST-to-RG value) ")"))
+               (else 
+                (string-append "(" (dont-wrap name) 
+                               ":= " (AST-to-RG value) ")"))))
             ((grace:if-then-else cond tbody ebody) 
              (string-append "(myif " (AST-to-RG cond)  
                             "(begin (list" (string-append* (AST-to-RG tbody)) 
@@ -124,9 +130,10 @@
                 (map dont-wrap elt)
                 (print (length elt))))
           (match elt
-            ((grace:identifier value type) (string-append value " "))
+            ((grace:identifier value type) (string-append " " value))
             ((grace:member parent name) 
-             (string-append "(send2 " (AST-to-RG parent) " " (dont-wrap name) ")"))
+             (string-append "(send2 " (AST-to-RG parent) 
+                            " " (dont-wrap name) ")"))
             (else (print elt))))))
 
 (define (extract-methods elt)
@@ -170,8 +177,8 @@ class Cat.new(namex : String, num) {
 var c := Cat.new(\"Macavity\", 5)
 
 c.purr
-c.mew
+print(c.num)
 ")))
 ;(displayln (grace:object a))
 ;(displayln (syntax->datum a))
-;(display (AST-to-RG (syntax-e a)))
+(display (AST-to-RG (syntax-e a)))
