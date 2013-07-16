@@ -45,7 +45,7 @@
     (left METHODCALL))
 
    (grammar
-    (code-sequence ((_code-sequence) (at-src (grace:code-seq $1))))
+    (code-sequence ((_code-sequence) (at-src (grace:code-seq (at-src $1)))))
 
     (_code-sequence
      ((code) (list $1))
@@ -78,6 +78,8 @@
     ;; Type definitions
     (type-definition
      ((TYPE identifier = LBRACE typedef-body RBRACE)
+      ;; NOTE: See method-definition comment for reasoning behind (at-src $5).
+      ;;(at-src (grace:type-def $2 (at-src $5)))))
       (at-src (grace:type-def $2 $5))))
 
     ;; Body is made up of method definitions or newlines.
@@ -104,7 +106,15 @@
     ;; A method definition just gives the method's signature and rtype inside a typedef
     (method-definition
      ((method-name method-signature method-return-type NEWLINE)
-      (grace:method-def $1 $2 $3)))
+      ;; NOTE: Had to put in at at-src in front of the $2 because in the typechecker,
+      ;;   when I tried to map something onto the signature list, it already had a
+      ;;   <syntax:...> annotation surrounding it and I would get a contract violation
+      ;;   telling me the signature list wasn't a list. Unwrapping it would give me 
+      ;;   contract violations telling me the signature list wasn't a syntax object,
+      ;;   etc... so I just forced it onto the list. The same goes for type-def's 
+      ;;   method definition list above.
+      ;;(at-src (grace:method-def $1 (at-src $2) $3))))
+      (at-src (grace:method-def $1 $2 $3))))
 
     ;; A method declaration is the method's implementation
     (method-declaration

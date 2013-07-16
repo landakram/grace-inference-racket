@@ -1,10 +1,14 @@
 #lang racket
+;#lang typed/racket
 (require "parseR.rkt"
          "astR.rkt"
-         "typecheck.rkt"
+         "typecheckR.rkt"
          "output.rkt"
          "evaluator.rkt"
          parser-tools/lex)
+
+;(require/typed "parseR.rkt"
+;         [parse (Any Any -> (Syntaxof grace:code-seq))])
 
 (provide read-syntax
          read
@@ -15,17 +19,19 @@
 ;; Without a backend for Grace, this function simply creates
 ;; a fresh racket module, requires all grace AST structures,
 ;; and provides the root of the parsed AST.
+;(: read-syntax (Any Any -> Any))
 (define (read-syntax src-name in)
   (let* ([p-name (object-name in)]
-         (stx (parse src-name in))
+         [stx (parse src-name in)]
          [name (if (path? p-name)
                    (let-values ([(base name dir?) (split-path p-name)])
                      (string->symbol
+                      ;; TODO: p-name is changed from 'name. Broken before though.
                       (path->string (path-replace-suffix name #""))))
                    'anonymous)])
     (define datum (syntax->datum stx))
     ;(display (syntax->datum stx))
-;    (define env (typecheck stx))
+    (define env (typechecker stx))
     ; (define sp (AST-to-RG (syntax-e stx)))
     ;(display sp)
     (define-values (in out) (make-pipe))
@@ -36,7 +42,7 @@
     (datum->syntax #f `(module ,name racket
 ;                         (provide st env)
                          (require grace/lang/ast)
-                         (require grace/lang/typecheck)
+;                         (require grace/lang/typecheck)
                          (define st ,datum)
 ;                         (define env (list ,@env))
                          ))

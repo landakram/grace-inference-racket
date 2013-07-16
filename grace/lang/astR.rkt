@@ -27,13 +27,15 @@
 
 (struct: grace:method-def
   ([name      : (Syntaxof grace:identifier)]
+   ;[signature : (Syntaxof (Listof (Syntaxof grace:identifier)))]
    [signature : (Listof (Syntaxof grace:identifier))]
    [rtype     : (Syntaxof grace:identifier)])
   #:prefab)
 
 (struct: grace:type-def
   ([name    : (Syntaxof grace:identifier)]
-   [methods : (Listof grace:method-def)])
+   ;[methods : (Syntaxof (Listof (Syntaxof grace:method-def)))])
+   [methods : (Listof (Syntaxof grace:method-def))])
   #:prefab)
 
 (struct: grace:var-decl
@@ -108,7 +110,7 @@
 ;(struct: grace:code-seq
 ;  ([code : Any]))
 (struct: grace:code-seq
-  ([code : (Listof (Syntaxof Any))])
+  ([code : (Syntaxof (Listof (Syntaxof Any)))])
   #:prefab)
 
 (struct: grace:newline

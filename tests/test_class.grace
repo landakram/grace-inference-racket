@@ -32,9 +32,11 @@ if (dog.name() == "Max") then {
   print("Then poor dog is confused")
 }
   
-//if (rightDog.not) then {
-//  print("You should go find the right owner")
-//}       
+if (rightDog.not) then {
+  print("You should go find the right owner")
+}       
+
+// Subtyping
 
 type S = {
   a() -> Number
