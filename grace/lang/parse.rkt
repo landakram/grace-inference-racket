@@ -18,7 +18,7 @@
 
    (end EOF)
    ;(suppress )
-   ; (debug "errordump")
+    (debug "errordump")
    (error (lambda (a t v start end)
             (raise-parse-error t v start end)))
 
@@ -31,6 +31,7 @@
     (left < <= > >= == !=)
     (left - +)
     (left * / %)
+    (left ++)
     (right !)
     (right ^)
     (left DOT)
@@ -136,7 +137,7 @@
 
      ((IDENTIFIER : identifier COMMA signature-list)
       (append
-       (list (at-src (grace:identifier (symbol->string (quote $1)) $3))) $5)))
+       (list (at-src (grace:identifier (symbol->string $1) $3))) $5)))
 
     (method-return-type
      ((ARROW identifier) $2)
@@ -200,7 +201,9 @@
 
     (callrest
      ((LPAREN method-list RPAREN) $2)
-     ((LPAREN RPAREN) empty))
+     ((LPAREN RPAREN) empty)
+     ((NUM) (at-src (list (grace:number $1))))
+     ((STRING) (at-src (list (grace:str $1)))))
 
     (method-list
      ((expression COMMA method-list) (append (list $1) $3))
@@ -275,10 +278,5 @@
   (parse (object-name in) in))
 ;
 ;(define a (p (open-input-string "
-;object{      method foo(b) {
-;         print(3)
-;                }
-;    var z := 4
-;}
 ;")))
 ;(displayln (syntax->datum a))

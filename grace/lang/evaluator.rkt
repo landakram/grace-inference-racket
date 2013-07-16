@@ -1,4 +1,4 @@
-#lang racket
+      #lang racket
 
 (require racket/match
          "output.rkt"
@@ -100,7 +100,7 @@
     [`(and ,e1 ,e2)  (eval `(myif (eval ,e1 ,env) (eval ,e2 ,env) (false)) env)]
     ;[`(object ,initargs ,fields ,methods) (eval-newobj2 initargs fields methods env)]
     ;different constructors for classes depending on how many arguments you want to send
-    [`(class ,constructor ,initargs ,fields ,methods) (eval-newclass constructor initargs fields methods env)]
+    [`(class ,constructor ,initargs ,methods ,body) (eval-newclassC constructor initargs methods body env)]
     [`(class ,constructor ,initargs ,fields ,methods ,body) (eval-newclass3 constructor initargs fields methods body env)]
     [`(class ,constructor ,fields ,methods) (eval-newclass2 constructor fields methods env)]
     ;different constructors for objects depending on how many arguments you want to send
@@ -142,6 +142,9 @@
 (define (eval-newclass2 constructor fields methods env)
   (eval-newobj3 '() (list (list constructor `(lambda () (object ,fields ,methods)))) env)
   )
+
+(define (eval-newclassC constructor initargs methods body env)
+  (eval-newobjC '() '() (begin (list (print 2))) env))
 
 
 ;An internal method used in class declarations.  Takes two lists and returns a list of pairs.  
@@ -543,4 +546,4 @@ print(1)
 
 
 ; read in a program, and evaluate:
-;(eval-program (read-all))
+(eval-program (read-all))

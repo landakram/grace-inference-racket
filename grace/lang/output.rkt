@@ -57,7 +57,7 @@
              (set! code (syntax->datum code))
              (string-append 
               "(objectC () (" (string-append* (extract-methods code))")" 
-              "(begin (list" 
+              "(begin (list " 
               (foldr string-append "" (all-but-methods code)) 
               ")))"))
             ;(if (list? num) '("") 
@@ -70,7 +70,7 @@
                             ")))"))
             ((grace:method name signature body type)
              (string-append 
-              "(" (dont-wrap name) "(lambda (" 
+              "(" (dont-wrap name) " (lambda (" 
               (foldr string-append
                      ") " (map (lambda (x) (string-append " " x)) 
                                (dont-wrap signature)))
@@ -84,6 +84,13 @@
              (string-append "(initvar " (dont-wrap name) " " (AST-to-RG value) ")"))
             ((grace:def-decl name type value)
              (string-append "(initdef " (dont-wrap name) " " (AST-to-RG value) ")"))
+            ((grace:class-decl name param-name signature body)
+             (string-append "(initvar " (dont-wrap name) " (class " 
+                            (dont-wrap param-name)
+                            " (" (string-append* (dont-wrap signature)) ") ("
+                            (string-append* (extract-methods body))
+                            ") (begin (list " (string-append* (all-but-methods body))
+                            "))))"))
             ((grace:str str) (string-append " \"" str "\" "))
             ((grace:number num) (string-append " " (number->string num) " "))
             ((grace:expression op e1 e2)
@@ -117,7 +124,7 @@
                 (map dont-wrap elt)
                 (print (length elt))))
           (match elt
-            ((grace:identifier value type) value)
+            ((grace:identifier value type) (string-append value " "))
             ((grace:member parent name) 
              (string-append "(send2 " (AST-to-RG parent) " " (dont-wrap name) ")"))
             (else (print elt))))))
@@ -151,12 +158,19 @@
 (define (p in) (parse (object-name in) in))
 
 (define a (p (open-input-string "
+class Cat.new(namex : String, num) {
+ def name : String = namex
+ method purr {print(\"Purr\") 
+}
+ method mew {print(num) 
+}
 
-method fact(n) {
-                print (n == 0)
-                }
+}
 
-fact(5)
+var c := Cat.new(\"Macavity\", 5)
+
+c.purr
+c.mew
 ")))
 ;(displayln (grace:object a))
 ;(displayln (syntax->datum a))

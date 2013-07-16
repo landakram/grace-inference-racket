@@ -1,9 +1,14 @@
 #lang grace
-var x := 4
-print(x / 2 - 1)
-print(x - 2 / 1)
-print(2 * 1 + 4 / x)
-print((x * (6 - 2) - x) /3)
-print(x - 0 + 1)
-print(x * 3 / 2)
+class Cat.new(namex : String) {
+ def name : String = namex
+ method purr {print("Purr") 
+                   }
+ method mew {print("Meow") 
+                  }
+}
+
+var c := Cat.new("Macavity")
+
+c.purr
+c.mew
 
