@@ -165,20 +165,8 @@
 (define (p in) (parse (object-name in) in))
 
 (define a (p (open-input-string "
-class Cat.new(namex : String, num) {
- def name : String = namex
- method purr {print(\"Purr\") 
-}
- method mew {print(num) 
-}
-
-}
-
-var c := Cat.new(\"Macavity\", 5)
-
-c.purr
-print(c.num)
+print \"Test\"
 ")))
 ;(displayln (grace:object a))
 ;(displayln (syntax->datum a))
-(display (AST-to-RG (syntax-e a)))
+;(display (AST-to-RG (syntax-e a)))

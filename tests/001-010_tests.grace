@@ -10,15 +10,14 @@ print("Line " ++ 2)
 print(3 ++ "rd line")
 
 
-// Test 3 : FIXME (decimals/floats are not in)
+// Test 3 : OK
 print(2 - 1)
 print(1 + 1)
 print(6 / 2)
 print(2 * 2)
 print(15 % 10)
 print(3 ^ 4)
-//print(4 ^ 0.5)
-
+print(4 ^ 0.5)
 
 // Test 4 : OK 
 var x := "Hello"
@@ -29,7 +28,6 @@ var y := 3
 print(y)
 y := y + 1
 print(y)
-
 
 // Test 5 : OK
 print(true)
