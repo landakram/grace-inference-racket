@@ -10,4 +10,5 @@ misc/
 #*
 *#*
 *#
-
+**/*.log
+**/errordump
