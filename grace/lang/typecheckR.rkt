@@ -128,7 +128,9 @@
 ;;
 ;; Params:
 ;;   id - A grace:identifier struct.
-;;
+;; Returns:
+;;   A string of the name of the identifier.
+;;   
 ;; NOTE: 'id' here is not unwrapped like others because unwrap pushes the syntax
 ;;   structure down onto grace:identifier-value and the function actually returns 
 ;;   (Syntaxof String), even though the typechecker thinks it returns String.
@@ -148,12 +150,9 @@
 (: id-type ((Syntaxof grace:identifier) -> String))
 (define (id-type id)
   (let* ([type (grace:identifier-type (unwrap id))])
-    (define: type-string : String
-      (if type
-          (id-name type)
-          "Dynamic*"))
-    type-string))
-    
+    (if type
+        (id-name type)
+        "Dynamic*")))
 
 
 ;; Entry point for typechecking.
