@@ -130,7 +130,22 @@
        (void))
       
       ((grace:class-decl name param-name signature body)
-       (void))
+       (let* ([name-string (id-name name)]
+              [class-name (format "Class_~a" name-string)]
+              [obj-name (format "~aType" name-string)]
+              ;; TODO: Implement functions for this to work.
+              ;[obj-type (get-methods-from-obj-body body)]
+              ;[class-type (list (MethodType param-name signature obj-type))]
+              )
+         
+         ;; Then implement the class as a 
+         ;;   def C = object { 
+         ;;     method X(...) {
+         ;;       return object { ... }
+         ;;     }
+         ;;   }
+         ;; A definition of an object that takes a method that returns an object.
+         (void)))
       
       (else 'none)))
   
@@ -190,12 +205,12 @@
         "Dynamic*")))
 
 
-(define no-type "__NO_TYPE_INFO")
-
+;; TODO: Remove.
+;;(define no-type "__NO_TYPE_INFO")
 (: type-name (TypeType -> String))
 (define (type-name type)
   (let* ([type-string (grace:type-annot-value (unwrap type))])
-    (if (equal? type-string no-type)
+    (if (equal? type-string "__NO_TYPE_INFO")
         "Dynamic*"
         type-string)))
 ;(define (type-name type)
