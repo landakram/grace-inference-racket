@@ -26,12 +26,12 @@
 
 
 ;; The list of methods that defines a type in grace.
-(define-type grace-type
-  (Listof method-type))
+(define-type GraceType
+  (Listof MethodType))
 
 ;; In each scope, we have a map of type names to type defs.
-(define-type scope-type-defs
-  (HashTable String grace-type))
+(define-type ScopeTypeDefs
+  (HashTable String GraceType))
 
 
 ;; A struct containing information about an identifier.
@@ -40,30 +40,31 @@
 ;;   name - identifier name
 ;;   type - name of the type of the identifier, "" if missing.
 ;;   kind - 'var' or 'def'
-(struct: identifier-info
-  ([name : String]
+(struct: IDInfo
+  (;[name : String]
    [type : String]
-   [kind : String]))
+   [kind : String])
+  #:prefab)
 
 ;; In each scope, we have a map of identifiers to their type names.
-(define-type scope-type-env
-  (HashTable String identifier-info))
+(define-type ScopeTypeEnv
+  (HashTable String IDInfo))
 
 
 ;; Contains the stack of hashes of the type environments and type definitions.
-(define: type-defs : (Listof scope-type-defs)
+(define: type-defs : (Listof ScopeTypeDefs)
   (list))
 
-(define: type-envs : (Listof scope-type-env)
+(define: type-envs : (Listof ScopeTypeEnv)
   (list))
 
 
 ;; Push and pop methods for the stack. Returns the modified list.
-(: push (Any (Listof Any) -> (Listof Any))) 
+(: push (All (A) (A (Listof A) -> (Listof A))) )
 (define (push item lst)
   (cons item lst))
 
-(: pop ((Listof Any) -> (Listof Any)))
+(: pop (All (A) ((Listof A) -> (Listof A))))
 (define (pop lst)
   (cdr lst))
 
@@ -81,10 +82,14 @@
 (define (typecheck stx)
   
   ;; Create a hash of typedefs and the type-env in the current scope.
-  (define: current-type-defs : scope-type-defs
+  (define: current-type-defs : ScopeTypeDefs
     (make-hash))
-  (define: current-type-env : scope-type-env
+  (define: current-type-env : ScopeTypeEnv
     (make-hash))
+  
+  
+  ;; Add selftype to typedefs
+  (hash-set! current-type-defs "self" (list))
   
   
   ;; Add any type defs to the hash.
@@ -95,17 +100,47 @@
                   (id-name name)
                   (map get-method-type (unwrap methods))))
       (else 'none)))
-  (displayln current-type-defs)
   
-  ;(for-each (lambda: ([elt : (Syntaxof Any)])
-  ;            (match (syntax->datum elt)
-  ;              ((grace:type-def name methods)
-  ;               (hash-set! current-type-defs
-  ;                          (id-name name)
-  ;                          (map get-method-type methods)))
-  ;              (else 'none)))
-  ;          stx)
-  ;(displayln current-type-defs)
+  ;; TODO: Remove, for debugging.
+  (displayln "\n\n # The currently defined types are - \n")
+  (for ([(key value) current-type-defs])
+    (display key)
+    (display ":" )
+    (displayln value))   
+  
+  
+  ;; Add any identifiers to the type environment.
+  (for ([elt (unwrap stx)])
+    (match (unwrap elt)
+      ((grace:var-decl name type value)
+       (let* ([name-string (id-name name)]
+              [type-string (type-name type)])
+         (hash-set! current-type-env 
+                    name-string 
+                    (IDInfo type-string "var"))))
+      
+      ((grace:def-decl name type value)
+       (let* ([name-string (id-name name)]
+              [type-string (type-name type)])
+         (hash-set! current-type-env
+                    name-string
+                    (IDInfo type-string "def"))))
+      
+      ((grace:method name signature body rtype)
+       (void))
+      
+      ((grace:class-decl name param-name signature body)
+       (void))
+      
+      (else 'none)))
+  
+  ;; TODO: Remove, for debugging.
+  (displayln "\n\n # The current type environment is - \n")
+  (for ([(key value) current-type-env])
+    (display key)
+    (display " : ")
+    (displayln value))
+
   
   ;; TODO: Define stack of type envs in the prelude, then push here, and
   ;;   pop inner-scope ones after we return from the recursive call.
@@ -115,13 +150,13 @@
 
 
 ;; Takes a method definition and returns a method-type as defined in ast.
-(: get-method-type ((Syntaxof grace:method-def) -> method-type))
+(: get-method-type ((Syntaxof grace:method-def) -> MethodType))
 (define (get-method-type method)
   (let* ([method (syntax-e method)]
          [name-string (id-name (grace:method-def-name method))]
          [signature-string (map id-type (unwrap (grace:method-def-signature method)))]
-         [rtype-string (id-name (grace:method-def-rtype method))])
-    (method-type name-string signature-string rtype-string)))
+         [rtype-string (type-name (grace:method-def-rtype method))])
+    (MethodType name-string signature-string rtype-string)))
 
 
 ;; Grabs the name of an identifier wrapped in a syntax object.
@@ -134,7 +169,7 @@
 ;; NOTE: 'id' here is not unwrapped like others because unwrap pushes the syntax
 ;;   structure down onto grace:identifier-value and the function actually returns 
 ;;   (Syntaxof String), even though the typechecker thinks it returns String.
-(: id-name ((Syntaxof grace:identifier) -> String))
+(: id-name (IdentifierType -> String))
 (define (id-name id)
   (grace:identifier-value (cast (syntax->datum id) grace:identifier)))
 ;;  (grace:identifier-value (unwrap id)))
@@ -147,12 +182,27 @@
 ;; Returns:
 ;;   A string of the type of the identifier, will return "Dynamic*"
 ;;   (representing missing type information) if no type was given.
-(: id-type ((Syntaxof grace:identifier) -> String))
+(: id-type (IdentifierType -> String))
 (define (id-type id)
   (let* ([type (grace:identifier-type (unwrap id))])
     (if type
-        (id-name type)
+        (type-name type)
         "Dynamic*")))
+
+
+(define no-type "__NO_TYPE_INFO")
+
+(: type-name (TypeType -> String))
+(define (type-name type)
+  (let* ([type-string (grace:type-annot-value (unwrap type))])
+    (if (equal? type-string no-type)
+        "Dynamic*"
+        type-string)))
+;(define (type-name type)
+;  (let* ([type-exists (unwrap type)])
+;    (if type-exists
+;        (id-name (cast type IdentifierType))
+;        "Dynamic*")))
 
 
 ;; Entry point for typechecking.

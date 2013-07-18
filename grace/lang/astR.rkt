@@ -3,14 +3,23 @@
 ;;; TODO: Account for empty list '() that is inserted in the parser, either by
 ;;;   adding them to the acceptable types below or changing the use of empty.
 
-(struct: method-type
+(struct: MethodType
   ([name : String]
    [signature : (Listof String)]
    [rtype : String])
   #:prefab)
 
-(define-type type-name
-  (U (Syntaxof grace:identifier) #f))
+(define-type IdentifierType
+  (Syntaxof grace:identifier))
+
+(define-type TypeType
+  ;(U IdentifierType #f))
+  ;IdentifierType)
+  ;(Syntaxof String))
+  (Syntaxof grace:type-annot))
+
+(struct: grace:type-annot
+  ([value : String]))
 
 (struct: grace:number
   ([value : (Syntaxof Number)])
@@ -22,37 +31,38 @@
 
 (struct: grace:identifier
   ([value : String]
-   [type  : type-name])
+   [type  : TypeType])
   #:prefab)
 
 (struct: grace:method-def
-  ([name      : (Syntaxof grace:identifier)]
-   [signature : (Syntaxof (Listof (Syntaxof grace:identifier)))]
-   ;[signature : (Listof (Syntaxof grace:identifier))]
-   [rtype     : (Syntaxof grace:identifier)])
+  ([name      : IdentifierType]
+   [signature : (Syntaxof (Listof IdentifierType))]
+   ;[signature : (Listof IdentifierType)]
+   ;[rtype     : IdentifierType])
+   [rtype : TypeType])
   #:prefab)
 
 (struct: grace:type-def
-  ([name    : (Syntaxof grace:identifier)]
+  ([name    : IdentifierType]
    [methods : (Syntaxof (Listof (Syntaxof grace:method-def)))])
    ;[methods : (Listof (Syntaxof grace:method-def))])
   #:prefab)
 
 (struct: grace:var-decl
-  ([name  : (Syntaxof grace:identifier)]
-   [type  : type-name]
+  ([name  : IdentifierType]
+   [type  : TypeType]
    [value : Any])
   #:prefab)
 
 (struct: grace:def-decl
-  ([name  : (Syntaxof grace:identifier)]
-   [type  : type-name]
+  ([name  : IdentifierType]
+   [type  : TypeType]
    ;; TODO: possibly fix type of value
    [value : Any])
   #:prefab)
 
 (struct: grace:bind
-  ([name  : (Syntaxof grace:identifier)]
+  ([name  : IdentifierType]
    ;; TODO: possibly fix type of value
    [value : Any])
   #:prefab)
@@ -65,7 +75,7 @@
   #:prefab)
 
 (struct: grace:method-call
-  ([name : (U (Syntaxof grace:identifier) (Syntaxof grace:member))]
+  ([name : (U IdentifierType (Syntaxof grace:member))]
    ;; TODO: Fix type of args
    [args : (Listof Any)])
   #:prefab)
@@ -75,16 +85,16 @@
   #:prefab)
 
 (struct: grace:method
-  ([name      : (Syntaxof grace:identifier)]
-   [signature : (Listof (Syntaxof grace:identifier))]
+  ([name      : IdentifierType]
+   [signature : (Listof IdentifierType)]
    ;; TODO: Fix type of body
    [body : (Listof (Syntaxof Any))]
-   [type : type-name])
+   [type : TypeType])
   #:prefab)
 
 (struct: grace:member
-  ([parent : (U (Syntaxof grace:identifier) (Syntaxof grace:member))]
-   [name   : (Syntaxof grace:identifier)])
+  ([parent : (U IdentifierType (Syntaxof grace:member))]
+   [name   : IdentifierType])
   #:prefab)
 
 (struct: grace:return
@@ -94,14 +104,14 @@
 
 (struct: grace:if-then-else
   ;; TODO: Type of check definitely needs fixing.
-  ([check : (U (Syntaxof grace:identifier) (Syntaxof grace:expression) (Syntaxof grace:member) (Syntaxof grace:method-call))]
+  ([check : (U IdentifierType (Syntaxof grace:expression) (Syntaxof grace:member) (Syntaxof grace:method-call))]
    [tbody : (Listof (Syntaxof Any))]
    [ebody : (Listof (Syntaxof Any))])
   #:prefab)
 
 (struct: grace:class-decl
-  ([name       : (Syntaxof grace:identifier)]
-   [param-name : (Syntaxof grace:identifier)]
+  ([name       : IdentifierType]
+   [param-name : IdentifierType]
    ;; TODO: Fix, maybe grace:identifier?
    [signature  : (Listof Any)]
    [body       : (Listof Any)])

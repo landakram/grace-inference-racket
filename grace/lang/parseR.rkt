@@ -15,6 +15,8 @@
 
 ;(define newline
 ;  (at-src (grace:newline)))
+;(define no-type
+;  (grace:type-annot "Dynamic*"))
 
 (define (parse src-name in)
   (parameterize ([current-source src-name])
@@ -104,9 +106,12 @@
       ((DEF identifier type-ref = expression)
        (at-src (grace:def-decl $2 $3 $5))))
 
+    ;; NOTE: Changed types from identifiers to Strings (also method-rtype)
     (type-ref
-     ((: identifier) $2)
-     (() #f))
+     ;((: identifier) $2)
+     ;(() #f))
+     (() (datum->syntax #f (grace:type-annot "__NO_TYPE_INFO")))
+     ((: IDENTIFIER) (at-src (grace:type-annot (symbol->string $2)))))
 
     ;; A method definition just gives the method's signature and rtype inside a typedef
     (method-definition
@@ -133,7 +138,8 @@
      ((identifier :=)
       (at-src
        (grace:identifier
-        (format "~a:=" (grace:identifier-value (syntax->datum $1))) #f))))
+        (format "~a:=" (grace:identifier-value (syntax->datum $1)))
+        (at-src (grace:type-annot "__NO_TYPE_INFO"))))))
 
     ;; TODO: Extend method-signatures to take multipart methods.
     (method-signature
@@ -143,17 +149,24 @@
     (signature-list
      ((identifier)
       (list $1))
-     ((IDENTIFIER : identifier)
+     ((IDENTIFIER : type-annot)
       (list (at-src (grace:identifier (symbol->string $1) $3))))
      ((identifier COMMA signature-list)
       (append (list $1) $3))
-     ((IDENTIFIER : identifier COMMA signature-list)
+     ((IDENTIFIER : type-annot COMMA signature-list)
        (append (list (at-src (grace:identifier (symbol->string $1) $3))) $5)))
        ;(append (list (at-src (grace:identifier (symbol->string (quote $1)) $3))) $5)))
 
+    (type-annot
+     ((IDENTIFIER)
+      (at-src (grace:type-annot (symbol->string $1)))))
+     
+     
     (method-return-type
-     ((ARROW identifier) $2)
-     (() #f))
+     ;((ARROW identifier) $2)
+     ;(() #f))
+     ((ARROW IDENTIFIER) (at-src (grace:type-annot (symbol->string $2))))
+     (() (datum->syntax #f (grace:type-annot "__NO_TYPE_INFO"))))
 
     (method-body
      ((statement method-body) (cons $1 $2))
@@ -228,7 +241,10 @@
      ((object-decl) $1))
 
     (identifier
-     ((IDENTIFIER) (at-src (grace:identifier (symbol->string $1) #f))))
+     ((IDENTIFIER) 
+      (at-src (grace:identifier 
+               (symbol->string $1) 
+               (at-src (grace:type-annot "__NO_TYPE_INFO"))))))
 
     ; TODO: elseif. Recursive else-list?
     (if-then-else
