@@ -86,7 +86,7 @@
 
 (struct: grace:method
   ([name      : IdentifierType]
-   [signature : (Listof IdentifierType)]
+   [signature : (Syntaxof (Listof IdentifierType))]
    ;; TODO: Fix type of body
    [body : (Listof (Syntaxof Any))]
    [type : TypeType])
@@ -113,7 +113,7 @@
   ([name       : IdentifierType]
    [param-name : IdentifierType]
    ;; TODO: Fix, maybe grace:identifier?
-   [signature  : (Listof Any)]
+   [signature  : (Syntaxof (Listof IdentifierType))]
    [body       : (Listof Any)])
   #:prefab)
 

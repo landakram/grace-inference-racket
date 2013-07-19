@@ -99,14 +99,7 @@
        (hash-set! current-type-defs 
                   (id-name name)
                   (map get-method-type (unwrap methods))))
-      (else 'none)))
-  
-  ;; TODO: Remove, for debugging.
-  (displayln "\n\n # The currently defined types are - \n")
-  (for ([(key value) current-type-defs])
-    (display key)
-    (display ":" )
-    (displayln value))   
+      (else 'none)))   
   
   
   ;; Add any identifiers to the type environment.
@@ -127,7 +120,12 @@
                     (IDInfo type-string "def"))))
       
       ((grace:method name signature body rtype)
-       (void))
+       (add-method-to "self"
+                      (get-method-type 
+                       (cast 
+                        (datum->syntax #f (grace:method-def name signature rtype)) 
+                        (Syntaxof grace:method-def)))
+                      current-type-defs))
       
       ((grace:class-decl name param-name signature body)
        (let* ([name-string (id-name name)]
@@ -148,6 +146,14 @@
          (void)))
       
       (else 'none)))
+  
+  
+  ;; TODO: Remove, for debugging.
+  (displayln "\n\n # The currently defined types are - \n")
+  (for ([(key value) current-type-defs])
+    (display key)
+    (display ":" )
+    (displayln value))
   
   ;; TODO: Remove, for debugging.
   (displayln "\n\n # The current type environment is - \n")
@@ -218,6 +224,15 @@
 ;    (if type-exists
 ;        (id-name (cast type IdentifierType))
 ;        "Dynamic*")))
+
+
+(: add-method-to (String MethodType ScopeTypeDefs -> Any))
+(define (add-method-to type method type-defs)
+  (let* ([old-methods (hash-ref type-defs type)]
+         [new-methods (push method old-methods)])
+    (hash-set! type-defs
+               type
+               new-methods)))
 
 
 ;; Entry point for typechecking.

@@ -123,8 +123,8 @@
       ;;   contract violations telling me the signature list wasn't a syntax object,
       ;;   etc... so I just forced it onto the list. The same goes for type-def's 
       ;;   method definition list above.
-      (at-src (grace:method-def $1 (at-src $2) $3))))
-      ;;(at-src (grace:method-def $1 $2 $3))))
+      ;;(at-src (grace:method-def $1 (at-src $2) $3))))
+      (at-src (grace:method-def $1 $2 $3))))
 
     ;; A method declaration is the method's implementation
     (method-declaration
@@ -143,8 +143,8 @@
 
     ;; TODO: Extend method-signatures to take multipart methods.
     (method-signature
-     ((LPAREN RPAREN) empty)
-     ((LPAREN signature-list RPAREN) $2))
+     ((LPAREN RPAREN) (at-src empty))
+     ((LPAREN signature-list RPAREN) (at-src $2)))
 
     (signature-list
      ((identifier)
