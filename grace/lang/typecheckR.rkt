@@ -136,12 +136,18 @@
               ;[class-type (list (MethodType param-name signature obj-type))]
               )
          
-         ;; Then implement the class as a 
-         ;;   def C = object { 
-         ;;     method X(...) {
-         ;;       return object { ... }
-         ;;     }
-         ;;   }
+         ;; Then implement a class declaration
+         ;; 
+         ;; - class C.X(...) { ... }
+         ;; 
+         ;; as
+         ;;
+         ;; -  def C = object { 
+         ;; -    method X(...) {
+         ;; -      return object { ... }
+         ;; -    }
+         ;; -  }
+         ;; 
          ;; A definition of an object that takes a method that returns an object.
          (void)))
       
@@ -149,16 +155,23 @@
   
   
   ;; TODO: Remove, for debugging.
+  (: fill-to (Real String -> String))
+  (define (fill-to num str)
+    (if (>= (string-length str) num)
+        str
+        (string-append " " (fill-to (- num 1) str))))
+  
+  ;; TODO: Remove, for debugging.
   (displayln "\n\n # The currently defined types are - \n")
   (for ([(key value) current-type-defs])
-    (display key)
-    (display ":" )
+    (display (fill-to 12 key))
+    (display " : " )
     (displayln value))
   
   ;; TODO: Remove, for debugging.
   (displayln "\n\n # The current type environment is - \n")
   (for ([(key value) current-type-env])
-    (display key)
+    (display (fill-to 12 key))
     (display " : ")
     (displayln value))
 
