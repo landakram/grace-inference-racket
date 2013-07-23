@@ -89,7 +89,7 @@
   
   
   ;; Add selftype to typedefs
-  (hash-set! current-type-defs "self" (list))
+  (hash-set! current-type-defs "#SelfType#" (list))
   
   
   ;; Add any type defs to the hash.
@@ -98,7 +98,7 @@
       ((grace:type-def name methods) 
        (hash-set! current-type-defs 
                   (id-name name)
-                  (map get-method-type (unwrap methods))))
+                  (map get-method-def-type (unwrap methods))))
       (else 'none)))   
   
   
@@ -120,21 +120,26 @@
                     (IDInfo type-string "def"))))
       
       ((grace:method name signature body rtype)
-       (add-method-to "self"
-                      (get-method-type 
-                       (cast 
-                        (datum->syntax #f (grace:method-def name signature rtype)) 
-                        (Syntaxof grace:method-def)))
+       (add-method-to "#SelfType#"
+                      (get-method-impl-type
+                       (grace:method name signature body rtype))
+                      ;(get-method-def-type 
+                      ; (cast 
+                      ;  (datum->syntax #f (grace:method-def name signature rtype)) 
+                      ;  (Syntaxof grace:method-def)))
                       current-type-defs))
       
       ((grace:class-decl name param-name signature body)
        (let* ([name-string (id-name name)]
-              [class-name (format "Class_~a" name-string)]
+              [param-name-string (id-name param-name)]
+              [signature-string (map id-type (unwrap signature))]
+              [class-name (format "#~aClassType#" name-string)]
               [obj-name (format "~aType" name-string)]
               ;; TODO: Implement functions for this to work.
-              ;[obj-type (get-methods-from-obj-body body)]
-              ;[class-type (list (MethodType param-name signature obj-type))]
-              )
+              [obj-type (obj-body-to-methods body)]
+              [class-type (list (MethodType param-name-string 
+                                            signature-string 
+                                            obj-name))])
          
          ;; Then implement a class declaration
          ;; 
@@ -149,32 +154,27 @@
          ;; -  }
          ;; 
          ;; A definition of an object that takes a method that returns an object.
-         (void)))
+         
+         ;; First set the object type in our type defs.
+         (hash-set! current-type-defs
+                    obj-name
+                    obj-type)
+         
+         ;; Then, add the class type into our type defs.
+         (hash-set! current-type-defs
+                    class-name
+                    class-type)
+         
+         ;; Finally, link the name of the class to the class type as a def.
+         (hash-set! current-type-env
+                    name-string
+                    (IDInfo class-name "def"))))
       
       (else 'none)))
   
-  
   ;; TODO: Remove, for debugging.
-  (: fill-to (Real String -> String))
-  (define (fill-to num str)
-    (if (>= (string-length str) num)
-        str
-        (string-append " " (fill-to (- num 1) str))))
+  (display-type-env current-type-defs current-type-env)
   
-  ;; TODO: Remove, for debugging.
-  (displayln "\n\n # The currently defined types are - \n")
-  (for ([(key value) current-type-defs])
-    (display (fill-to 12 key))
-    (display " : " )
-    (displayln value))
-  
-  ;; TODO: Remove, for debugging.
-  (displayln "\n\n # The current type environment is - \n")
-  (for ([(key value) current-type-env])
-    (display (fill-to 12 key))
-    (display " : ")
-    (displayln value))
-
   
   ;; TODO: Define stack of type envs in the prelude, then push here, and
   ;;   pop inner-scope ones after we return from the recursive call.
@@ -184,13 +184,26 @@
 
 
 ;; Takes a method definition and returns a method-type as defined in ast.
-(: get-method-type ((Syntaxof grace:method-def) -> MethodType))
-(define (get-method-type method)
+(: get-method-def-type ((Syntaxof grace:method-def) -> MethodType))
+(define (get-method-def-type method)
   (let* ([method (syntax-e method)]
          [name-string (id-name (grace:method-def-name method))]
          [signature-string (map id-type (unwrap (grace:method-def-signature method)))]
          [rtype-string (type-name (grace:method-def-rtype method))])
     (MethodType name-string signature-string rtype-string)))
+
+
+;; Uses the above function to get the method type for a method implementation,
+;; for now.
+(: get-method-impl-type (grace:method -> MethodType))
+(define (get-method-impl-type method)
+  (let* ([name (grace:method-name method)]
+         [signature (grace:method-signature method)]
+         [rtype (grace:method-rtype method)])
+    (get-method-def-type 
+     (cast 
+      (datum->syntax #f (grace:method-def name signature rtype)) 
+      (Syntaxof grace:method-def)))))
 
 
 ;; Grabs the name of an identifier wrapped in a syntax object.
@@ -225,11 +238,11 @@
 
 
 ;; TODO: Remove.
-;;(define no-type "__NO_TYPE_INFO")
+;;(define no-type "#MissingType#")
 (: type-name (TypeType -> String))
 (define (type-name type)
   (let* ([type-string (grace:type-annot-value (unwrap type))])
-    (if (equal? type-string "__NO_TYPE_INFO")
+    (if (equal? type-string "#MissingType#")
         "Dynamic*"
         type-string)))
 ;(define (type-name type)
@@ -248,11 +261,102 @@
                new-methods)))
 
 
+(: obj-body-to-methods ((Syntaxof (Listof (Syntaxof Any))) -> (Listof MethodType)))
+(define (obj-body-to-methods body)
+  
+  (define: method-list : (Listof MethodType) (list))
+  
+  (for ([stmt (unwrap body)])
+    (match (unwrap stmt)
+      ((grace:def-decl name type value)
+       (let* ([name-string (id-name name)])
+         (set! method-list
+               (cons (MethodType name-string
+                                 (list)
+                                 (type-name type))
+                     method-list))))
+      
+      ((grace:var-decl name type value)
+       (let* ([name-string (id-name name)])
+         (set! method-list
+               (cons (MethodType name-string
+                                 (list)
+                                 (type-name type))
+                     method-list))
+         (set! method-list
+               (cons (MethodType (format "~a:=" name-string)
+                                 (list (type-name type))
+                                 "Done")
+                     method-list))))
+      
+      ((grace:method name signature body rtype)
+       (set! method-list
+             (cons (get-method-impl-type
+                    (grace:method name signature body rtype))
+                   method-list)))
+      
+      (else 'none)))
+  
+  method-list)
+                           
+                           
+                           
+
+
 ;; Entry point for typechecking.
 ;; TODO: Possibly fix return type.
 (: typechecker ((Syntaxof grace:code-seq) -> Any))
 (define (typechecker program)
   (typecheck (grace:code-seq-code (unwrap program))))
-  ;(void))
+;(void))
 
 (provide typechecker)
+
+
+
+
+
+
+
+
+
+;; ##### DEBUGGING CODE #####
+
+(: display-type-env (ScopeTypeDefs ScopeTypeEnv -> Any))
+(define (display-type-env current-type-defs current-type-env)
+  ;; TODO: Remove, for debugging.
+  (: fill-to (Real String -> String))
+  (define (fill-to num str)
+    (if (>= (string-length str) num)
+        str
+        (string-append " " (fill-to (- num 1) str))))
+  
+  ;; TODO: Remove, for debugging
+  (define: fill-amt : Real
+    ((lambda (x)
+       (apply max x))
+     (cast
+      (map string-length
+           (append (hash-keys current-type-defs)
+                   (hash-keys current-type-env)))
+      (Listof Real))))
+    
+  
+  ;; TODO: Remove, for debugging.
+  (displayln "\n\n # The currently defined types are - \n")
+  (for ([(key value) current-type-defs])
+    (display (fill-to fill-amt key))
+    (display " = " )
+    (displayln (car value))
+    (map (lambda (val)
+           (display (fill-to fill-amt ""))
+           (display " + " )
+           (displayln val))
+         (cdr value)))
+  
+  ;; TODO: Remove, for debugging.
+  (displayln "\n\n # The current type environment is - \n")
+  (for ([(key value) current-type-env])
+    (display (fill-to fill-amt key))
+    (display " = ")
+    (displayln value)))
