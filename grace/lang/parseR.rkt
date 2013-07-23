@@ -110,7 +110,7 @@
     (type-ref
      ;((: identifier) $2)
      ;(() #f))
-     (() (datum->syntax #f (grace:type-annot "__NO_TYPE_INFO")))
+     (() (datum->syntax #f (grace:type-annot "#MissingType#")))
      ((: IDENTIFIER) (at-src (grace:type-annot (symbol->string $2)))))
 
     ;; A method definition just gives the method's signature and rtype inside a typedef
@@ -129,9 +129,9 @@
     ;; A method declaration is the method's implementation
     (method-declaration
      ((METHOD method-name method-return-type LBRACE method-body RBRACE NEWLINE)
-      (at-src (grace:method $2 empty $5 $3)))
+      (at-src (grace:method $2 empty (at-src $5) $3)))
      ((METHOD method-name method-signature method-return-type LBRACE method-body RBRACE NEWLINE)
-      (at-src (grace:method $2 $3 $6 $4))))
+      (at-src (grace:method $2 $3 (at-src $6) $4))))
 
     (method-name
      ((identifier) $1)
@@ -139,7 +139,7 @@
       (at-src
        (grace:identifier
         (format "~a:=" (grace:identifier-value (syntax->datum $1)))
-        (at-src (grace:type-annot "__NO_TYPE_INFO"))))))
+        (at-src (grace:type-annot "#MissingType#"))))))
 
     ;; TODO: Extend method-signatures to take multipart methods.
     (method-signature
@@ -166,11 +166,11 @@
      ;((ARROW identifier) $2)
      ;(() #f))
      ((ARROW IDENTIFIER) (at-src (grace:type-annot (symbol->string $2))))
-     (() (datum->syntax #f (grace:type-annot "__NO_TYPE_INFO"))))
+     (() (datum->syntax #f (grace:type-annot "#MissingType#"))))
 
     (method-body
      ((statement method-body) (cons $1 $2))
-     ((NEWLINE) (at-src (grace:newline)))
+     ((NEWLINE) (grace:newline))
      ((NEWLINE method-body) $2)
      ((statement) (list $1)))
 
@@ -244,7 +244,7 @@
      ((IDENTIFIER) 
       (at-src (grace:identifier 
                (symbol->string $1) 
-               (at-src (grace:type-annot "__NO_TYPE_INFO"))))))
+               (at-src (grace:type-annot "#MissingType#"))))))
 
     ; TODO: elseif. Recursive else-list?
     (if-then-else
@@ -259,7 +259,7 @@
       (at-src (grace:class-decl $2 $4 $5 $7))))
 
     (class-body
-     ((_code-sequence) $1))
+     ((_code-sequence) (at-src $1)))
 
     (object-decl
      ((OBJECT LBRACE object-body RBRACE)
