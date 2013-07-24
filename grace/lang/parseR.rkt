@@ -52,7 +52,8 @@
     (left METHODCALL))
 
    (grammar
-    (code-sequence ((_code-sequence) (at-src (grace:code-seq (at-src $1)))))
+    (code-sequence 
+     ((_code-sequence) (at-src (grace:code-seq (at-src $1)))))
 
     (_code-sequence
      ((code) (list $1))
@@ -268,13 +269,13 @@
      ((OBJECT LBRACE object-body RBRACE)
       (at-src (grace:object $3)))
      ((OBJECT LBRACE RBRACE)
-      (at-src (grace:object empty))))
+      (at-src (grace:object (at-src (list))))))
 
     (if-body
      ((_code-sequence) $1))
 
     (object-body
-     ((_code-sequence) $1))
+     ((_code-sequence) (at-src $1)))
 
     (possibly-newline
      ;; TODO: possibly reinsert below line, was giving strange error.

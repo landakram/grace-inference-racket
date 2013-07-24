@@ -119,7 +119,32 @@
     
     ((grace:str value) "String")
     
-    ((grace:identifier value type) (void))
+    ;; For an identifier, we look for it in our stack of type environments, and
+    ;; if it is not found, we trigger a typechecking error, otherwise we return
+    ;; the type of the identifier as defined in the topmost scope.
+    ((grace:identifier value type) 
+     (let* ([not-found-type "#NoTypeFound#"]
+             [identifier-type not-found-type])
+       
+       ;; Go through the stack of type envs, looking for the identifier.
+       (for ([type-env type-envs])
+         ;; If it hasn't been found yet, look for it in the current environment.
+         (when (equal? identifier-type not-found-type)
+           (set! identifier-type 
+                 (IDInfo-type 
+                  (hash-ref type-env 
+                            value
+                            ;; If we don't find the identifier, return
+                            ;; not-found-type as a default.
+                            (λ () (IDInfo not-found-type "")))))))
+       
+       ;; If the identifier is not found in any of them, tc-error.
+       (if (equal? identifier-type not-found-type)
+           (tc-error stmt 
+                     "Identifier ~a has not been defined."
+                     value)
+           ;; Else, return the type of the identifier.
+           identifier-type)))
     
     ((grace:method-def name signature rtype) (void))
     
@@ -135,7 +160,8 @@
     
     ((grace:method-call name args) (void))
     
-    ((grace:object body) (void))
+    ((grace:object body)
+     (typecheck-body (grace:object-body (cast (unwrap stmt) grace:object))))
     
     ((grace:method name signature body rtype) (void))
     
@@ -196,14 +222,29 @@
               [type-string (type-name type)])
          (hash-set! current-type-env 
                     name-string 
-                    (IDInfo type-string "var"))))
+                    (IDInfo type-string "var"))
+         (add-method-to "#SelfType#"
+                        (MethodType name-string
+                                    (list)
+                                    type-string)
+                        current-type-defs)
+         (add-method-to "#SelfType#"
+                        (MethodType (format "~a:=" name-string)
+                                    (list type-string)
+                                    "Done")
+                        current-type-defs)))
       
       ((grace:def-decl name type value)
        (let* ([name-string (id-name name)]
               [type-string (type-name type)])
          (hash-set! current-type-env
                     name-string
-                    (IDInfo type-string "def"))))
+                    (IDInfo type-string "def"))
+         (add-method-to "#SelfType#"
+                        (MethodType name-string
+                                    (list)
+                                    type-string)
+                        current-type-defs)))
       
       ((grace:method name signature body rtype)
        (add-method-to "#SelfType#"

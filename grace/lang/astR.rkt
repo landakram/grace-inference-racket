@@ -87,7 +87,7 @@
   #:prefab)
 
 (struct: grace:object
-  ([body : (Listof (Syntaxof Any))])
+  ([body : BodyType])
   #:prefab)
 
 (struct: grace:method
