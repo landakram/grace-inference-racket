@@ -1,5 +1,21 @@
 #lang grace
 
+// ***** BROKEN TESTS *****
+var a : Number := "Hello"   // Fixed [ ]
+def a : String = 2          // Fixed [ ]
+def d = 2 + "Hello"         // Fixed [ ]
+type Object1 = {
+}                
+def c : Object1 = object {}
+c.foo()                     // Fixed [ ]
+
+
+
+
+
+
+// ***** REAL TESTS *****
+
 class Dog.new(name, size) {
   var name := name
   var size := size
