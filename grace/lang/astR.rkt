@@ -15,6 +15,9 @@
 (define-type BodyType
   (Syntaxof (Listof (Syntaxof Any))))
 
+(define-type SignatureType
+  (Syntaxof (Listof IdentifierType)))
+
 (define-type TypeType
   ;(U IdentifierType #f))
   ;IdentifierType)
@@ -39,7 +42,7 @@
 
 (struct: grace:method-def
   ([name      : IdentifierType]
-   [signature : (Syntaxof (Listof IdentifierType))]
+   [signature : SignatureType]
    ;[signature : (Listof IdentifierType)]
    ;[rtype     : IdentifierType])
    [rtype : TypeType])
@@ -89,7 +92,7 @@
 
 (struct: grace:method
   ([name      : IdentifierType]
-   [signature : (Syntaxof (Listof IdentifierType))]
+   [signature : SignatureType]
    ;; TODO: Fix type of body
    ;[body : (Listof (Syntaxof Any))]
    [body : BodyType]
@@ -117,14 +120,14 @@
   ([name       : IdentifierType]
    [param-name : IdentifierType]
    ;; TODO: Fix, maybe grace:identifier?
-   [signature  : (Syntaxof (Listof IdentifierType))]
+   [signature  : SignatureType]
    [body       : BodyType])
   #:prefab)
 
 ;(struct: grace:code-seq
 ;  ([code : Any]))
 (struct: grace:code-seq
-  ([code : (Syntaxof (Listof (Syntaxof Any)))])
+  ([code : BodyType])
   #:prefab)
 
 (struct: grace:newline
