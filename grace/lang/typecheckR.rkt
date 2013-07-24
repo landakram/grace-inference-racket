@@ -75,12 +75,96 @@
   (syntax-e elt))
 
 
-;; Does all the logic.
+;; Gets the type environment and looks for type errors in the grace code.
+;;
+;; Params:
+;;   stx - The grace code given as a list of statements.
+;; Returns:
+;;   Nothing for now, evaluated for side effects of signaling errors.
+;;
 ;; TODO: Fix return type.
-;(: typecheck ((Syntaxof grace:code-seq) -> Any))
-(: typecheck ((Syntaxof (Listof (Syntaxof Any))) -> Any))
-(define (typecheck stx)
+;(: typecheck ((Syntaxof Any) -> GraceType))
+(: typecheck-body (BodyType -> GraceType))
+(define (typecheck-body stx)
   
+  ;; Get the type environment for the current scope by calling build-environment.
+  (let-values ([(current-type-defs current-type-env)
+                (build-environment stx)])
+    
+    ;; Push the scope environments onto the stack.
+    (push current-type-defs type-defs)
+    (push current-type-env type-envs)
+    
+    ;; Typecheck each element in the body
+    (for ([elt (unwrap stx)])
+      (typecheck elt))
+    
+    ;; TODO: Define stack of type envs in the prelude, then push here, and
+    ;;   pop inner-scope ones after we return from the recursive call.
+    
+    ;; TODO: Fix return
+    (hash-ref current-type-defs "#SelfType#")))
+
+
+;; NOTES: This function dispatches all typecheck calls to smaller ones.
+;; It will return the type of a statement.
+;; Any BodyTypes (ie. (Syntaxof (Listof (Syntaxof Any)))) Should be directed
+;; at `typecheck-body`.
+(: typecheck ((Syntaxof Any) -> GraceType))
+(define (typecheck stmt)
+  (match (unwrap stmt)
+    ((grace:type-annot value) value)
+    
+    ((grace:number value) "Number")
+    
+    ((grace:str value) "String")
+    
+    ((grace:identifier value type) (void))
+    
+    ((grace:method-def name signature rtype) (void))
+    
+    ((grace:type-def name methods) (void))
+    
+    ((grace:var-decl name type value) (void))
+    
+    ((grace:def-decl name type value) (void))
+    
+    ((grace:bind name value) (void))
+    
+    ((grace:expression op lhs rhs) (void))
+    
+    ((grace:method-call name args) (void))
+    
+    ((grace:object body) (void))
+    
+    ((grace:method name signature body rtype) (void))
+    
+    ((grace:member parent name) (void))
+    
+    ((grace:return value) (void))
+    
+    ((grace:if-then-else check tbody ebody) (void))
+    
+    ((grace:class-decl name param-name signature body) (void))
+    
+    ((grace:newline) (void))
+    
+    (else 
+     (error 'Typechecker "Found unknown structure while typechecking")))
+  
+  (list))
+
+
+
+;; Builds up the type environment for the outermost scope in stx.
+;;
+;; Params:
+;;   stx - A list of grace code statements.
+;; Returns:
+;;   - A hash of types defined in the scope.
+;;   - A hash of identifiers linked to their types.
+(: build-environment (BodyType -> (values ScopeTypeDefs ScopeTypeEnv)))
+(define (build-environment stx)
   ;; Create a hash of typedefs and the type-env in the current scope.
   (define: current-type-defs : ScopeTypeDefs
     (make-hash))
@@ -105,6 +189,8 @@
   ;; Add any identifiers to the type environment.
   (for ([elt (unwrap stx)])
     (match (unwrap elt)
+      
+      ;; TODO: For var- and def-decl, add methods to selftype?
       ((grace:var-decl name type value)
        (let* ([name-string (id-name name)]
               [type-string (type-name type)])
@@ -176,11 +262,7 @@
   (display-type-env current-type-defs current-type-env)
   
   
-  ;; TODO: Define stack of type envs in the prelude, then push here, and
-  ;;   pop inner-scope ones after we return from the recursive call.
-  
-  ;; TODO: Fix return
-  (void))
+  (values current-type-defs current-type-env))
 
 
 ;; Takes a method definition and returns a method-type as defined in ast.
@@ -298,16 +380,20 @@
       (else 'none)))
   
   method-list)
-                           
-                           
-                           
+
+
+;; Raises a typechecking Error.
+(: tc-error ((Syntaxof Any) String Any * -> Any))
+(define (tc-error stx msg . rest)
+  (raise-syntax-error 'Typechecking (apply format msg rest) stx))
+
 
 
 ;; Entry point for typechecking.
 ;; TODO: Possibly fix return type.
 (: typechecker ((Syntaxof grace:code-seq) -> Any))
 (define (typechecker program)
-  (typecheck (grace:code-seq-code (unwrap program))))
+  (typecheck-body (grace:code-seq-code (unwrap program))))
 ;(void))
 
 (provide typechecker)
@@ -340,19 +426,22 @@
            (append (hash-keys current-type-defs)
                    (hash-keys current-type-env)))
       (Listof Real))))
-    
+  
   
   ;; TODO: Remove, for debugging.
   (displayln "\n\n # The currently defined types are - \n")
   (for ([(key value) current-type-defs])
     (display (fill-to fill-amt key))
     (display " = " )
-    (displayln (car value))
-    (map (lambda (val)
-           (display (fill-to fill-amt ""))
-           (display " + " )
-           (displayln val))
-         (cdr value)))
+    (if (empty? value)
+        (displayln "#s(EMPTY)")
+        (begin
+          (displayln (car value))
+          (map (lambda (val)
+                 (display (fill-to fill-amt ""))
+                 (display " + " )
+                 (displayln val))
+               (cdr value)))))
   
   ;; TODO: Remove, for debugging.
   (displayln "\n\n # The current type environment is - \n")

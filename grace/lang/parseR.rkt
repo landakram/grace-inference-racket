@@ -86,13 +86,16 @@
     (type-definition
      ((TYPE identifier = LBRACE typedef-body RBRACE)
       ;; NOTE: See method-definition comment for reasoning behind (at-src $5).
-      (at-src (grace:type-def $2 (at-src $5)))))
+      (at-src (grace:type-def $2 (at-src $5))))
+     
+     ((TYPE identifier = LBRACE RBRACE)
+      (at-src (grace:type-def $2 (at-src (list))))))
       ;;(at-src (grace:type-def $2 $5))))
 
     ;; Body is made up of method definitions or newlines.
     (typedef-body
      ((method-definition typedef-body) (cons $1 $2))
-     ((NEWLINE) (at-src (grace:newline)))
+     ((NEWLINE) (list))
      ((NEWLINE typedef-body) $2)
      ((method-definition) (list $1)))
 
