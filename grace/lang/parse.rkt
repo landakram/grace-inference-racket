@@ -145,7 +145,7 @@
 
     (method-body
      ((statement method-body) (cons $1 $2))
-     ((NEWLINE) (void))
+     ((NEWLINE) (list))
      ((NEWLINE method-body) $2)
      ((statement) (list $1)))
 

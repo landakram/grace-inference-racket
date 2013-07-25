@@ -174,7 +174,9 @@
 
     (method-body
      ((statement method-body) (cons $1 $2))
-     ((NEWLINE) (grace:newline))
+     ;((NEWLINE) (grace:newline))
+     ;((NEWLINE) (at-src (grace:newline)))
+     ((NEWLINE) (list))
      ((NEWLINE method-body) $2)
      ((statement) (list $1)))
 
