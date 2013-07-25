@@ -10,10 +10,11 @@ c.foo()                     // Fixed [ ]
 
 object {
   def e : Number = "Hello"  // Fixed [ ]
-}   
-
-
-
+   
+  method foo() -> String {
+    "bar"
+  }    
+}
 
 
 
