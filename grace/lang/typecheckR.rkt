@@ -68,6 +68,36 @@
 (define (pop lst)
   (cdr lst))
 
+(: push-scope (ScopeTypeDefs ScopeTypeEnv -> Any))
+(define (push-scope type-def type-env)
+  (set! type-defs (cons type-def type-defs))
+  (set! type-envs (cons type-env type-envs)))
+
+(: pop-scope (-> Any))
+(define (pop-scope)
+  (set! type-defs (cdr type-defs))
+  (set! type-envs (cdr type-envs)))
+
+
+;; Looks for a type in the current stack of type defs.
+;;
+;; Params:
+;;   type-string - String name of the type
+;; Returns:
+;;   The GraceType if found or else #f.
+(: find-type (String -> (U #f GraceType)))
+(define (find-type type-string)
+  (define: type-found : (U #f GraceType) #f)
+  
+  ;; Look through the defined typedefs to find the type.
+  (for ([env type-defs])
+    (unless type-found
+      (set! type-found
+            (hash-ref env type-string (λ () #f)))))
+  
+  ;; Return found type or #f.
+  type-found)
+
 
 ;; Unwraps the syntax structure off of a struct.
 (: unwrap (All (A) ((Syntaxof A) -> A)))
@@ -92,8 +122,7 @@
                 (build-environment stx)])
     
     ;; Push the scope environments onto the stack.
-    (push current-type-defs type-defs)
-    (push current-type-env type-envs)
+    (push-scope current-type-defs current-type-env)
     
     ;; Typecheck each element in the body
     (for ([elt (unwrap stx)])
@@ -150,7 +179,31 @@
            identifier-type)))
     
     ;; Check that the types given are defined.
-    ((grace:method-def name signature rtype) (void))
+    ((grace:method-def name signature rtype)
+     (let* ([rtype-string (type-name rtype)]
+            [signature-strings (map id-type (unwrap signature))])
+            
+       ;; For each element in the signature, look for it in type defs.
+       (for ([sigtype-string signature-strings])
+         (let* ([sigtype-found (find-type sigtype-string)]) 
+           
+         ;; If we can't find it, tc-error.
+           (unless sigtype-found
+             (tc-error stmt
+                       "Type `~a` is not defined in this context."
+                       sigtype-string))))
+       
+       ;; Look for the rtype in the type defs.
+       (let* ([rtype-found (find-type rtype-string)])
+         
+         ;; If we didn't find it, tc-error.
+         (unless rtype-found
+           (tc-error stmt
+                     "Type `~a` is not defined in this context."
+                     rtype-string)))
+       
+       ;; A method definition is a statement that returns Done.
+       "Done"))
     
     ;; Check each of the method-defs in methods.
     ((grace:type-def name methods) (void))

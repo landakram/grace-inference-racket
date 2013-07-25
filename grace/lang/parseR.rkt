@@ -194,8 +194,8 @@
      ((expression == expression) (at-src (grace:expression 'equal? $1 $3)))
      ((expression < expression) (at-src (grace:expression 'less-than $1 $3)))
      ((expression > expression) (at-src (grace:expression 'greater-than $1 $3)))
-     ((expression <= expression) (at-src (grace:expression 'less-than-equal $1 $3)))
-     ((expression >= expression) (at-src (grace:expression 'greather-than-equal $1 $3)))
+     ((expression <= expression) (at-src (grace:expression 'less-than-eq $1 $3)))
+     ((expression >= expression) (at-src (grace:expression 'greater-than-eq $1 $3)))
 
      ((expression ++ expression) (at-src (grace:expression 'concat $1 $3)))
      ((term) $1))

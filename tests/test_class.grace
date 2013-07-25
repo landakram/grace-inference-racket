@@ -16,6 +16,10 @@ object {
   }    
 }
 
+type Object2 = {
+  foo(x : Number) -> String
+}
+
 
 
 // ***** REAL TESTS *****
