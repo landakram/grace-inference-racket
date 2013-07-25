@@ -79,6 +79,44 @@
   (set! type-envs (cdr type-envs)))
 
 
+;; PRELUDE ---------------------------------------
+;; -----------------------------------------------
+
+;; TODO: Move to different file
+
+;; Prelude: Builtin types.
+(define: prelude-type-defs : ScopeTypeDefs
+  (make-hash))
+(define: prelude-type-env : ScopeTypeEnv
+  (make-hash))
+
+;; TODO: Add rest of builtin types.
+
+(hash-set!
+ prelude-type-defs
+ "Number"
+ ;; TODO: Add other methods for numbers...
+ (list
+  (MethodType "plus" (list "Number") "Number")))
+
+(hash-set!
+ prelude-type-defs
+ "String"
+ ;; TODO: Add methods for strings...
+ (list))
+
+(hash-set!
+ prelude-type-defs
+ "Done"
+ (list))
+
+
+(push-scope prelude-type-defs prelude-type-env)
+
+;; -----------------------------------------------
+;; -----------------------------------------------
+
+
 ;; Looks for a type in the current stack of type defs.
 ;;
 ;; Params:
@@ -206,7 +244,13 @@
        "Done"))
     
     ;; Check each of the method-defs in methods.
-    ((grace:type-def name methods) (void))
+    ((grace:type-def name methods) 
+     (begin
+       ;; Typecheck each of the method definitions.
+       (map typecheck (unwrap methods))
+       
+       ;; A type definition is a statement that returns Done.
+       "Done"))
     
     ;; Make sure the given type and the type of the value match.
     ((grace:var-decl name type value) (void))
