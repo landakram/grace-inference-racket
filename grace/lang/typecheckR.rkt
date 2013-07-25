@@ -124,7 +124,10 @@
     ;; the type of the identifier as defined in the topmost scope.
     ((grace:identifier value type) 
      (let* ([not-found-type "#NoTypeFound#"]
-             [identifier-type not-found-type])
+            [identifier-type not-found-type]
+            
+            ;; Work around for `unwrap` (using `syntax-e`) nesting syntax structure.
+            [value (cast (syntax->datum (cast value (Syntaxof Any))) String)])
        
        ;; Go through the stack of type envs, looking for the identifier.
        (for ([type-env type-envs])
@@ -141,25 +144,31 @@
        ;; If the identifier is not found in any of them, tc-error.
        (if (equal? identifier-type not-found-type)
            (tc-error stmt 
-                     "Identifier ~a has not been defined."
+                     "Identifier `~a` is not defined."
                      value)
            ;; Else, return the type of the identifier.
            identifier-type)))
     
+    ;; Check that the types given are defined.
     ((grace:method-def name signature rtype) (void))
     
+    ;; Check each of the method-defs in methods.
     ((grace:type-def name methods) (void))
     
+    ;; Make sure the given type and the type of the value match.
     ((grace:var-decl name type value) (void))
     
+    ;; Make sure the given type and the type of the value match.
     ((grace:def-decl name type value) (void))
     
+    ;; Make sure the type in the env and the type of the value match.
     ((grace:bind name value) (void))
     
     ((grace:expression op lhs rhs) (void))
     
     ((grace:method-call name args) (void))
     
+    ;; For an object, typecheck its body then return the type of the object.
     ((grace:object body)
      (typecheck-body (grace:object-body (cast (unwrap stmt) grace:object))))
     
@@ -426,7 +435,16 @@
 ;; Raises a typechecking Error.
 (: tc-error ((Syntaxof Any) String Any * -> Any))
 (define (tc-error stx msg . rest)
-  (raise-syntax-error 'Typechecking (apply format msg rest) stx))
+  (raise-syntax-error 
+   'Typechecking
+   (string-append
+    (format "<Line ~a>\n\n" (syntax-line stx))
+    (fill-to 5 "") 
+    (format "~a\n\n" (apply format msg rest)))
+   
+   ;; Eventually, (syntax-source stx) for filename and syntax-line for line 
+   ;; number, so we can get rid of the mess above.
+   stx))
 
 
 
@@ -449,14 +467,16 @@
 
 ;; ##### DEBUGGING CODE #####
 
+;; TODO: Remove, for debugging.
+(: fill-to (Real String -> String))
+(define (fill-to num str)
+  (if (>= (string-length str) num)
+      str
+      (string-append " " (fill-to (- num 1) str))))
+
+
 (: display-type-env (ScopeTypeDefs ScopeTypeEnv -> Any))
 (define (display-type-env current-type-defs current-type-env)
-  ;; TODO: Remove, for debugging.
-  (: fill-to (Real String -> String))
-  (define (fill-to num str)
-    (if (>= (string-length str) num)
-        str
-        (string-append " " (fill-to (- num 1) str))))
   
   ;; TODO: Remove, for debugging
   (define: fill-amt : Real
