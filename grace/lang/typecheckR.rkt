@@ -132,8 +132,9 @@
 ;; Add prelude types to the topmost scope.
 (push-scope prelude-type-defs prelude-type-env)
 
+;; END PRELUDE -----------------------------------
 ;; -----------------------------------------------
-;; -----------------------------------------------
+
 
 
 ;; Looks for a type in the current stack of type defs.
