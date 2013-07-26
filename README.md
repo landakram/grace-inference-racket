@@ -32,7 +32,8 @@ Then do:
     - [ ] Subtyping
  [-] Standard Functions
     - [-] Print
-        * [ ] taking a string without surrounding parentheses
+        * [x] taking a string or number without surrounding parentheses
+        * [ ] taking a boolean without surrounding parentheses
     - [ ] String Interpolation
  [-] Conditionals
     - [x] if
@@ -42,7 +43,7 @@ Then do:
  [-] Operators
  [ ] Loops
  [ ] Lists
- [ ] Classes
+ [x] Classes
     - [ ] Inheritance
  [ ] Blocks
  [ ] Modules
