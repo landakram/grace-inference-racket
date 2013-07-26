@@ -31,8 +31,13 @@
                    'anonymous)])
     (define datum (syntax->datum stx))
     ;(display (syntax->datum stx))
+<<<<<<< HEAD
+    (define env (typechecker stx))
+    ; (define sp (AST-to-RG (syntax-e stx)))
+=======
     (define env (typecheck stx))
     (define sp (AST-to-RG (syntax-e stx)))
+>>>>>>> master
     ;(display sp)
     (define-values (in out) (make-pipe))
     (display sp out)

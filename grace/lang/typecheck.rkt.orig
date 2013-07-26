@@ -1042,18 +1042,19 @@
 
 ; @@@@@ DEBUGGING CODE @@@@@
 ; @@@@@ FIXME: REMOVE  @@@@@
+<<<<<<< HEAD
 ;(define (p in)
 ;  (parse (object-name in) in))
 ;
-; (define a (p (open-input-string "
-; method foo() {
-;   return 1
-; }
+;(define a (p (open-input-string "
+;type S = {
+;  a() -> Number
+;}
 ;
-; def a = object {
-; //  def b = foo()
-; }
-; ")))
+;type T = {
+;  a() -> Number
+;  a:=(_ : Number) -> Done
+;}
 ;
 ;method foo(arg : S) -> String{
 ;  print(S)
@@ -1069,3 +1070,20 @@
 ;
 ;(display
 ;  (typecheck a))
+=======
+; (define (p in)
+;   (parse (object-name in) in))
+;
+; (define a (p (open-input-string "
+; method foo() {
+;   return 1
+; }
+;
+; def a = object {
+; //  def b = foo()
+; }
+; ")))
+;
+; (display
+;   (typecheck a))
+>>>>>>> master

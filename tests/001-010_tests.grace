@@ -32,20 +32,20 @@ y := y + 1
 print(y)
 
 
-// Test 5 : FIXME (|| and && are not in)
+// Test 5 : OK
 print(true)
 print(false)
 print(true || false)
 print(true && false)
 
 
-// Test 6 : FIXME (.not is not implemented for booleans, && is not in)
-//print(true.not)
+// Test 6 : OK
+print(true.not)
 var x := false
-//print(false || true)
-//print(x.not.not)
-//x := x.not
-//print(x && false.not)
+print(false || true)
+print(x.not.not)
+x := x.not
+print(x && false.not)
 
 
 // Test 7 : OK
@@ -100,6 +100,4 @@ var x := 1
 //    x := x + 1
 //}
 //print("Last: " ++ x)
-
-
 

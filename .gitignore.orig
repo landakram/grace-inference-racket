@@ -1,0 +1,19 @@
+*swp
+*~
+lang/compiled/
+compiled/
+**/compiled/
+misc/
+._*
+**/._*
+.DS_Store
+#*
+*#*
+*#
+<<<<<<< HEAD
+**/*.log
+**/errordump
+=======
+misc/
+
+>>>>>>> master

@@ -39,9 +39,9 @@
    ;(many of these will need to be replaced:
    ;all the math ones will need to extract values out of new number objects
    ;and then call primitive version rather than being in current form)
-   `(,+ ,- ,/ ,* ,modulo ,<= ,>= ,equal? ,eq? concat ,exp or and)
+   `(,+ ,- ,/ ,* ,modulo ,<= ,>= ,> ,< ,equal? != ,eq? concat ,exp or and)
    (map (lambda (s) (list 'primitive s))
-        '(+ -  /  *  %   <= >= == eq? ++ expt or and))))
+        '(+ -  /  *  %   <= >= > < == != eq? ++ expt or and))))
 
 (define (AST-to-RG elt)
   (if (syntax? elt)
@@ -65,7 +65,7 @@
             ((grace:object body)
              (string-append "(objectC () (" 
                             (string-append* (extract-methods body)) ")" 
-                            "(begin (list" 
+                            "(begin (list " 
                             (foldr string-append "" (all-but-methods body))
                             ")))"))
             ((grace:method name signature body type)
@@ -84,7 +84,7 @@
              (string-append "(initvar " (dont-wrap name) " " (AST-to-RG value) ")"))
             ((grace:def-decl name type value)
              (string-append "(initdef " (dont-wrap name) " " (AST-to-RG value) ")"))
-            ((grace:str str) (string-append "\"" str "\""))
+            ((grace:str str) (string-append " \"" str "\" "))
             ((grace:number num) (string-append " " (number->string num) " "))
             ((grace:expression op e1 e2)
              (string-append "(" (symbol->string (cadr (env-lookup env-reverse op)))
@@ -151,6 +151,12 @@
 (define (p in) (parse (object-name in) in))
 
 (define a (p (open-input-string "
+
+method fact(n) {
+                print (n == 0)
+                }
+
+fact(5)
 ")))
 ;(displayln (grace:object a))
 ;(displayln (syntax->datum a))

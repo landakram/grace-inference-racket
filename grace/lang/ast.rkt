@@ -151,6 +151,15 @@
          [name 'print]
          [signature (list top-other)]
          [rtype done-identifier])
+    
+    (new grace:type:method%
+         [name equal?]
+         [signature (list top-other)]
+         [rtype boolean-identifier])
+    (new grace:type:method%
+         [name '!=]
+         [signature (list top-other)]
+         [rtype boolean-identifier])
 
     ; Concatenate likewise works on any top type.
     (new grace:type:method%
@@ -233,15 +242,6 @@
          [name exp]
          [signature (list number-other)]
          [rtype number-identifier])
-
-    (new grace:type:method%
-         [name equal?]
-         [signature (list top-other)]
-         [rtype boolean-identifier])
-    (new grace:type:method%
-         [name 'not]
-         [signature (list number-other)]
-         [rtype boolean-identifier])
     (new grace:type:method%
          [name <]
          [signature (list number-other)]
@@ -274,6 +274,10 @@
 
 (define boolean-methods
   (list
+   (new grace:type:method%
+         [name 'not]
+         [signature (list)]
+         [rtype boolean-identifier])
     (new grace:type:method%
          [name 'and]
          [signature (list boolean-other)]

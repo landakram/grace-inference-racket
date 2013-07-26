@@ -13,7 +13,11 @@
 ;; op-tokens are names of all other tokens (including all keywords
 (define-empty-tokens op-tokens
   (EOF
+<<<<<<< HEAD
+   + - * / % ^ ++ ! && OR == < > <= >=
+=======
    + - * / % ^ ++ ! && OR == != < > <= >=
+>>>>>>> master
    = := : DOT \;
    //
    LBRACE RBRACE
@@ -108,7 +112,10 @@
    ("<=" (token-<=))
    (">=" (token->=))
    ("="  (token-=))
+<<<<<<< HEAD
+=======
    ("!=" (token-!=))
+>>>>>>> master
    (":=" (token-:=))
    ("++" (token-++))
    ("{"  (token-LBRACE))
