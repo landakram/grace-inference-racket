@@ -1,23 +1,23 @@
 #lang grace
 
 // ***** BROKEN TESTS *****
-var a : Number := "Hello"   // Fixed [ ]
-def b : String = 2          // Fixed [ ]
-def d = 2 + "Hello"         // Fixed [ ]
+var a : Number := "Hello"   // Fixed [ ] Invalid assignment.
+def b : String = 2          // Fixed [ ] Invalid assignment.
+def d = 2 + "Hello"         // Fixed [ ] Invalid operation.
 type Object1 = {}                
 def c : Object1 = object {}
-c.foo()                     // Fixed [ ]
+c.foo()                     // Fixed [ ] No such method.
 
 object {
-  def e : Number = "Hello"  // Fixed [ ]
+  def e : Number = "Hello"  // Fixed [ ] Invalid assignment.
    
   method foo() -> String {
     "bar"
-  }    
+  }
 }
 
 type Object2 = {
-  foo(x : Number) -> String
+  // foo(x : Number) -> Stringify // Fixed [x] Undefined type
 }
 
 
