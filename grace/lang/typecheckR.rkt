@@ -105,12 +105,31 @@
  ;; TODO: Add methods for strings...
  (list))
 
-(hash-set!
- prelude-type-defs
- "Done"
- (list))
+(hash-set! prelude-type-defs "Done" (list))
+
+(hash-set! prelude-type-defs "List" (list))
+
+(hash-set! prelude-type-defs "Boolean" (list))
+
+(hash-set! prelude-type-defs "Dynamic" (list))
+
+(hash-set! prelude-type-defs "Object" (list))
+
+(hash-set! prelude-type-defs "Top" (list))
 
 
+;; Add builtin identifiers.
+(hash-set! prelude-type-env "true" (IDInfo "Boolean" "builtin"))
+(hash-set! prelude-type-env "false" (IDInfo "Boolean" "builtin"))
+(hash-set! prelude-type-env "self" (IDInfo "#SelfType#" "builtin"))
+
+;; TODO: Maybe fix type of outer type to #SelfType# and figure out how to
+;;   look up outer scopes in typechecking logic.
+(hash-set! prelude-type-env "outer" (IDInfo "#OuterType#" "builtin"))
+
+
+
+;; Add prelude types to the topmost scope.
 (push-scope prelude-type-defs prelude-type-env)
 
 ;; -----------------------------------------------
