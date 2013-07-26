@@ -102,7 +102,8 @@
 
     (var-declaration
      ((VAR identifier type-ref)
-      (at-src (grace:var-decl $2 $3 #f)))
+      ;; TODO: Fix the #f to something else.
+      (at-src (grace:var-decl $2 $3 (at-src #f))))
      ((VAR identifier type-ref := expression)
       (at-src (grace:var-decl $2 $3 $5))))
 

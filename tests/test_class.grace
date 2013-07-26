@@ -1,24 +1,31 @@
 #lang grace
 
 // ***** BROKEN TESTS *****
-var a : Number := "Hello"   // Fixed [ ] Invalid assignment.
-def b : String = 2          // Fixed [ ] Invalid assignment.
+// var a : Number := "Hello"   // Fixed [x] Invalid assignment.
+// var a : Num                 // Fixed [x] Invalid type annotation.
+// def b : String = 2          // Fixed [x] Invalid assignment.
+// def b : Stung = 5           // Fixed [x] Invalid type annotation.
 def d = 2 + "Hello"         // Fixed [ ] Invalid operation.
 type Object1 = {}                
 def c : Object1 = object {}
 c.foo()                     // Fixed [ ] No such method.
 
-object {
-  def e : Number = "Hello"  // Fixed [ ] Invalid assignment.
-   
-  method foo() -> String {
-    "bar"
-  }
-}
+// object {
+//   def e : Number = "Hello"  // Fixed [x] Invalid assignment.
+//   
+//   method foo() -> String {
+//     "bar"
+//   }
+// }
 
-type Object2 = {
-  // foo(x : Number) -> Stringify // Fixed [x] Undefined type
-}
+// type Object2 = {
+//   foo(x : Number) -> Stringify // Fixed [x] Undefined type
+// }
+
+// type Object3 = {
+//   b() -> String
+// }
+// def a : Object3 = object {}    // Fixed [x] Subtyping
 
 
 

@@ -57,20 +57,20 @@
 (struct: grace:var-decl
   ([name  : IdentifierType]
    [type  : TypeType]
-   [value : Any])
+   [value : (Syntaxof Any)])
   #:prefab)
 
 (struct: grace:def-decl
   ([name  : IdentifierType]
    [type  : TypeType]
    ;; TODO: possibly fix type of value
-   [value : Any])
+   [value : (Syntaxof Any)])
   #:prefab)
 
 (struct: grace:bind
   ([name  : IdentifierType]
    ;; TODO: possibly fix type of value
-   [value : Any])
+   [value : (Syntaxof Any)])
   #:prefab)
 
 (struct: grace:expression

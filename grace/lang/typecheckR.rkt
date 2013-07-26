@@ -112,6 +112,7 @@
 (hash-set! prelude-type-defs "Boolean" (list))
 
 (hash-set! prelude-type-defs "Dynamic" (list))
+(hash-set! prelude-type-defs "Dynamic*" (hash-ref prelude-type-defs "Dynamic"))
 
 (hash-set! prelude-type-defs "Object" (list))
 
@@ -157,10 +158,92 @@
   type-found)
 
 
+(: find-id (String -> String))
+(define (find-id id)
+  (define identifier-type "#NoTypeFound#")
+  (for ([type-env type-envs])
+    (when (equal? identifier-type "#NoTypeFound#")
+      (set! identifier-type
+            (IDInfo-type
+             (hash-ref type-env
+                       id
+                       (λ () (IDInfo "#NoTypeFound#" "")))))))
+  identifier-type)
+
+
+
+
 ;; Unwraps the syntax structure off of a struct.
 (: unwrap (All (A) ((Syntaxof A) -> A)))
 (define (unwrap elt)
   (syntax-e elt))
+
+
+;; TODO: REMOVE UNLESS NEEDED
+#|
+(: method-equal? (MethodType MethodType -> Boolean))
+(define (method-equal? m1 m2)
+  (let* ([m1-name (MethodType-name m1)]
+         [m2-name (MethodType-name m2)]
+         [m1-signature (MethodType-signature m1)]
+         [m2-signature (MethodType-signature m2)]
+         [m1-rtype (MethodType-rtype m1)]
+         [m2-rtype (MethodType-rtype m2)])
+    (displayln (equal? m1-name m2-name))
+    (displayln (equal? m1-signature m2-signature))
+    (displayln (equal? m1-rtype m2-rtype))
+               
+    (if (and (equal? m1-name m2-name)
+             (equal? m1-signature m2-signature)
+             (equal? m1-rtype m2-rtype))
+        #t
+        #f)))
+|#
+
+
+;; 
+(: conforms-to? (String String -> Boolean))
+(define (conforms-to? conforming-type conform-to-type)
+  (cond
+    ((equal? conform-to-type "Dynamic") #t)
+    ((equal? conform-to-type "Dynamic*") #t)
+    ((equal? conforming-type "Dynamic") #t)
+    ((equal? conform-to-type "Dynamic*") #t)
+    ((equal? conform-to-type conforming-type) #t)
+    ((equal? conform-to-type "Top") #t)
+    
+    ;; TODO: Subtyping.
+    ({conforming-type . subtype-of? . conform-to-type} #t)
+    
+    (else #f)))
+
+
+;;
+(: subtype-of? (String String -> Boolean))
+(define (subtype-of? maybe-subtype maybe-supertype)
+  (let* ([subtype-methods (cast (find-type maybe-subtype) GraceType)]
+         [suptype-methods (cast (find-type maybe-supertype) GraceType)])
+    
+    ;; As far as we know, it is a subtype.
+    (define: is-subtype : Boolean #t)
+    
+    ;; Only loop if we haven't already discovered it isn't a subtype.
+    (for ([super-method suptype-methods]
+          #:when is-subtype)
+      
+      ;; We have not yet found a matching method in the maybe-subtype.
+      (define: matching-method-found : Boolean #f)
+      (for ([sub-method subtype-methods])
+        (unless matching-method-found
+          (set! matching-method-found
+                (equal? sub-method super-method))))
+      
+      ;; If we didn't find a matching method we don't have a subtype.
+      (unless matching-method-found
+        (set! is-subtype #f)))
+    
+    is-subtype))
+
 
 
 ;; Gets the type environment and looks for type errors in the grace code.
@@ -197,7 +280,8 @@
 ;; It will return the type of a statement.
 ;; Any BodyTypes (ie. (Syntaxof (Listof (Syntaxof Any)))) Should be directed
 ;; at `typecheck-body`.
-(: typecheck ((Syntaxof Any) -> GraceType))
+;(: typecheck ((Syntaxof Any) -> GraceType))
+(: typecheck ((Syntaxof Any) -> String))
 (define (typecheck stmt)
   (match (unwrap stmt)
     ((grace:type-annot value) value)
@@ -210,31 +294,21 @@
     ;; if it is not found, we trigger a typechecking error, otherwise we return
     ;; the type of the identifier as defined in the topmost scope.
     ((grace:identifier value type) 
-     (let* ([not-found-type "#NoTypeFound#"]
-            [identifier-type not-found-type]
+     (let* ([identifier-type "#NoTypeFound#"]
             
             ;; Work around for `unwrap` (using `syntax-e`) nesting syntax structure.
             [value (cast (syntax->datum (cast value (Syntaxof Any))) String)])
        
-       ;; Go through the stack of type envs, looking for the identifier.
-       (for ([type-env type-envs])
-         ;; If it hasn't been found yet, look for it in the current environment.
-         (when (equal? identifier-type not-found-type)
-           (set! identifier-type 
-                 (IDInfo-type 
-                  (hash-ref type-env 
-                            value
-                            ;; If we don't find the identifier, return
-                            ;; not-found-type as a default.
-                            (λ () (IDInfo not-found-type "")))))))
+       (set! identifier-type (find-id value))
        
        ;; If the identifier is not found in any of them, tc-error.
-       (if (equal? identifier-type not-found-type)
-           (tc-error stmt 
-                     "Identifier `~a` is not defined."
-                     value)
-           ;; Else, return the type of the identifier.
-           identifier-type)))
+       (when (equal? identifier-type "#NoTypeFound#")
+         (tc-error stmt 
+                   "Identifier `~a` is not defined."
+                   value))
+       
+       ;; Return the type of the identifier.
+       identifier-type))
     
     ;; Check that the types given are defined.
     ((grace:method-def name signature rtype)
@@ -272,39 +346,113 @@
        ;; A type definition is a statement that returns Done.
        "Done"))
     
-    ;; Make sure the given type and the type of the value match.
-    ((grace:var-decl name type value) (void))
+    
+    ;; ----- TODO -----
+    ;; When an object and a var or def's type do not match up, do not error
+    ;; with type "#SelfType#", but rather something more useful.
+    ;;  1. Possibility : Somehow get the method that could not be found in the
+    ;;       value-type and pretty-print it to show what could not be found.
+    ;; ----------------
     
     ;; Make sure the given type and the type of the value match.
-    ((grace:def-decl name type value) (void))
+    ((grace:var-decl name type value)
+     (let* ([name-string (id-name name)]
+            [type-string (type-name type)]
+            [type-found (find-type type-string)]
+            
+            ;; TODO: This is hacky because value can be type-annot or #f.
+            [value-type-string (if (unwrap value)
+                                   (typecheck value)
+                                   "#NoValue#")])
+       
+       ;; Make sure that the type annotated exists in the context.
+       (unless type-found
+         (tc-error stmt
+                   "Type `~a` is not defined in this context."
+                   type-string))
+       
+       ;; If a value is given in an assignment, make sure the type of the
+       ;; expression matches the annotated type.
+       (unless (equal? value-type-string "#NoValue#")
+         (unless { value-type-string . conforms-to? . type-string }
+           (if (equal? value-type-string "#SelfType#")
+               (tc-error stmt
+                         "Given object does not conform to type `~a`."
+                         type-string)
+               (tc-error stmt
+                         "Given value of type `~a` while expecting value of type `~a`."
+                         value-type-string
+                         type-string))))
+       
+       ;; A variable declaration returns done.
+       "Done"))
+    
+    ;; Make sure the given type and the type of the value match.
+    ((grace:def-decl name type value) 
+     (let* ([name-string (id-name name)]
+            [type-string (type-name type)]
+            [type-found (find-type type-string)]
+            [value-type-string (typecheck value)]) 
+       
+       ;; Make sure that the type annotated exists in the context.
+       (unless type-found
+         (tc-error stmt
+                   "Type `~a` is not defined in this context."
+                   type-string))
+       
+       ;; If a value is given in an assignment, make sure the type of the
+       ;; expression matches the annotated type.
+       (unless { value-type-string . conforms-to? . type-string }
+         (if (equal? value-type-string "#SelfType#")
+             (tc-error stmt
+                       "Given object does not conform to type `~a`."
+                       type-string)
+             (tc-error stmt
+                       "Given value of type `~a` while expecting value of type `~a`."
+                       value-type-string
+                       type-string)))
+       
+       "Done"))
     
     ;; Make sure the type in the env and the type of the value match.
-    ((grace:bind name value) (void))
+    ((grace:bind name value) 
+     (let* ([name-string (id-name name)]
+            [value-type-string (typecheck value)])
+       
+      
+      "Done"))
     
-    ((grace:expression op lhs rhs) (void))
+    ((grace:expression op lhs rhs) "#Void#")
     
-    ((grace:method-call name args) (void))
+    ((grace:method-call name args) "#Void#")
     
     ;; For an object, typecheck its body then return the type of the object.
     ((grace:object body)
-     (typecheck-body (grace:object-body (cast (unwrap stmt) grace:object))))
+     (begin
+       (typecheck-body (grace:object-body (cast (unwrap stmt) grace:object)))
+       
+       ;; TODO: Fix this type since the object might be popped off.
+       ;;   Also, this doesn't allow for any def a : ObjectX = object { ... }
+       ;;   because right now, it is comparing "ObjectX" to "#SelfType". To fix
+       ;;   that, probably need to implement subtyping in `conforms-to?`.
+       "#SelfType#"))
     
-    ((grace:method name signature body rtype) (void))
+    ((grace:method name signature body rtype) "#Void#")
     
-    ((grace:member parent name) (void))
+    ((grace:member parent name) "#Void#")
     
-    ((grace:return value) (void))
+    ((grace:return value) "#Void#")
     
-    ((grace:if-then-else check tbody ebody) (void))
+    ((grace:if-then-else check tbody ebody) "#Void#")
     
-    ((grace:class-decl name param-name signature body) (void))
+    ((grace:class-decl name param-name signature body) "#Void#")
     
-    ((grace:newline) (void))
+    ((grace:newline) "#Void#")
     
     (else 
-     (error 'Typechecker "Found unknown structure while typechecking")))
-  
-  (list))
+     (tc-error stmt "Found unknown structure while typechecking") 
+     "ERROR")))
+  ;(list))
 
 
 
