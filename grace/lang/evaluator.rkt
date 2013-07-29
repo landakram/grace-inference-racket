@@ -63,8 +63,8 @@
     [`(if ,ec ,et ,ef) (if (eval ec env) (eval et env) (eval ef env))]
     ;Forms of let take a list of pairs and a method to bind those pairs over.
     [`(letrec ,binds ,eb) (eval-letrec binds eb env)] 
-    [`(let    ,binds ,eb) (eval-let    binds eb env)]
-    [`(letC   ,binds ,eb) (eval-letC    binds eb env)]
+    ;[`(let    ,binds ,eb) (eval-let    binds eb env)]
+    ;[`(letC   ,binds ,eb) (eval-letC    binds eb env)]
     [`(lambda ,vs ,e)    `(closure ,exp ,env)]
     [`(set! ,v ,e)   (begin (match v
                               [(? symbol?) (env-set! env v (eval e env))]
@@ -110,7 +110,8 @@
      (eval-newclassC constructor initargs methods body env)]
     ;different constructors for objects depending on # of arguments
     ;[`(object ,fields ,methods) (eval-newobj3 fields methods env)]
-    [`(objectC ,fields ,methods ,body) (eval-newobjC fields methods body env)] 
+    [`(objectC ,fields ,methods ,body) (eval-newobjC fields methods body env)]
+    [`(block ,initargs ,body) (eval-newblockC initargs body env)]
     [`(initvar ,obj ,val) (eval-initvar obj val env)]
     [`(initvar* ,objs ,vals) (eval-initvar* objs vals env)]
     [`(initdef ,obj ,val) (eval-initdef obj val env)]
@@ -157,6 +158,10 @@
                    `(lambda ,initargs (objectC ,initargs ,methods ,body)))) 
    '() env)
   )
+
+(define (eval-newblockC initargs body env)
+  (eval-newobjC
+   '() (list (list 'apply `(lambda ,initargs ,body))) '() env))
 
 ;Used in class declarations. Takes two lists and returns a list of pairs.  
 ;Practical use is to take a list of instance variables and a list of arguments 
@@ -312,19 +317,19 @@
 ;     env]))
 
 ;let a list of bindings be set over a body
-(define (eval-letC bindings body env)
-  (let* ((vars (map car bindings))
-         (exps (map cadr bindings))
-         (vals (map (eval-with env) exps))
-         (env* (eval-initvar* vars vals env)))
-    (eval body env*)))
-
-(define (eval-let bindings body env)
-  (let* ((vars (map car bindings))
-         (exps (map cadr bindings))
-         (vals (map (eval-with env) exps))
-         (env* (env-extend* env vars vals)))
-    (eval body env*)))
+;(define (eval-letC bindings body env)
+;  (let* ((vars (map car bindings))
+;         (exps (map cadr bindings))
+;         (vals (map (eval-with env) exps))
+;         (env* (eval-initvar* vars vals env)))
+;    (eval body env*)))
+;
+;(define (eval-let bindings body env)
+;  (let* ((vars (map car bindings))
+;         (exps (map cadr bindings))
+;         (vals (map (eval-with env) exps))
+;         (env* (env-extend* env vars vals)))
+;    (eval body env*)))
 
 ; applies a procedure to arguments:
 (define (apply-proc f values)
