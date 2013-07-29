@@ -57,7 +57,7 @@
     [(? box?)             exp] ;Boxes are containers used to hold hash tables.
     ;They allow me to replace a hash with a new one and keep pointers into it.
     [`(myif ,ec ,et ,ef) (if 
-                          (apply-proc (eval-send3 (eval ec env) 'bval env) '())
+                          (apply-proc (eval-send3 (eval ec env) '(bval) env) '())
                           (eval et env) 
                           (eval ef env))]
     [`(if ,ec ,et ,ef) (if (eval ec env) (eval et env) (eval ef env))]
@@ -66,15 +66,10 @@
     [`(let    ,binds ,eb) (eval-let    binds eb env)]
     [`(letC   ,binds ,eb) (eval-letC    binds eb env)]
     [`(lambda ,vs ,e)    `(closure ,exp ,env)]
-    ;Testing removing these.
     [`(set! ,v ,e)   (begin (match v
                               [(? symbol?) (env-set! env v (eval e env))]
                               [`(send2 ,obj ,meth) (eval `(set! ,meth ,e)
                                                          (eval obj env))]))]
-    ;    [`(setC! ,v ,e)       (match v
-    ;                            [(? symbol?) (env-Cset! env v (eval e env))]
-    ;                            [`(send2 ,obj ,meth) (eval `(setC! ,meth ,e)
-    ;(eval obj env))])]
     [`(send2 ,obj ,meth)   (eval-send3 obj meth env)]
     ;begin is needed because racket is not fond of "side-effects".  
     ;Our let is only designed to bind variables over one term, 
@@ -120,15 +115,10 @@
     [`(initvar* ,objs ,vals) (eval-initvar* objs vals env)]
     [`(initdef ,obj ,val) (eval-initdef obj val env)]
     [`(initdef* ,objs ,vals) (eval-initdef* objs vals env)]
-    
-    
-    [`(,f . ,args)         (begin 
-                             ;(displayln env)
-                             (apply-proc
-                              (eval f env) 
-                              (map (eval-with env) args)))]
-    ;Remove this if it doesn't show up soon.
-    (void (displayln "yes") (displayln exp) exp)))
+    [`(,f . ,args)            (apply-proc
+                               (eval f env) 
+                               (map (eval-with env) args))]
+    (void exp)))
 
 
 ; a handy wrapper for Currying eval:
@@ -163,8 +153,8 @@
   ;(liststopairs ,initargs ((eval (x) ,env))))) (objectC () ,methods ,body)))))
   ;'() env)
   (eval-newobjC 
-   '() 
-   (list (list constructor `(lambda ,initargs (objectC () ,methods ,body)))) 
+   '() (list (list constructor 
+                   `(lambda ,initargs (objectC ,initargs ,methods ,body)))) 
    '() env)
   )
 
@@ -173,8 +163,6 @@
 ;and change them to a list of bindings that can then be used in a let statement
 ;or as part of an object's constructor.
 (define (changeliststopairs first second)
-  (displayln first)
-  (displayln second)
   (match `(,first ,second)
     [`((,f . ,first) (,s . ,second))
      ;=>
@@ -188,12 +176,14 @@
 ;preferred format for object declarations
 (define (eval-newobjC fields methods body env)
   ;add bindings for outer and self
-  (define env1      
-    (env-extend* env (list 'outer) (list (eval `(lambda () ,env) env))))
+  (define env1 (box (env-empty)))
+  (set-box! env1      
+            (unbox (env-extend*
+                    env1 (list 'outer) (list (env-contains env 'self)))))
   (set-box! env1    
             (unbox (env-extend* 
                     env1 (list 'self) (list (eval `(lambda () ,env1) env)))))
-  
+  (set-box! env1    (unbox (env-extend* env1 (list 'dynam) (list env))))
   ;(displayln env1)
   ;map all fields to false to avoid errors when they're accessed later
   ;(define fieldvars (map car fields))
@@ -222,21 +212,27 @@
   ;then eval the body term
   ;(set-box! env1 (unbox env4))
   (eval body env1)
+  ;(displayln env1)
+  ;(env-remove* env1 fields)
+  ;(displayln env1)
   ;finally, return that environment as the representation of the given object
   ;TODO: remove fields from objects?
-  env1
-  )
-
+  env1)
 
 ;Equivalent of dot-calling in Grace: 
 ;lets you look inside an object, and then call one of that object's methods.
-(define (eval-send3 obj meth env)
-  (let* ((env*     ((eval-with env) obj))         )
-    (eval meth env*)))
-
+(define (eval-send3 obj var env)
+  (let* ((env*     ((eval-with env) obj)))
+    (match var
+      [(? symbol?)  (env-lookup env* var)]
+      [`(,f . ,args)  
+       (match obj
+         [`(outer)
+          (apply-proc (env-lookup env* f) (map (eval-with env) args))]
+         [else 
+          (apply-proc (env-contains env* f) (map (eval-with env) args))])])))
 
 ; eval for letrec:
-
 (define (eval-letrec bindings body env)
   (let* ((vars (map car bindings))
          (exps (map cadr bindings))
@@ -249,9 +245,8 @@
 
 ;This is the preferred way to initialize var objects
 ;Makes a hidden var with the name $____, which should never be accessed by user
-;(change encoding to use a char that can't be entered in Grace
-;or to make hiddenvar inaccessible except by internal methods?)
-;Makes a method with same names as var that returns value of hiddenva
+;(Lexer will not allow identifiers with $ included)
+;Makes a method with same names as var that returns value of hiddenvar
 ;Makes a method with name __:= that sets hiddenvar to a value
 (define (eval-initvar var val env)
   (let* ((hiddenvar (string->symbol (string-append "$" (symbol->string var))))
@@ -285,36 +280,36 @@
           (env-extend* 
            env0 (list readmethod) (list (eval `(lambda () ,hiddenvar) env0)))))
     (set-box! env (unbox env1))
-    env1
+    env
     ))
 
 ;Initializes list of def to list of initial values.
 (define (eval-initdef* objs vals env)
   (match `(,objs ,vals)
-    [`((,o . ,objs) (,v . ,vals))
+    [`((,o . ,obs) (,v . ,vls))
      ;=>
-     (eval-initdef* objs vals (eval-initdef o v env))]        
+     (eval-initdef* obs vls (eval-initdef o v env))]        
     [`(() ())
      ; =>
      env]))
 
-;Testing these commented out
-;(define (env-Cset! env var value)
-;  (let* ((hidvar (string->symbol (string-append "$" (symbol->string var)))))
-;    ;(print env)
-;    (set-cell-value! (hash-ref (unbox env) hidvar) value)))
+;(define (eval-enddef var env)
+;  (let* ((hiddenvar (string->symbol (string-append "$" (symbol->string var))))
+;         (readmethod var)
+;         (env0 (env-remove* env (list hiddenvar)))
+;         (env1 (env-remove* env0 (list readmethod))))
+;    (set-box! env (unbox env1))
+;    env1
+;    ))
 ;
-;(define (env-Cset!* env vars values)
-;  (match `(,vars ,values)
-;    [`((,v . ,vars) (,val . ,values))
+;(define (eval-enddef* objs env)
+;  (match `(,objs)
+;    [`((,o . ,objs))
+;     ;=>
+;     (eval-enddef* objs (eval-enddef o env))]        
+;    [`(())
 ;     ; =>
-;     (begin
-;       (env-Cset! env v val)
-;       (env-Cset!* env vars values))]
-;    
-;    [`(() ())
-;     ; =>
-;     (void)]))
+;     env]))
 
 ;let a list of bindings be set over a body
 (define (eval-letC bindings body env)
@@ -336,10 +331,10 @@
   (match f
     [`(closure (lambda ,vs ,body) ,env) 
      ; =>
-     ;change to def at some point
-     ;(print f) 
-     ;(print values)
-     (eval body (eval-initvar* vs values env))]
+     (let ((env* (box (unbox env)))) 
+       (eval-initdef* vs values env*)
+       (let ((x (eval body env*)))
+         x))]
     
     [`(primitive ,p)
      ; =>
@@ -358,51 +353,31 @@
 ; initial environment, with bindings for primitives:
 (define (env-initial)
   ;(env-extend* 
-  (eval-initdef* 
-   '(boolean true false) 
-   '((objectC 
-      () 
-      ((new (lambda ( v) 
-              (begin 
-                (list (objectC 
-                       () ((not (lambda () 
-                                  (begin (list (if (bval)
-                                                   (begin (list(new #f))) 
-                                                   (begin (list(new #t))))))))
-                           (and (lambda (z) (if (bval) z (false))))
-                           (asString (lambda () 
-                                       (begin 
-                                         (list (if (bval)
-                                                   (begin (list "True"))
-                                                   (begin (list "False"))))))))
-                       (begin (list (initdef bval (v))))))))))
-      (begin (list (initdef gtrue (new #t))(initdef gfalse (new #f)))))
-     (send2 (boolean) (gtrue))(send2 (boolean) (gfalse)))
-   (env-extend*
-    (box (env-empty))
-    ;Takes a whole list of primitives and binds them to racket equivalents
-    ;many of these will need to be replaced:
-    ;all the math ones will need to extract values out of new number objects
-    ;and then call primitive version rather than being in current form
-    '(+  -  /  *  %   <= >= < > eq? equal? void  display newline string-append
-         cons list eval eval-with expt false? number->string null list? ==
-         print)
-    (map (lambda (s) (list 'primitive s))
-         `(,+ ,- ,/ ,* ,modulo ,<= ,>= ,< ,> ,eq? ,equal? ,void ,display
-              ,newline ,string-append ,cons ,list ,eval ,eval-with ,expt
-              ,false? ,number->string ,null ,list? ,equal? 
-              ,(lambda (x) (match x 
-                             ;check if x has asString defined, and call that
-                             ;ideally, all objects will have asString defined
-                             [(? box?) (if (hash-has-key? (unbox x) 'asString)
-                                           (begin 
-                                             (display 
-                                              (apply-proc 
-                                               (eval `asString x) '()))
-                                             (newline))
-                                           (begin (display x) (newline)))]
-                             [any (begin (display x) (newline))])))))
-   )
+  (eval-newobjC 
+   '() '() '(initdef* (true false)
+                      ((send2 (boolean) (gtrue))(send2 (boolean) (gfalse))))
+   (eval-initdef* 
+    '(boolean) 
+    '((objectC 
+       () 
+       ((new (lambda ( v) 
+               (begin 
+                 (list (objectC 
+                        () ((not (lambda () 
+                                   (begin (list 
+                                           (if ((bval))
+                                               (begin (list(new #f))) 
+                                               (begin (list(new #t))))))))
+                            (and (lambda (z) (if ((bval)) z (false))))
+                            (asString (lambda () 
+                                        (begin 
+                                          (list (if ((bval))
+                                                    
+                                                    (begin (list "True"))
+                                                    (begin (list "False"))))))))
+                        (begin (list (initdef bval v)))))))))
+       (begin (list (initdef gtrue (new #t))(initdef gfalse (new #f))))))
+    (env-start)))
   ;next, extends environment further to add tru and fals objects
   ;naming is intentional to avoid any confusion with primitive 
   ;true and false but should be changeable without causing any issues.
@@ -420,21 +395,38 @@
   ;            `(,env0 ,env1))))
   )
 
+(define (env-contains env var)
+  (if (primitive? var) ((lambda (s) (list 'primitive s)) var)
+      (if (hash-has-key? (unbox env) var)
+          (match (hash-ref (unbox env) var)
+            [(? cell?)  
+             (cell-value (hash-ref (unbox env) var))]
+            [x
+             (hash-ref (unbox env) var)])
+          (void))))
+
 
 ; looks up a value:
 (define (env-lookup env var)
-  (if (primitive? var) ((lambda (s) (list 'primitive s)) var) 
-      (match (hash-ref (unbox env) var)
-        [(? cell?)  
-         (cell-value (hash-ref (unbox env) var))]
-        [x
-         (hash-ref (unbox env) var)])))
+  (if (primitive? var) ((lambda (s) (list 'primitive s)) var)
+      (if (hash-has-key? (unbox env) var)
+          (begin 
+            ;(displayln var)
+            ;(displayln env)
+            (match (hash-ref (unbox env) var)
+              [(? cell?)  
+               (cell-value (hash-ref (unbox env) var))]
+              [x
+               (hash-ref (unbox env) var)]))
+          (if (hash-has-key? (unbox env) 'dynam)                      
+              (let ((temp (env-lookup env 'dynam)))                              
+                (env-lookup temp var)) 
+              (begin (print "there") env)))))
 
 
 ; sets a value in an environment:
 (define (env-set! env var value)
-  (set-cell-value! (hash-ref (unbox env) var) value)
-  )    
+  (set-cell-value! (hash-ref (unbox env) var) value))    
 
 ; extends an environment with several bindings:
 (define (env-extend* env varbls values)
@@ -446,36 +438,48 @@
      ; =>
      env]))
 
+;(define (env-remove* env varbls)
+;  (match `(,varbls)
+;    [`((,v . ,varbls))
+;     ; =>
+;     ;(displayln v)
+;     (set-box! env (hash-remove (unbox env) v))
+;     (env-remove* env varbls)]
+;    [`(())
+;     ; =>
+;     env]))
+
+
 ;extends environment, but instead of mapping to a mutable cell containing 
 ;the value, just maps it directly to the value
 ;eventually, set! method will change, and then we should change this so it
 ;looks like initvar, but without the var:= method.
 
 ;TODO: consider removing this.
-(define (env-extdef* env invarbls values)
-  (match `(,invarbls ,values)
-    [`((,i . ,invarbls) (,val . ,values))
-     ; =>
-     (set-box! env (box (env-extend* (hash-set (unbox env) i val)
-                                     invarbls values)))]
-    [`(() ())
-     ; =>
-     env]))
+;(define (env-extdef* env invarbls values)
+;  (match `(,invarbls ,values)
+;    [`((,i . ,invarbls) (,val . ,values))
+;     ; =>
+;     (set-box! env (box (env-extend* (hash-set (unbox env) i val)
+;                                     invarbls values)))]
+;    [`(() ())
+;     ; =>
+;     env]))
 
-;extend an environment mapping a list of values to void.
-;Doesn't entirely match grace behavior
-;racket will allow you to call something like print on void
-;while grace sends an error if you try to call a method on an unitialized var.
-(define (env-extempty env varbls)
-  (match `(,varbls)
-    [`((,v . ,varbls))
-     ; =>
-     (set-box! env (box (env-extempty (hash-set (unbox env) v 
-                                                (make-cell (void))) varbls)))]
-    
-    [`(())
-     ; =>
-     env]))
+;;extend an environment mapping a list of values to void.
+;;Doesn't entirely match grace behavior
+;;racket will allow you to call something like print on void
+;;while grace sends an error if you try to call a method on an unitialized var.
+;(define (env-extempty env varbls)
+;  (match `(,varbls)
+;    [`((,v . ,varbls))
+;     ; =>
+;     (set-box! env (box (env-extempty (hash-set (unbox env) v 
+;                                                (make-cell (void))) varbls)))]
+;    
+;    [`(())
+;     ; =>
+;     env]))
 
 
 ; mutates an environment with several assignments:
@@ -491,6 +495,31 @@
      ; =>
      (void)]))
 
+(define (env-start) 
+  (env-extend*
+   (box (env-empty))
+   ;Takes a whole list of primitives and binds them to racket equivalents
+   ;many of these will need to be replaced:
+   ;all the math ones will need to extract values out of new number objects
+   ;and then call primitive version rather than being in current form
+   '(+  -  /  *  %   <= >= < > eq? equal? void  display newline string-append
+        cons list eval eval-with expt false? number->string null list? ==
+        print)
+   (map (lambda (s) (list 'primitive s))
+        `(,+ ,- ,/ ,* ,modulo ,<= ,>= ,< ,> ,eq? ,equal? ,void ,display
+             ,newline ,string-append ,cons ,list ,eval ,eval-with ,expt
+             ,false? ,number->string ,null ,list? ,equal? 
+             ,(lambda (x) (match x 
+                            ;check if x has asString defined, and call that
+                            ;ideally, all objects will have asString defined
+                            [(? box?) (if (hash-has-key? (unbox x) 'asString)
+                                          (begin 
+                                            (display 
+                                             (apply-proc 
+                                              (eval `asString x) '()))
+                                            (newline))
+                                          (begin (display x) (newline)))]
+                            [any (begin (display x) (newline))]))))))
 
 
 ;; Evaluation tests.

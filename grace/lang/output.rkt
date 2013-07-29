@@ -47,11 +47,8 @@
   (if (syntax? elt)
       (parameterize ((stx elt))
         (AST-to-RG (syntax-e elt)))
-      (if (list? elt)
-          (begin
-            (if (eq? 1 1)
-                (map AST-to-RG elt)
-                (print (length elt))))
+      (if (list? elt)          
+          (map AST-to-RG elt)
           (match elt
             ((grace:code-seq code) 
              (set! code (syntax->datum code))
@@ -146,7 +143,7 @@
                 (map extract-methods elt)
                 (print (length elt))))
           (match elt
-            ((grace:method name signature body type) (AST-to-RG elt))
+            ((grace:method name signature body type) (AST-to-RG elt))            
             (else "")))))
 
 (define (all-but-methods elt)
@@ -165,7 +162,7 @@
 (define (p in) (parse (object-name in) in))
 
 (define a (p (open-input-string "
-print \"Test\"
+print(outer.false)
 ")))
 ;(displayln (grace:object a))
 ;(displayln (syntax->datum a))

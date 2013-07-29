@@ -73,6 +73,8 @@ x.foo
 print(1 == 1)
 print(1 == 2)
 print (2 == (1 + 1))
+print(true == false)
+print(true == true)
 print(false == true)
 print(false == false)
 print("Hello" == "world")
@@ -104,7 +106,6 @@ var y := object {
 }
 print(x != y)
 print(x != x)
-
 
 
 
