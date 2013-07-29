@@ -131,7 +131,14 @@
  "Number"
  ;; TODO: Add other methods for numbers...
  (list
-  (MethodType "plus" (list "Number") "Number")))
+  (MethodType "plus" (list "Number") "Number")
+  (MethodType "minus" (list "Number") "Number")
+  (MethodType "mult" (list "Number") "Number")
+  (MethodType "div" (list "Number") "Number")
+  (MethodType "modulo" (list "Number") "Number")
+  (MethodType "exp" (list "Number") "Number")
+  
+  ))
 
 (hash-set!
  prelude-type-defs
@@ -151,6 +158,13 @@
 (hash-set! prelude-type-defs "Object" (list))
 
 (hash-set! prelude-type-defs "Top" (list))
+
+;; Builtin methods
+(hash-set!
+ prelude-type-defs
+ "#SelfType#"
+ (list
+  (MethodType "print" (list "Top") "Done")))
 
 
 ;; Add builtin identifiers.
