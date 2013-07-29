@@ -92,6 +92,25 @@
 ;;     [([x : Number] [y : Number]) ... ]))
 ;; ----------------
 
+(define get-type
+  (case-lambda:
+    [([id : String] [env : ScopeTypeEnv]) 
+     (hash-ref env id (lambda () #f))]
+    [([id : String] [env : ScopeTypeEnv] [fn : (-> Any)])
+     (hash-ref env id fn)]))
+
+(: set-type (String IDInfo ScopeTypeEnv -> Any))
+(define (set-type id type env)
+  (let* ([assigned-type (get-type id env)])
+    (if assigned-type 
+        ;(tc-error (datum->syntax #f "")
+        ;          "Identifier `~a` has already been assigned type `~a`. Cannot reassign to type `~a`."
+        ;          id
+        ;          assigned-type
+        ;          (IDInfo-type type))
+        #f
+        (hash-set! env id type))))
+
 
 
 ;; PRELUDE ---------------------------------------
@@ -173,6 +192,12 @@
   type-found)
 
 
+;; Looks for the type of an identifier in the stack of type envs.
+;;
+;; Params:
+;;   id - The identifier to look for in string form.
+;; Returns:
+;;   The string form of the type if found or else "#NoTypeFound#" if not.
 (: find-id (String -> String))
 (define (find-id id)
   (define identifier-type "#NoTypeFound#")
@@ -228,6 +253,8 @@
     ((equal? conform-to-type "Top") #t)
     
     ;; TODO: Subtyping.
+    ;; TODO: Subtyping right now says Number is a subtype of String
+    ;; because String has no methods, fix that.
     ({conforming-type . subtype-of? . conform-to-type} #t)
     
     (else #f)))
@@ -258,6 +285,21 @@
         (set! is-subtype #f)))
     
     is-subtype))
+
+
+
+(: find-method-in (String String -> MethodType))
+(define (find-method-in method-name where)
+  (match where
+    ("#SelfType#" (void))
+    ("#OuterType#" (void))
+    ("#All#" (void))
+    (else (void)))
+  
+  ;; TODO: Fix this.
+  (MethodType "" (list) ""))
+
+
 
 
 
@@ -444,9 +486,122 @@
        ;; A variable assignment returns done.
        "Done"))
     
-    ((grace:expression op lhs rhs) "#Void#")
+    ((grace:expression op lhs rhs)
+     (let* ([lh-type (typecheck lhs)]
+            [rh-type (typecheck rhs)]
+            [lh-methods (cast (find-type lh-type) GraceType)]
+            
+            ;; Work-around for sytnax-e pushing down syntax structure
+            [op (cast (syntax->datum (cast op (Syntaxof Symbol))) Symbol)]
+            
+            ;; Look for the operator in the type of the left hand side.
+            [op-found (findf (λ: ([method : MethodType])
+                               (equal? (MethodType-name method) 
+                                       (symbol->string op)))
+                             lh-methods)])
+            ;[op-found (member (symbol->string op) lh-methods)])
+       
+       ;; If the operator wasn't found, tc-error.  
+       (unless op-found
+         (tc-error stmt
+                   "There is no such operator `~a` in type `~a`."
+                   (symbol->string op)
+                   lh-type))
+       
+       (let* (;; `findf` returns #f is the method isn't found, but we know it has been.
+              [op-found (cast op-found MethodType)]
+              [op-signature (MethodType-signature op-found)]
+              [second-type (car op-signature)]
+              [rtype (MethodType-rtype op-found)])
+         
+         ;; If the operator is found. Make sure the type of the right hand side
+         ;; conforms to the expected type.
+         (unless { rh-type . conforms-to? . second-type }
+           (tc-error stmt
+                     "The operator takes something of type `~a` but got `~a` instead."
+                     second-type
+                     rh-type))
+         
+         ;; An expression returns the return type of the operator.
+         rtype)))
+       
+       
+       ;; `findf` returns #f if the method wasn't found or the method itself if it is.
+       ;(if op-found
+       ;    
+       ;    ;; If the operator is found. Make sure the type of the right hand side
+       ;    ;; conforms to the expected type.
+       ;    (let* ([op-signature (MethodType-signature op-found)]
+       ;           [second-type (car op-signature)]
+       ;           [rtype (MethodType-rtype op-found)])
+       ;      (unless { rh-type . conforms-to? . second-type }
+       ;      ;(unless (equal? second-type rh-type)
+       ;        (tc-error stmt
+       ;                  "The operator takes something of type `~a` but got `~a` instead."
+       ;                  second-type
+       ;                  rh-type))
+       ;      rtype))
+           
+           ;; If the operator wasn't found, tc-error.
+           ;(begin
+           ;  (tc-error stmt
+           ;            "There is no such operator `~a` in type `~a`."
+           ;            (symbol->string op)
+           ;            lh-type)
+           ;  "#SHOULD_NEVER_SEE_THIS#"))))
+           
     
-    ((grace:method-call name args) "#Void#")
+    ((grace:method-call name args) 
+     (match (unwrap name)
+       
+       ;; TODO: This might not work and we might have to recursively call typecheck, since
+       ;; we have no idea what parent might be. It could be an expression, or another member
+       ;; call, etc... The problem is that typecheck only returns the return type of a statement,
+       ;; so when we get to typechecking grace:members, etc, we need to figure out some way to
+       ;; actually get the whole method out of it so we can typecheck the signature along with
+       ;; the rtype, etc.
+       ;;
+       ;; It might be okay to do this first check here and any recursive ones outside because
+       ;; this final "name" will be the name of the method whereas any recursive ones will be
+       ;; names of objects that contain another object, etc... and then typecheck for 
+       ;; grace:member can simply return the name of the type of the returned objects.
+       ((grace:member parent name)
+        (let* ([name-string (id-name name)]
+               [parent-type (typecheck parent)]
+               [method-found (find-method-in name-string parent-type)])
+          "#Void#"))
+       
+       ((grace:identifier value type) 
+        (let* ([name (cast name IdentifierType)]
+               [name-string (id-name name)]
+               [method-found (find-method-in name-string "#All#")])
+          
+          (unless method-found
+            (tc-error stmt
+                      "No such method `~a` found."
+                      name-string))
+          
+          (let* ([method-signature (MethodType-signature method-found)]
+                 [method-rtype (MethodType-rtype method-found)]
+                 
+                 ;; Workaround for syntax-e pushing nested syntax structure.
+                 [args (if (not (empty? args)) 
+                           (cast (syntax-e (cast args (Syntaxof Any))) (Listof (Syntaxof Any)))
+                           (list))]
+                 
+                 ;; Get the types of the expressions in the arguments.
+                 [arg-types (map typecheck args)])
+            
+            (unless (equal? arg-types method-signature)
+              (tc-error stmt
+                        "Method `~a` got arguments of the wrong type.\n~aExpected: ~a\n~aArguments: ~a"
+                        name-string
+                        "          "
+                        method-signature
+                        "          "
+                        arg-types))
+            
+            method-rtype)))))
     
     ;; For an object, typecheck its body then return the type of the object.
     ((grace:object body)
@@ -522,9 +677,14 @@
       ((grace:var-decl name type value)
        (let* ([name-string (id-name name)]
               [type-string (type-name type)])
-         (hash-set! current-type-env 
-                    name-string 
-                    (IDInfo type-string "var"))
+         ;(hash-set! current-type-env 
+         ;           name-string 
+         ;           (IDInfo type-string "var"))
+         (unless (set-type name-string (IDInfo type-string "var") current-type-env)
+           (tc-error elt
+                     "The identifier `~a` has already been declared and cannot be declared again."
+                     name-string))
+         
          (add-method-to "#SelfType#"
                         (MethodType name-string
                                     (list)
@@ -539,9 +699,14 @@
       ((grace:def-decl name type value)
        (let* ([name-string (id-name name)]
               [type-string (type-name type)])
-         (hash-set! current-type-env
-                    name-string
-                    (IDInfo type-string "def"))
+         ;(hash-set! current-type-env
+         ;           name-string
+         ;           (IDInfo type-string "def"))
+         (unless (set-type name-string (IDInfo type-string "def") current-type-env)
+           (tc-error elt
+                     "The identifier `~a` has already been declared and cannot be declared again."
+                     name-string))
+         
          (add-method-to "#SelfType#"
                         (MethodType name-string
                                     (list)

@@ -5,7 +5,8 @@
 // var a : Num                 // Fixed [x] Invalid type annotation.
 // def b : String = 2          // Fixed [x] Invalid assignment.
 // def b : Stung = 5           // Fixed [x] Invalid type annotation.
-def d = 2 + "Hello"         // Fixed [ ] Invalid operation.
+// def d = 2 + "Hello"         // Fixed [x] Invalid operation.
+//2 - 3
 type Object1 = {}                
 def c : Object1 = object {}
 c.foo()                     // Fixed [ ] No such method.
@@ -27,8 +28,8 @@ c.foo()                     // Fixed [ ] No such method.
 // }
 // def a : Object3 = object {}    // Fixed [x] Subtyping
 
-var x : Number := 2
-x := "Hello"
+// var x : Number := 2            // Fixed [x] Re-declaring variables.
+// x := "Hello"                   // Fixed [x] Wrong assignment.
 
 
 

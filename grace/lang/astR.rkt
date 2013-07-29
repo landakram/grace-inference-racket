@@ -76,14 +76,14 @@
 (struct: grace:expression
   ([op  : Symbol]
    ;; TODO: Fix type of operands
-   [lhs : Any]
-   [rhs : Any])
+   [lhs : (Syntaxof Any)]
+   [rhs : (Syntaxof Any)])
   #:prefab)
 
 (struct: grace:method-call
   ([name : (U IdentifierType (Syntaxof grace:member))]
    ;; TODO: Fix type of args
-   [args : (Listof Any)])
+   [args : (Listof (Syntaxof Any))])
   #:prefab)
 
 (struct: grace:object
@@ -112,8 +112,10 @@
 (struct: grace:if-then-else
   ;; TODO: Type of check definitely needs fixing.
   ([check : (U IdentifierType (Syntaxof grace:expression) (Syntaxof grace:member) (Syntaxof grace:method-call))]
-   [tbody : (Listof (Syntaxof Any))]
-   [ebody : (Listof (Syntaxof Any))])
+   ;[tbody : (Listof (Syntaxof Any))]
+   ;[ebody : (Listof (Syntaxof Any))])
+   [tbody : BodyType]
+   [ebody : BodyType])
   #:prefab)
 
 (struct: grace:class-decl
