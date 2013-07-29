@@ -79,6 +79,21 @@
   (set! type-envs (cdr type-envs)))
 
 
+
+;; ----- TODO -----
+;; Add set-type and get-type functions where set-type will trigger an
+;; error if an identifier already exists in the environment. And for get-type
+;; allow for two or three params, for default behavior for not found keys.
+;; 
+;; TIP: Use case-lambda
+;; (define greet
+;;   (case-lambda:
+;;     [([x : Number]) ... ]
+;;     [([x : Number] [y : Number]) ... ]))
+;; ----------------
+
+
+
 ;; PRELUDE ---------------------------------------
 ;; -----------------------------------------------
 
@@ -304,7 +319,7 @@
        ;; If the identifier is not found in any of them, tc-error.
        (when (equal? identifier-type "#NoTypeFound#")
          (tc-error stmt 
-                   "Identifier `~a` is not defined."
+                   "Identifier `~a` is not defined in this context."
                    value))
        
        ;; Return the type of the identifier.
@@ -417,10 +432,17 @@
     ;; Make sure the type in the env and the type of the value match.
     ((grace:bind name value) 
      (let* ([name-string (id-name name)]
+            [type-string (typecheck name)]
             [value-type-string (typecheck value)])
-       
+       (unless (equal? type-string value-type-string)
+         (tc-error stmt
+                   "Can not assign value of type `~a` to variable `~a` of type `~a`."
+                   value-type-string
+                   name-string
+                   type-string))
       
-      "Done"))
+       ;; A variable assignment returns done.
+       "Done"))
     
     ((grace:expression op lhs rhs) "#Void#")
     
@@ -437,6 +459,12 @@
        ;;   that, probably need to implement subtyping in `conforms-to?`.
        "#SelfType#"))
     
+    
+    ;; At this point, we need to look for return statements in the body. We need
+    ;; to collect all of them, and make sure that they all match the rtype if given.
+    ;; QUESTION: If a methods rtype is not specified, do we treat it as Dynamic*? Or
+    ;; do we infer it from the return types?
+    ;; Also we need to confirm all the types exist.
     ((grace:method name signature body rtype) "#Void#")
     
     ((grace:member parent name) "#Void#")
@@ -520,6 +548,9 @@
                                     type-string)
                         current-type-defs)))
       
+      ;; TODO: Fix this so if rtype is not given, we infer it from last statement.
+      ;; Might maybe have to do this later after the environment has been built up.
+      ;; So probably do this in the typecheck function.
       ((grace:method name signature body rtype)
        (add-method-to "#SelfType#"
                       (get-method-impl-type

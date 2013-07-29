@@ -27,6 +27,9 @@ c.foo()                     // Fixed [ ] No such method.
 // }
 // def a : Object3 = object {}    // Fixed [x] Subtyping
 
+var x : Number := 2
+x := "Hello"
+
 
 
 // ***** REAL TESTS *****
