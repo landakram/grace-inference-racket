@@ -136,9 +136,7 @@
   (MethodType "mult" (list "Number") "Number")
   (MethodType "div" (list "Number") "Number")
   (MethodType "modulo" (list "Number") "Number")
-  (MethodType "exp" (list "Number") "Number")
-  
-  ))
+  (MethodType "exp" (list "Number") "Number")))
 
 (hash-set!
  prelude-type-defs
@@ -302,12 +300,34 @@
 
 
 
-(: find-method-in (String String -> MethodType))
+(: find-method-in (String String -> (U #f MethodType)))
 (define (find-method-in method-name where)
   (match where
-    ("#SelfType#" (void))
-    ("#OuterType#" (void))
-    ("#All#" (void))
+    ("#SelfType#" 
+     (let* ([selftype (hash-ref (car type-defs) "#SelfType#")])
+       (findf (λ: ([method : MethodType])
+                (equal? method-name (MethodType-name method)))
+              selftype)))
+    
+    ("#OuterType#"
+     (if (< 3 (length type-defs))
+         #f
+         (let* ([outertype (hash-ref (cadr type-defs) "#SelfType#")])
+           (findf (λ: ([method : MethodType])
+                    (equal? method-name (MethodType-name method)))
+                  outertype))))
+    
+    ("#All#" 
+     (let: ([method-found : (U #f MethodType) #f])
+       (for ([type-def-env type-defs])
+         (unless method-found
+           (set! method-found
+                 (findf (λ: ([method : MethodType])
+                          (equal? method-name (MethodType-name method)))
+                        (hash-ref type-def-env "#SelfType#")))))
+       
+       method-found))
+    
     (else (void)))
   
   ;; TODO: Fix this.
@@ -583,7 +603,38 @@
         (let* ([name-string (id-name name)]
                [parent-type (typecheck parent)]
                [method-found (find-method-in name-string parent-type)])
-          "#Void#"))
+          (unless method-found
+            ;; TODO: Fix the error message on this one because it will print as
+            ;;   "... found in parent of type `#SelfType#`."
+            (tc-error stmt
+                      "No such method `~a` found in parent of type `~a`."
+                      name-string
+                      parent-type))
+          
+          (let* (;; Workaround for Union type as function result.
+                 [method-found (cast method-found MethodType)]
+                 [method-signature (MethodType-signature method-found)]
+                 [method-rtype (MethodType-rtype method-found)]
+                 
+                 ;; Workaround for syntax-e pushing nested syntax structure.
+                 [args (if (not (empty? args))
+                           (cast (syntax-e (cast args (Syntaxof Any))) (Listof (Syntaxof Any)))
+                           (list))]
+                 
+                 ;; Get the types of the expressions in the arguments.
+                 [arg-types (map typecheck args)])
+            
+            (unless (andmap conforms-to? arg-types method-signature)
+              (tc-error stmt
+                        "Method `~a` got arguments of the wrong type.\n~aExpected: ~a\n~aArguments: ~a"
+                        name-string
+                        "          "
+                        method-signature
+                        "          "
+                        arg-types))
+            
+            method-rtype)))
+       
        
        ((grace:identifier value type) 
         (let* ([name (cast name IdentifierType)]
@@ -595,7 +646,9 @@
                       "No such method `~a` found."
                       name-string))
           
-          (let* ([method-signature (MethodType-signature method-found)]
+          (let* (;; Workaround for Union type as function result.
+                 [method-found (cast method-found MethodType)]
+                 [method-signature (MethodType-signature method-found)]
                  [method-rtype (MethodType-rtype method-found)]
                  
                  ;; Workaround for syntax-e pushing nested syntax structure.
