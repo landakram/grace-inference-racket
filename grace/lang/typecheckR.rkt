@@ -585,29 +585,36 @@
                              lh-methods)])
        ;[op-found (member (symbol->string op) lh-methods)])
        
-       ;; If the operator wasn't found, tc-error.  
-       (unless op-found
-         (tc-error stmt
-                   "There is no such operator `~a` in type `~a`."
-                   (symbol->string op)
-                   lh-type))
-       
-       (let* (;; `findf` returns #f is the method isn't found, but we know it has been.
-              [op-found (cast op-found MethodType)]
-              [op-signature (MethodType-signature op-found)]
-              [second-type (car op-signature)]
-              [rtype (MethodType-rtype op-found)])
-         
-         ;; If the operator is found. Make sure the type of the right hand side
-         ;; conforms to the expected type.
-         (unless { rh-type . conforms-to? . second-type }
-           (tc-error stmt
-                     "The operator takes something of type `~a` but got `~a` instead."
-                     second-type
-                     rh-type))
-         
-         ;; An expression returns the return type of the operator.
-         rtype)))
+       ;; If the type of the left hand side is dynamic, allow it through.
+       (if (or (equal? lh-type "Dynamic") (equal? lh-type "Dynamic*"))
+           "Dynamic*"
+           
+           ;; Else, check that the rhs matches what the operator expects.
+           (begin
+             
+             ;; If the operator wasn't found, tc-error.  
+             (unless op-found
+               (tc-error stmt
+                         "There is no such operator `~a` in type `~a`."
+                         (symbol->string op)
+                         lh-type))
+             
+             (let* (;; `findf` returns #f is the method isn't found, but we know it has been.
+                    [op-found (cast op-found MethodType)]
+                    [op-signature (MethodType-signature op-found)]
+                    [second-type (car op-signature)]
+                    [rtype (MethodType-rtype op-found)])
+               
+               ;; If the operator is found. Make sure the type of the right hand side
+               ;; conforms to the expected type.
+               (unless { rh-type . conforms-to? . second-type }
+                 (tc-error stmt
+                           "The operator takes something of type `~a` but got `~a` instead."
+                           second-type
+                           rh-type))
+               
+               ;; An expression returns the return type of the operator.
+               rtype)))))
     
     
     ;; `findf` returns #f if the method wasn't found or the method itself if it is.
