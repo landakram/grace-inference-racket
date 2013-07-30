@@ -146,7 +146,7 @@
     (set-type "false"   (new grace:type:boolean%))
     (set-type "Top"     (new grace:type:top%))
     (set-type "self"    (selftype))
-    (set-type "implied"   (selftype)) ; FIXME
+    (set-type "implied" (selftype)) ; FIXME
 
     ; Resolve types in the program.
     (resolve-identifiers-list
@@ -174,7 +174,7 @@
 (define (maybe-bind-name elt)
   ; Recursively call maybe-bind-name to embedded syntax elements.
   (if (syntax? elt)
-      (parameterize ((stx elt))
+      (parameterize ([stx elt])
         (maybe-bind-name (syntax-e elt)))
       (cond
         ; If the element is an object, add it's type to the environment here.
@@ -280,8 +280,8 @@
                        (unwrap-list body))]
          [obj-type (new grace:type:object%
                         [internal-name obj-name]
-                        [methods obj-methods]
-                        [parent selftype])] ;; FIXME: this was a totally random guess
+                        [parent selftype]
+                        [methods obj-methods])] ;; FIXME: this was a totally random guess
          [class-type
           (new grace:type:object%
                [internal-name class-name]
@@ -397,7 +397,7 @@
       (get-type (grace:identifier-value (unwrap ident))))))
 
 
-;; Resolve the identifiers in a method call.
+;; Resolve the identifiers in a method declaration.
 (define (resolve-method method-name signature body rtype)
   (parameterize ([env (hash-copy (env))])
     ; Set the type of each parameter in the env.
@@ -419,7 +419,8 @@
              ;[real-type (expression-type last-statement)])
              [real-type (last body-stmt-types)])
         (when (and (not (grace:return? last-statement))
-                   (not (conforms-to? real-type (current-return-type))))
+                   ;(not (conforms-to? real-type (current-return-type))))
+                   (not { real-type . conforms-to? . (current-return-type) }))
           ; (displayln "\n Last-statement:")
           ; (displayln last-statement)
           (tc-error "Returning type ~a from method of return type ~a."
@@ -459,7 +460,8 @@
             (tc-error "assignment to undeclared ~a" name-string))
 
            ; The types of the assignment don't match.
-           ((not (conforms-to? value-type name-type))
+           ;;((not (conforms-to? value-type name-type))
+           ((not { value-type . conforms-to? . name-type })
             (tc-error
              "assigning value of nonconforming type ~a to var of type ~a"
              (send value-type readable-name)
@@ -477,7 +479,8 @@
          ; Ensures that we are working on a mutable variable.
          (if member-op
              ; If the assignment types do not conform, error.
-             (when (not (conforms-to? value-type name-type))
+             ;(when (not (conforms-to? value-type name-type))
+             (when (not { value-type . conforms-to? . name-type })
                (tc-error
                 "assigning value of nonconforming type ~a to var of type ~a"
                 (send value-type readable-name)
@@ -507,7 +510,8 @@
                   type-type))
 
     ;; Error if the declared type and the type of the value are not the same.
-    (when (not (conforms-to? value-type type-type))
+    ;(when (not (conforms-to? value-type type-type))
+    (when (not { value-type . conforms-to? . type-type })
       (tc-error "initializing ~a of type ~a with expression of type ~a"
                 decl-type
                 (send type-type readable-name)
@@ -527,7 +531,8 @@
 
       ; If the return type given does not match with the return type specified
       ; by the surrouding method, error.
-      ((not (conforms-to? value-type (current-return-type)))
+      ;((not (conforms-to? value-type (current-return-type)))
+      ((not { value-type . conforms-to? . (current-return-type) })
        (tc-error "returning type ~a from method of return type ~a"
                  (send value-type readable-name)
                  (send (current-return-type) readable-name)))
@@ -535,6 +540,16 @@
       ; Return types match up, and success.
       (else 'success))))
 
+(define (unwrap-and-get-type type)
+  (if (grace:identifier? type)
+      (if (grace:identifier-type type)
+          (if (grace:identifier? (grace:identifier-type type))
+              (get-type (grace:identifier-value (grace:identifier-type type)))
+              (grace:identifier-type type))
+          (get-type (grace:identifier-value type)))
+      (if (is-a? type grace:type%)
+          type
+          #f)))
 
 ;; Returns true if the two types conform, meaning one is dynamic, or that
 ;; 'conforming-type' is of the same type or a subtype of 'type'.
@@ -542,6 +557,13 @@
   (let* ([dynamic-type (new grace:type:dynamic%)]
          [missing-type (new grace:type:dynamic*%)]
          [top-type (new grace:type:top%)]) ;FIXME
+    
+    ; FIXME: Should be able to remove
+    ;(unless (and type conforming-type)
+    ;  (tc-error "Error Line ~ 550: Did not receive a type in proper format in ~a and ~a"
+    ;            old-conf
+    ;            old-type))
+
     (cond
       ((equal? type dynamic-type) #t)
       ((equal? type missing-type) #t)
@@ -560,7 +582,77 @@
       ;((equal? conforming-type 'missing)
       ; (tc-error "Type 'missing given for conforming-type in conforms-to?"))
 
+      ({ conforming-type . subtype-of? . type } #t)
       (else #f))))
+
+
+;; Returns whether *subtype* is the subtype of *supertype*.
+;; TODO: Implement.
+(define (subtype-of? subtype supertype)
+  ;#f)
+  (subtype-of?_WORKING subtype supertype))
+
+(define (subtype-of?_WORKING subtype supertype)
+  (let* (;[subtype-type (if (grace:identifier? subtype)
+         ;                  (resolve-identifier subtype)
+         ;                  subtype)]
+         ;[supertype-type (if (grace:identifier? supertype)
+         ;                    (resolve-identifier supertype)
+         ;                    supertype)]
+         [t1 (displayln subtype)]
+         [t2 (displayln supertype)]
+         [submethods (get-field methods subtype)]
+         [supermethods (get-field methods supertype)])
+    (if (and submethods supermethods)
+        ;; FIXME:
+        ;; If foldl doesn't work, try looking for #f in list using member,etc.
+        ;(foldl 'and #t
+        (and
+         (for/list ([supermethod supermethods])
+           (findf (λ (submethod)
+                    { submethod . method-subtype? . supermethod })
+                  submethods)))
+        
+        ; FIXME: Remove if it doesn't come up, or else find a fix for it.
+        (begin
+          (tc-error 
+           "Line 550~600: type given to *subtype-of?* did not have methods")
+          #f))))
+
+(define (method-subtype? submethod supermethod)
+  ;#f)
+  (method-subtype?_WORKING submethod supermethod))
+
+(define (method-subtype?_WORKING submethod supermethod)
+  (let* ([sub-args (get-field signature submethod)]
+         [sub-rtype (get-field rtype submethod)]
+         [super-args (get-field signature supermethod)]
+         [super-rtype (get-field rtype supermethod)])
+    (if (and { sub-rtype . conforms-to? . super-rtype }
+             { (length sub-args) . equal? . (length super-args) })
+        ;(foldl 
+        ; 'and 
+        ; #t
+        (and
+         (map (λ (sub-arg super-arg)
+                (let* (;[t1 (displayln (unwrap sub-arg))]
+                       ;[sub-type (unwrap-and-get-type sub-arg)]
+                       ;[super-type (unwrap-and-get-type super-arg)])
+                       [sub-type (get-type
+                                  (grace:identifier-value
+                                   (grace:identifier-type
+                                    (unwrap sub-arg))))]
+                       [super-type (get-type
+                                    (grace:identifier-value
+                                     (grace:identifier-type
+                                      (unwrap super-arg))))])
+                  { super-type . conforms-to? . sub-type }))
+              sub-args
+              super-args))
+        ;(foldl 'and #t
+        ;(for/list ([arg signature])
+        ;  #f))
+        #f)))
 
 
 ;; @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
@@ -573,7 +665,7 @@
 ;; an identifier, it searches for that string, and returns the proper type
 ;; with all associated methods.
 (define (expression-type elt)
-  (let* ((first-type (expression-type-helper elt)))
+  (let* ([first-type (expression-type-helper elt)])
     (match first-type
       ((grace:identifier str bool)
        (get-type str))
@@ -610,7 +702,8 @@
         ((grace:if-then-else condition tbody ebody)
          (let* ([cond-type (expression-type condition)])
            ;FIXME (displayln condition)
-           (unless (conforms-to? cond-type (new grace:type:boolean%))
+           ;(unless (conforms-to? cond-type (new grace:type:boolean%))
+           (unless { cond-type . conforms-to? . (new grace:type:boolean%) }
              (tc-error "if-then-else takes boolean but got ~a"
                        (send cond-type readable-name)))))
 
@@ -656,7 +749,8 @@
                                 (grace:identifier-type
                                  (car (get-field signature method)))))])
              ; Make sure e2 conforms to the type it needs to be.
-             (if (conforms-to? e2-type param-type)
+             ;(if (conforms-to? e2-type param-type)
+             (if { e2-type . conforms-to? . param-type }
                  (get-type (grace:identifier-value (get-field rtype method)))
 
                  ; If they don't conform, send an error.
@@ -735,7 +829,8 @@
                               [arg-type (expression-type arg)])
 
                          ; If they don't match up, error.
-                         (unless (conforms-to? arg-type param-type)
+                         ;(unless (conforms-to? arg-type param-type)
+                         (unless { arg-type . conforms-to? . param-type }
                            (tc-error
                             "argument in ~a must be of type ~a, given ~a"
                             name-string
@@ -947,8 +1042,8 @@
 
 ; @@@@@ DEBUGGING CODE @@@@@
 ; @@@@@ FIXME: REMOVE  @@@@@
-; (define (p in)
-;   (parse (object-name in) in))
+;(define (p in)
+;  (parse (object-name in) in))
 ;
 ; (define a (p (open-input-string "
 ; method foo() {
@@ -960,5 +1055,17 @@
 ; }
 ; ")))
 ;
-; (display
-;   (typecheck a))
+;method foo(arg : S) -> String{
+;  print(S)
+;  return \"Done!\"       
+;}
+;
+;def x : T = object {
+;  var a := 2
+;}
+;
+;foo(x)
+;")))
+;
+;(display
+;  (typecheck a))

@@ -162,7 +162,16 @@
 (define (p in) (parse (object-name in) in))
 
 (define a (p (open-input-string "
-print(outer.false)
+var x := object {
+    var val := 1
+    method foo {
+        print(self.val)
+        self.val := self.val + 1
+    }
+}
+x.foo
+x.foo
+x.foo
 ")))
 ;(displayln (grace:object a))
 ;(displayln (syntax->datum a))
