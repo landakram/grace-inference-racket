@@ -931,7 +931,7 @@
       (else 'none)))
   
   ;; TODO: Remove, for debugging.
-  (display-type-env current-type-defs current-type-env)
+  ;(display-type-env current-type-defs current-type-env)
   
   
   (values current-type-defs current-type-env))
