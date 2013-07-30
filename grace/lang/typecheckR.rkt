@@ -140,7 +140,8 @@
   
   (MethodType "greater-than" (list "Number") "Boolean")
   (MethodType "less-than" (list "Number") "Boolean")
-  (MethodType "equal" (list "Number") "Boolean")
+  (MethodType "equal" (list "Top") "Boolean")
+  (MethodType "not-equal" (list "Top") "Boolean")
   (MethodType "greater-than-eq" (list "Number") "Boolean")
   (MethodType "less-than-eq" (list "Number") "Boolean")
   
@@ -152,7 +153,9 @@
  ;; TODO: Add methods for strings...
  (list
   (MethodType "concat" (list "Top") "String")
-  (MethodType "size" (list) "Number")))
+  (MethodType "size" (list) "Number")
+  (MethodType "equal" (list "Top") "Boolean")
+  (MethodType "not-equal" (list "Top") "Boolean")))
 
 (hash-set! prelude-type-defs "Done" (list))
 
@@ -164,7 +167,9 @@
  (list
   (MethodType "not" (list) "Boolean")
   (MethodType "and" (list "Boolean") "Boolean")
-  (MethodType "or" (list "Boolean") "Boolean")))
+  (MethodType "or" (list "Boolean") "Boolean")
+  (MethodType "equal" (list "Top") "Boolean")
+  (MethodType "not-equal" (list "Top") "Boolean")))
 
 (hash-set! prelude-type-defs "Dynamic" (list))
 (hash-set! prelude-type-defs "Dynamic*" (hash-ref prelude-type-defs "Dynamic"))
@@ -440,13 +445,38 @@
             ;; Work around for `unwrap` (using `syntax-e`) nesting syntax structure.
             [value (cast (syntax->datum (cast value (Syntaxof Any))) String)])
        
+       ;; Look for the identifier in our type environments.
        (set! identifier-type (find-id value))
        
        ;; If the identifier is not found in any of them, tc-error.
+       ;(when (equal? identifier-type "#NoTypeFound#")
+       ;  (tc-error stmt 
+       ;            "Identifier `~a` is not defined in this context."
+       ;            value))
+       
+       ;; If the identifier isn't found, look for a method of the same name.
        (when (equal? identifier-type "#NoTypeFound#")
-         (tc-error stmt 
-                   "Identifier `~a` is not defined in this context."
-                   value))
+         (let* ([method-found (find-method-in value "#All#")])
+           
+           ;; If there is no such method, then the identifier isn't defined.
+           (unless method-found
+             (tc-error stmt 
+                       "Identifier `~a` is not defined in this context."
+                       value))
+           
+           ;; If we do find the method, make sure its signature is empty.
+           (let* ([method-found (cast method-found MethodType)]
+                  [method-signature (MethodType-signature method-found)]
+                  [method-rtype (MethodType-rtype method-found)])
+             (unless (empty? method-signature)
+               (tc-error stmt
+                         "Method `~a` takes arguments `~a` but got none."
+                         value
+                         method-signature))
+             
+             ;; Set the identifier type to the return type of the method if it is found.
+             (set! identifier-type method-rtype))))
+       
        
        ;; Return the type of the identifier.
        identifier-type))
@@ -561,7 +591,7 @@
      (let* (;[name-string (id-name name)]
             [type-string (typecheck name)]
             [value-type-string (typecheck value)])
-       (unless (equal? type-string value-type-string)
+       (unless { value-type-string . conforms-to? . type-string }
          (tc-error stmt
                    ;"Can not assign value of type `~a` to variable `~a` of type `~a`."
                    "Can not assign value of type `~a` to variable of type `~a`."
