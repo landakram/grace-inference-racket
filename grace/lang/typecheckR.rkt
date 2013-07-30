@@ -140,7 +140,8 @@
   
   (MethodType "greater-than" (list "Number") "Boolean")
   (MethodType "less-than" (list "Number") "Boolean")
-  (MethodType "equal" (list "Number") "Boolean")
+  (MethodType "equal" (list "Top") "Boolean")
+  (MethodType "not-equal" (list "Top") "Boolean")
   (MethodType "greater-than-eq" (list "Number") "Boolean")
   (MethodType "less-than-eq" (list "Number") "Boolean")
   
@@ -152,7 +153,9 @@
  ;; TODO: Add methods for strings...
  (list
   (MethodType "concat" (list "Top") "String")
-  (MethodType "size" (list) "Number")))
+  (MethodType "size" (list) "Number")
+  (MethodType "equal" (list "Top") "Boolean")
+  (MethodType "not-equal" (list "Top") "Boolean")))
 
 (hash-set! prelude-type-defs "Done" (list))
 
@@ -164,7 +167,9 @@
  (list
   (MethodType "not" (list) "Boolean")
   (MethodType "and" (list "Boolean") "Boolean")
-  (MethodType "or" (list "Boolean") "Boolean")))
+  (MethodType "or" (list "Boolean") "Boolean")
+  (MethodType "equal" (list "Top") "Boolean")
+  (MethodType "not-equal" (list "Top") "Boolean")))
 
 (hash-set! prelude-type-defs "Dynamic" (list))
 (hash-set! prelude-type-defs "Dynamic*" (hash-ref prelude-type-defs "Dynamic"))
@@ -557,14 +562,15 @@
     
     ;; Make sure the type in the env and the type of the value match.
     ((grace:bind name value) 
-     (let* ([name-string (id-name name)]
+     (let* (;[name-string (id-name name)]
             [type-string (typecheck name)]
             [value-type-string (typecheck value)])
-       (unless (equal? type-string value-type-string)
+       (unless { value-type-string . conforms-to? . type-string }
          (tc-error stmt
-                   "Can not assign value of type `~a` to variable `~a` of type `~a`."
+                   ;"Can not assign value of type `~a` to variable `~a` of type `~a`."
+                   "Can not assign value of type `~a` to variable of type `~a`."
                    value-type-string
-                   name-string
+                   ;name-string
                    type-string))
        
        ;; A variable assignment returns done.

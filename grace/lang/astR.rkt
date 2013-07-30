@@ -68,7 +68,7 @@
   #:prefab)
 
 (struct: grace:bind
-  ([name  : IdentifierType]
+  ([name  : (U (Syntaxof grace:member) IdentifierType)]
    ;; TODO: possibly fix type of value
    [value : (Syntaxof Any)])
   #:prefab)
@@ -114,7 +114,8 @@
   ([check : (U IdentifierType (Syntaxof grace:expression) (Syntaxof grace:member) (Syntaxof grace:method-call))]
    ;[tbody : (Listof (Syntaxof Any))]
    ;[ebody : (Listof (Syntaxof Any))])
-   [tbody : BodyType]
+   ;[tbody : BodyType]
+   [tbody : (Syntaxof (Listof (Syntaxof Any)))]
    [ebody : BodyType])
   #:prefab)
 

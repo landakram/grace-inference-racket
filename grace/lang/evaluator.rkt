@@ -116,7 +116,8 @@
     [`(initvar* ,objs ,vals) (eval-initvar* objs vals env)]
     [`(initdef ,obj ,val) (eval-initdef obj val env)]
     [`(initdef* ,objs ,vals) (eval-initdef* objs vals env)]
-    [`(,f . ,args)            (apply-proc
+    [`(,f . ,args)            ;(displayln (eval f env))
+                              (apply-proc
                                (eval f env) 
                                (map (eval-with env) args))]
     (void exp)))
@@ -230,7 +231,7 @@
   (let* ((env*     ((eval-with env) obj)))
     (match var
       [(? symbol?)  (env-lookup env* var)]
-      [`(,f . ,args)  
+      [`(,f . ,args)
        (match obj
          [`(outer)
           (apply-proc (env-lookup env* f) (map (eval-with env) args))]

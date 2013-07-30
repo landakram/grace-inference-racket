@@ -1,7 +1,6 @@
 #lang racket
 ;#lang typed/racket
 (require "parseR.rkt"
-         "astR.rkt"
          "typecheckR.rkt"
          "output.rkt"
          "evaluator.rkt"
@@ -31,7 +30,7 @@
                    'anonymous)])
     (define datum (syntax->datum stx))
     ;(display (syntax->datum stx))
-    (define env (typechecker stx))
+    (define env3 (typechecker stx))
     (define sp (AST-to-RG (syntax-e stx)))
     ;(display sp)
     (define-values (in out) (make-pipe))

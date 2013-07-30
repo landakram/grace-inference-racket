@@ -1,7 +1,8 @@
 #lang racket
 
 (require "ast.rkt"
-         "parse.rkt")
+         ;"parse.rkt"
+         )
 (provide AST-to-RG)
 
 (define stx (make-parameter #f))
@@ -17,7 +18,7 @@
 (define (env-lookup env var)
   (match (hash-ref (unbox env) var)
     [(? cell?)  
-     (cell-value (hash-ref (unbox env) var))]
+     (cell-value (hash-ref (unbox env) var))]   
     [x
      (hash-ref (unbox env) var)]))
 
@@ -39,7 +40,7 @@
    ;(many of these will need to be replaced:
    ;all the math ones will need to extract values out of new number objects
    ;and then call primitive version rather than being in current form)
-   `(,+ ,- ,/ ,* ,modulo ,<= ,>= ,> ,< ,equal? != ,eq? concat ,exp or and)
+   `(,'plus ,'minus ,'div ,'mult ,'modulo ,<= ,>= ,> ,< ,'equal ,'not-equal ,eq? concat ,'exp or and)
    (map (lambda (s) (list 'primitive s))
         '(+ -  /  *  %   <= >= > < == != eq? ++ expt or and))))
 
@@ -114,7 +115,7 @@
                             ")) (begin (list" (string-append* (AST-to-RG ebody))
                             ")))"))
             (void "")
-            (else (print elt))))))
+            (else (print "ERROR1") (print elt))))))
 
 
 (define (dont-wrap elt)
@@ -131,7 +132,7 @@
             ((grace:member parent name) 
              (string-append "(send2 " (AST-to-RG parent) 
                             " " (dont-wrap name) ")"))
-            (else (print elt))))))
+            (else (print "ERROR2")(print elt))))))
 
 (define (extract-methods elt)
   (if (syntax? elt)
@@ -159,20 +160,22 @@
             ((grace:method name signature body type) "  ")
             (else (AST-to-RG elt))))))
 
-(define (p in) (parse (object-name in) in))
-
-(define a (p (open-input-string "
-var x := object {
-    var val := 1
-    method foo {
-        print(self.val)
-        self.val := self.val + 1
-    }
-}
-x.foo
-x.foo
-x.foo
-")))
+;;(define (p in) (parse (object-name in) in))
+;
+;(define a (p (open-input-string "
+;print(\"Hello, world.\")
+;
+;
+;// Test 2 : OK.  
+;print(\"Hello \" ++ \"world.\")
+;print(\"Line \" ++ 2)
+;print(3 ++ \"rd line\")
+;
+;
+;// Test 3 : OK
+;
+;
+;")))
 ;(displayln (grace:object a))
 ;(displayln (syntax->datum a))
 ;(display (AST-to-RG (syntax-e a)))
