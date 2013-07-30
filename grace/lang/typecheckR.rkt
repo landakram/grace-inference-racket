@@ -1027,7 +1027,8 @@
 ;;(define no-type "#MissingType#")
 (: type-name (TypeType -> String))
 (define (type-name type)
-  (let* ([type-string (grace:type-annot-value (unwrap type))])
+  ;; Workaround for syntax-e pushing nested syntax-structure.
+  (let* ([type-string (grace:type-annot-value (cast (syntax->datum type) grace:type-annot))])
     (if (equal? type-string "#MissingType#")
         "Dynamic*"
         type-string)))
