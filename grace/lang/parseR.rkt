@@ -134,7 +134,7 @@
     ;; A method declaration is the method's implementation
     (method-declaration
      ((METHOD method-name method-return-type LBRACE method-body RBRACE NEWLINE)
-      (at-src (grace:method $2 empty (at-src $5) $3)))
+      (at-src (grace:method $2 (at-src empty) (at-src $5) $3)))
      ((METHOD method-name method-signature method-return-type LBRACE method-body RBRACE NEWLINE)
       (at-src (grace:method $2 $3 (at-src $6) $4))))
 

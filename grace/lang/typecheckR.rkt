@@ -557,14 +557,16 @@
     
     ;; Make sure the type in the env and the type of the value match.
     ((grace:bind name value) 
-     (let* ([name-string (id-name name)]
+     ;; TODO: Fix this so if name is a grace:member, we can pretty print it to the error.
+     (let* (;[name-string (id-name name)]
             [type-string (typecheck name)]
             [value-type-string (typecheck value)])
        (unless (equal? type-string value-type-string)
          (tc-error stmt
-                   "Can not assign value of type `~a` to variable `~a` of type `~a`."
+                   ;"Can not assign value of type `~a` to variable `~a` of type `~a`."
+                   "Can not assign value of type `~a` to variable of type `~a`."
                    value-type-string
-                   name-string
+                   ;name-string
                    type-string))
        
        ;; A variable assignment returns done.
