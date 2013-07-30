@@ -186,7 +186,7 @@
 ;; Builtin methods
 (hash-set!
  prelude-type-defs
- "#SelfType#"
+ "#ScopeType#"
  (list
   (MethodType "print" (list "Top") "Done")))
 
@@ -194,9 +194,9 @@
 ;; Add builtin identifiers.
 (hash-set! prelude-type-env "true" (IDInfo "Boolean" "builtin"))
 (hash-set! prelude-type-env "false" (IDInfo "Boolean" "builtin"))
-(hash-set! prelude-type-env "self" (IDInfo "#SelfType#" "builtin"))
+(hash-set! prelude-type-env "self" (IDInfo "#ScopeType#" "builtin"))
 
-;; TODO: Maybe fix type of outer type to #SelfType# and figure out how to
+;; TODO: Maybe fix type of outer type to #ScopeType# and figure out how to
 ;;   look up outer scopes in typechecking logic.
 (hash-set! prelude-type-env "outer" (IDInfo "#OuterType#" "builtin"))
 
@@ -336,8 +336,8 @@
   (match where
     
     ;; In the case that the method call was prefixed to self, such as in `self.somex(...)`.
-    ("#SelfType#" 
-     (let* ([selftype (hash-ref (car type-defs) "#SelfType#")])
+    ("#ScopeType#" 
+     (let* ([selftype (hash-ref (car type-defs) "#ScopeType#")])
        (findf (λ: ([method : MethodType])
                 (equal? method-name (MethodType-name method)))
               selftype)))
@@ -346,7 +346,7 @@
     ("#OuterType#"
      (if (< 3 (length type-defs))
          #f
-         (let* ([outertype (hash-ref (cadr type-defs) "#SelfType#")])
+         (let* ([outertype (hash-ref (cadr type-defs) "#ScopeType#")])
            (findf (λ: ([method : MethodType])
                     (equal? method-name (MethodType-name method)))
                   outertype))))
@@ -363,7 +363,7 @@
            (set! method-found
                  (findf (λ: ([method : MethodType])
                           (equal? method-name (MethodType-name method)))
-                        (hash-ref type-def-env "#SelfType#")))))
+                        (hash-ref type-def-env "#ScopeType#")))))
        
        ;; Return the method we found, or #f if it wasn't found.
        method-found))
@@ -419,7 +419,7 @@
     ;;   pop inner-scope ones after we return from the recursive call.
     
     ;; TODO: Fix return
-    (hash-ref current-type-defs "#SelfType#")))
+    (hash-ref current-type-defs "#ScopeType#")))
 
 
 ;; NOTES: This function dispatches all typecheck calls to smaller ones.
@@ -430,7 +430,10 @@
 (: typecheck ((Syntaxof Any) -> String))
 (define (typecheck stmt)
   (match (unwrap stmt)
-    ((grace:type-annot value) value)
+    
+    ;; For a type-annotation, simply return the type listed in the annotation.
+    ((grace:type-annot value)
+     (type-name (cast stmt TypeType)))
     
     ((grace:number value) "Number")
     
@@ -520,7 +523,7 @@
     
     ;; ----- TODO -----
     ;; When an object and a var or def's type do not match up, do not error
-    ;; with type "#SelfType#", but rather something more useful.
+    ;; with type "#ScopeType#", but rather something more useful.
     ;;  1. Possibility : Somehow get the method that could not be found in the
     ;;       value-type and pretty-print it to show what could not be found.
     ;; ----------------
@@ -546,7 +549,7 @@
        ;; expression matches the annotated type.
        (unless (equal? value-type-string "#NoValue#")
          (unless { value-type-string . conforms-to? . type-string }
-           (if (equal? value-type-string "#SelfType#")
+           (if (equal? value-type-string "#ScopeType#")
                (tc-error stmt
                          "Given object does not conform to type `~a`."
                          type-string)
@@ -574,7 +577,7 @@
        ;; If a value is given in an assignment, make sure the type of the
        ;; expression matches the annotated type.
        (unless { value-type-string . conforms-to? . type-string }
-         (if (equal? value-type-string "#SelfType#")
+         (if (equal? value-type-string "#ScopeType#")
              (tc-error stmt
                        "Given object does not conform to type `~a`."
                        type-string)
@@ -716,7 +719,7 @@
                 (begin
                   (unless method-found
                     ;; TODO: Fix the error message on this one because it will print as
-                    ;;   "... found in parent of type `#SelfType#`."
+                    ;;   "... found in parent of type `#ScopeType#`."
                     (tc-error stmt
                               "No such method `~a` found in parent of type `~a`."
                               name-string
@@ -774,9 +777,16 @@
             [object-type (typecheck-body 
                           (grace:object-body (cast (unwrap stmt) grace:object)))])
        
+       ;; Set the type of the identifier self.
+       (set-type "self" (IDInfo "#ScopeType#" "def") (car type-envs))
+       
        (pop-scope)
        
+       ;; Set the type of the object in the outer scope.
        (hash-set! (car type-defs) object-name object-type)
+       
+       ;; TODO: Remove.
+       (display-type-env (car type-defs) (car type-envs))
        
        ;; TODO: Fix this type since the object might be popped off.
        ;;   Also, this doesn't allow for any def a : ObjectX = object { ... }
@@ -790,7 +800,45 @@
     ;; QUESTION: If a methods rtype is not specified, do we treat it as Dynamic*? Or
     ;; do we infer it from the return types?
     ;; Also we need to confirm all the types exist.
-    ((grace:method name signature body rtype) "#Void#")
+    ((grace:method name signature body rtype) 
+     (let* ([body-list (unwrap body)]
+            [declared-rtype (typecheck rtype)])
+       
+       (let-values ([(current-type-defs current-type-env)
+                     (build-environment body)])
+         
+         ;; Set the type of each of the identifiers in the signature.
+         (for ([arg (unwrap signature)])
+           (let* ([name-string (id-name arg)]
+                  [type-string (id-type arg)])
+             
+             ;; Add the identifier to the type environment and add an accessor method.
+             (set-type name-string (IDInfo type-string "def") current-type-env)
+             (add-method-to "#ScopeType#"
+                            (MethodType name-string
+                                        (list)
+                                        type-string)
+                            current-type-defs)))
+         
+         
+         ;; Push the scope environments onto the stack.
+         (push-scope current-type-defs current-type-env)
+         
+         ;; Typecheck each element in the body
+         (for ([statement body-list])
+           (match (unwrap statement)
+             ((grace:return value)
+              (let* ([returned-type (typecheck (cast value (Syntaxof Any)))])
+                (unless { returned-type . conforms-to? . declared-rtype }
+                  (tc-error stmt
+                            "Method of return type `~a` returned incompatible type `~a`."
+                            declared-rtype
+                            returned-type))))
+             
+             (else (typecheck statement))))))
+     
+     "Done")
+    
     
     ((grace:member parent name) 
      (let* ([name-string (id-name name)]
@@ -817,7 +865,9 @@
                ;; The return type of the accessor method is the type of the member access.
                (MethodType-rtype method-found))))))
     
-    ((grace:return value) "#Void#")
+    ((grace:return value)
+     ;; Workaround for syntax-e.
+     (typecheck (cast value (Syntaxof Any))))
     
     ((grace:if-then-else check tbody ebody) "#Void#")
     
@@ -827,7 +877,7 @@
     
     (else 
      (tc-error stmt "Found unknown structure while typechecking") 
-     "ERROR")))
+     "#ERROR#")))
 ;(list))
 
 
@@ -849,7 +899,7 @@
   
   
   ;; Add selftype to typedefs
-  (hash-set! current-type-defs "#SelfType#" (list))
+  (hash-set! current-type-defs "#ScopeType#" (list))
   
   
   ;; Add any type defs to the hash.
@@ -878,12 +928,12 @@
                      "The identifier `~a` has already been declared and cannot be declared again."
                      name-string))
          
-         (add-method-to "#SelfType#"
+         (add-method-to "#ScopeType#"
                         (MethodType name-string
                                     (list)
                                     type-string)
                         current-type-defs)
-         (add-method-to "#SelfType#"
+         (add-method-to "#ScopeType#"
                         (MethodType (format "~a:=" name-string)
                                     (list type-string)
                                     "Done")
@@ -900,7 +950,7 @@
                      "The identifier `~a` has already been declared and cannot be declared again."
                      name-string))
          
-         (add-method-to "#SelfType#"
+         (add-method-to "#ScopeType#"
                         (MethodType name-string
                                     (list)
                                     type-string)
@@ -910,7 +960,7 @@
       ;; Might maybe have to do this later after the environment has been built up.
       ;; So probably do this in the typecheck function.
       ((grace:method name signature body rtype)
-       (add-method-to "#SelfType#"
+       (add-method-to "#ScopeType#"
                       (get-method-impl-type
                        (grace:method name signature body rtype))
                       ;(get-method-def-type 
@@ -1023,20 +1073,24 @@
         "Dynamic*")))
 
 
-;; TODO: Remove.
-;;(define no-type "#MissingType#")
+
 (: type-name (TypeType -> String))
 (define (type-name type)
-  ;; Workaround for syntax-e pushing nested syntax-structure.
+  ;; Workaround for unwrap and syntax-e pushing down nested syntax structure.
+  ;;
+  ;; eg. [Syntaxof (grace:type-annot value)]
+  ;;                   |
+  ;;           unwrap/syntax-e
+  ;;                   |
+  ;;                   V
+  ;;     (grace:type-annot [Syntaxof value])
+  ;;
+  ;; Note: This will happen several more times in the code.
   (let* ([type-string (grace:type-annot-value (cast (syntax->datum type) grace:type-annot))])
     (if (equal? type-string "#MissingType#")
         "Dynamic*"
         type-string)))
-;(define (type-name type)
-;  (let* ([type-exists (unwrap type)])
-;    (if type-exists
-;        (id-name (cast type IdentifierType))
-;        "Dynamic*")))
+
 
 
 (: add-method-to (String MethodType ScopeTypeDefs -> Any))

@@ -40,7 +40,7 @@
 
    (precs
     (left && OR)
-    (left < <= > >= ==)
+    (left < <= > >= == !=)
     (left - +)
     (left * / %)
     (right !)
@@ -74,7 +74,7 @@
 
     (return
      ;; TODO: Change to keyword.
-     ((RETURN) (at-src (grace:return "Done")))
+     ((RETURN) (at-src (grace:return (at-src (grace:type-annot "Done")))))
      ((RETURN expression) (at-src (grace:return $2))))
 
     (declaration
@@ -201,40 +201,57 @@
 
      ((expression ++ expression) (at-src (grace:expression 'concat $1 $3)))
      ((term) $1))
+    
+;    (call
+;     ((id-or-member callrest) (at-src (grace:method-call $1 $2)))
+;     ((call callrest) (prec METHODCALL) (at-src (grace:method-call $1 $2))))
+;
+;    (any-dot
+;     ((any DOT id-or-member) (at-src (grace:member $1 $3)))
+;     ((id-or-member) (prec UNARY) $1)
+;     ((call) (prec UNARY) $1))
+;
+;    (any-call
+;     ((any-dot callrest) (at-src (grace:method-call $1 $2)))
+;     ((any-call callrest) (at-src (grace:method-call $1 $2))))
+;
+;    (any
+;     ((any-call) $1)
+;     ((any-dot) $1))
+;
+;    (callrest
+;     ((NUM) (list $1))
+;     ((STRING) (list $1))
+;     ((LPAREN method-list RPAREN) $2)
+;     ((LPAREN RPAREN) empty))
 
-    (parenthesis-expr
-     ((LPAREN expression RPAREN) $2))
-
+    (any
+     ((any-call) $1)
+     ((any-dot) $1))
+    
+    (any-dot
+     ((any DOT id-or-member) (at-src (grace:member $1 $3)))
+     ((id-or-member) (prec UNARY) $1))
+    
+    (any-call
+     ((any-dot NUM) (at-src (grace:method-call $1 (list (at-src (grace:number (at-src $2)))))))
+     ((any-dot STRING) (at-src (grace:method-call $1 (list (at-src (grace:str (at-src $2)))))))
+     ((any-dot LPAREN method-list RPAREN) (at-src (grace:method-call $1 $3)))
+     ((any-dot LPAREN RPAREN) (at-src (grace:method-call $1 empty))))
+    
     (id-or-member
      ((identifier) $1)
      ((parenthesis-expr) $1)
      ((id-or-member DOT identifier)
       (prec METHODCALL) (at-src (grace:member $1 $3))))
-
-    (call
-     ((id-or-member callrest) (at-src (grace:method-call $1 $2)))
-     ((call callrest) (prec METHODCALL) (at-src (grace:method-call $1 $2))))
-
-    (any-dot
-     ((any DOT id-or-member) (at-src (grace:member $1 $3)))
-     ((id-or-member) (prec UNARY) $1)
-     ((call) (prec UNARY) $1))
-
-    (any-call
-     ((any-dot callrest) (at-src (grace:method-call $1 $2)))
-     ((any-call callrest) (at-src (grace:method-call $1 $2))))
-
-    (any
-     ((any-call) $1)
-     ((any-dot) $1))
-
-    (callrest
-     ((LPAREN method-list RPAREN) $2)
-     ((LPAREN RPAREN) empty))
-
+    
     (method-list
      ((expression COMMA method-list) (append (list $1) $3))
      ((expression) (list $1)))
+    
+    (parenthesis-expr
+     ((LPAREN expression RPAREN) $2))
+     
 
     (term
      ((NUM) (at-src (grace:number (at-src $1))))

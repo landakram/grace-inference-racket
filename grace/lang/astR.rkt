@@ -101,7 +101,7 @@
   #:prefab)
 
 (struct: grace:member
-  ([parent : (U IdentifierType (Syntaxof grace:member))]
+  ([parent : (U IdentifierType (Syntaxof grace:member) (Syntaxof grace:method-call))]
    [name   : IdentifierType])
   #:prefab)
 
