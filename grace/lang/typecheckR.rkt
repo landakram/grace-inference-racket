@@ -21,10 +21,6 @@
 ;;      places where the syntax structure might be left out and add it in the parser.
 
 
-
-
-
-
 ;; The list of methods that defines a type in grace.
 (define-type GraceType
   (Listof MethodType))
@@ -445,13 +441,38 @@
             ;; Work around for `unwrap` (using `syntax-e`) nesting syntax structure.
             [value (cast (syntax->datum (cast value (Syntaxof Any))) String)])
        
+       ;; Look for the identifier in our type environments.
        (set! identifier-type (find-id value))
        
        ;; If the identifier is not found in any of them, tc-error.
+       ;(when (equal? identifier-type "#NoTypeFound#")
+       ;  (tc-error stmt 
+       ;            "Identifier `~a` is not defined in this context."
+       ;            value))
+       
+       ;; If the identifier isn't found, look for a method of the same name.
        (when (equal? identifier-type "#NoTypeFound#")
-         (tc-error stmt 
-                   "Identifier `~a` is not defined in this context."
-                   value))
+         (let* ([method-found (find-method-in value "#All#")])
+           
+           ;; If there is no such method, then the identifier isn't defined.
+           (unless method-found
+             (tc-error stmt 
+                       "Identifier `~a` is not defined in this context."
+                       value))
+           
+           ;; If we do find the method, make sure its signature is empty.
+           (let* ([method-found (cast method-found MethodType)]
+                  [method-signature (MethodType-signature method-found)]
+                  [method-rtype (MethodType-rtype method-found)])
+             (unless (empty? method-signature)
+               (tc-error stmt
+                         "Method `~a` takes arguments `~a` but got none."
+                         value
+                         method-signature))
+             
+             ;; Set the identifier type to the return type of the method if it is found.
+             (set! identifier-type method-rtype))))
+       
        
        ;; Return the type of the identifier.
        identifier-type))
@@ -562,6 +583,8 @@
     
     ;; Make sure the type in the env and the type of the value match.
     ((grace:bind name value) 
+
+     ;; TODO: Fix this so if name is a grace:member, we can pretty print it to the error.
      (let* (;[name-string (id-name name)]
             [type-string (typecheck name)]
             [value-type-string (typecheck value)])
@@ -1001,7 +1024,8 @@
 ;;(define no-type "#MissingType#")
 (: type-name (TypeType -> String))
 (define (type-name type)
-  (let* ([type-string (grace:type-annot-value (unwrap type))])
+  ;; Workaround for syntax-e pushing nested syntax-structure.
+  (let* ([type-string (grace:type-annot-value (cast (syntax->datum type) grace:type-annot))])
     (if (equal? type-string "#MissingType#")
         "Dynamic*"
         type-string)))
