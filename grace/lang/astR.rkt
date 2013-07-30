@@ -101,7 +101,8 @@
   #:prefab)
 
 (struct: grace:member
-  ([parent : (U IdentifierType (Syntaxof grace:member))]
+  ([parent : (U IdentifierType (Syntaxof grace:member) 
+                (Syntaxof grace:method-call))]
    [name   : IdentifierType])
   #:prefab)
 
@@ -112,7 +113,8 @@
 
 (struct: grace:if-then-else
   ;; TODO: Type of check definitely needs fixing.
-  ([check : (U IdentifierType (Syntaxof grace:expression) (Syntaxof grace:member) (Syntaxof grace:method-call))]
+  ([check : (U IdentifierType (Syntaxof grace:expression) 
+               (Syntaxof grace:member) (Syntaxof grace:method-call))]
    ;[tbody : (Listof (Syntaxof Any))]
    ;[ebody : (Listof (Syntaxof Any))])
    ;[tbody : BodyType]
@@ -126,6 +128,10 @@
    ;; TODO: Fix, maybe grace:identifier?
    [signature  : SignatureType]
    [body       : BodyType])
+  #:prefab)
+
+(struct: grace:block-decl
+  ([body : BodyType])
   #:prefab)
 
 ;(struct: grace:code-seq

@@ -135,7 +135,8 @@
     (method-declaration
      ((METHOD method-name method-return-type LBRACE method-body RBRACE NEWLINE)
       (at-src (grace:method $2 (at-src empty) (at-src $5) $3)))
-     ((METHOD method-name method-signature method-return-type LBRACE method-body RBRACE NEWLINE)
+     ((METHOD method-name method-signature 
+              method-return-type LBRACE method-body RBRACE NEWLINE)
       (at-src (grace:method $2 $3 (at-src $6) $4))))
 
     (method-name
@@ -246,7 +247,8 @@
      ((+ term)
       (prec UNARY)
       (at-src (grace:method-call (at-src (grace:member $2 +)) empty)))
-     ((object-decl) $1))
+     ((object-decl) $1)
+     ((block-declaration)  $1))
 
     (identifier
      ((IDENTIFIER) 
@@ -256,18 +258,23 @@
 
     ; TODO: elseif. Recursive else-list?
     (if-then-else
-     ((IF LPAREN expression RPAREN THEN LBRACE if-body RBRACE ELSE LBRACE if-body RBRACE)
+     ((IF LPAREN expression RPAREN THEN
+          LBRACE if-body RBRACE ELSE LBRACE if-body RBRACE)
       (at-src (grace:if-then-else $3 (at-src $7) (at-src $11))))
      ((IF LPAREN expression RPAREN THEN LBRACE if-body RBRACE)
       (at-src (grace:if-then-else $3 (at-src $7) (at-src (list))))))
 
     ; TODO: Should take multipart constructor (see: method-declaration)
     (class-declaration
-     ((CLASS identifier DOT identifier method-signature LBRACE class-body RBRACE)
+     ((CLASS identifier DOT identifier method-signature LBRACE object-body RBRACE)
       (at-src (grace:class-decl $2 $4 $5 $7))))
 
-    (class-body
-     ((_code-sequence) (at-src $1)))
+    (block-declaration
+     ((LBRACE object-body RBRACE)
+      (at-src (grace:block-decl $2))))
+    
+    ;(class-body
+    ; ((_code-sequence) (at-src $1)))
 
     (object-decl
      ((OBJECT LBRACE object-body RBRACE)

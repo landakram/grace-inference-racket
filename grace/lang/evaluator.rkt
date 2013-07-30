@@ -427,7 +427,7 @@
           (if (hash-has-key? (unbox env) 'dynam)                      
               (let ((temp (env-lookup env 'dynam)))                              
                 (env-lookup temp var)) 
-              (begin (print "there") env)))))
+              (begin (print "there") (displayln var) env)))))
 
 
 ; sets a value in an environment:
@@ -622,5 +622,5 @@ print(1)
 
 
 ; read in a program, and evaluate:
-;(eval-program (read-all))
+(eval-program (read-all))
 

@@ -41,6 +41,7 @@
   (return (value))
   (if-then-else (check tbody ebody))
   (class-decl (name param-name signature body))
+  (block-decl (body))
 
   (code-seq (code))
   (newline ()))

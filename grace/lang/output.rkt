@@ -1,7 +1,7 @@
 #lang racket
 
 (require "ast.rkt"
-         ;"parse.rkt"
+         "parseR.rkt"
          )
 (provide AST-to-RG)
 
@@ -40,7 +40,9 @@
    ;(many of these will need to be replaced:
    ;all the math ones will need to extract values out of new number objects
    ;and then call primitive version rather than being in current form)
-   `(,'plus ,'minus ,'div ,'mult ,'modulo ,<= ,>= ,> ,< ,'equal ,'not-equal ,eq? concat ,'exp or and)
+   `(,'plus ,'minus ,'div ,'mult ,'modulo 
+            ,<= ,>= ,'greater-than ,'less-than ,'equal ,'not-equal 
+            ,eq? concat ,'exp or and)
    (map (lambda (s) (list 'primitive s))
         '(+ -  /  *  %   <= >= > < == != eq? ++ expt or and))))
 
@@ -66,6 +68,10 @@
                             "(begin (list " 
                             (foldr string-append "" (all-but-methods body))
                             ")))"))
+            ((grace:block-decl body)
+             (string-append "(block () (begin (list "
+                            (string-append* (AST-to-RG body)) ")))")) 
+                            
             ((grace:method name signature body type)
              (string-append 
               "(" (dont-wrap name) " (lambda (" 
@@ -160,22 +166,19 @@
             ((grace:method name signature body type) "  ")
             (else (AST-to-RG elt))))))
 
-;;(define (p in) (parse (object-name in) in))
-;
-;(define a (p (open-input-string "
-;print(\"Hello, world.\")
-;
-;
-;// Test 2 : OK.  
-;print(\"Hello \" ++ \"world.\")
-;print(\"Line \" ++ 2)
-;print(3 ++ \"rd line\")
-;
-;
-;// Test 3 : OK
-;
-;
-;")))
+(define (p in) (parse (object-name in) in))
+
+(define a (p (open-input-string "
+var z := 1
+def x = { print(3)
+z := z+1
+}
+
+if (z < 5) then {x
+}
+
+
+")))
 ;(displayln (grace:object a))
 ;(displayln (syntax->datum a))
 ;(display (AST-to-RG (syntax-e a)))
