@@ -335,6 +335,9 @@
 (define (find-method-in method-name where)
   (match where
     
+    ;; TODO: This needs to go because self is an identifer that is placed into the type
+    ;; environment and that should be checked in the else case.
+    ;;
     ;; In the case that the method call was prefixed to self, such as in `self.somex(...)`.
     ("#ScopeType#" 
      (let* ([selftype (hash-ref (car type-defs) "#ScopeType#")])
@@ -343,6 +346,9 @@
               selftype)))
     
     ;; In the case that the method call was prefixed to outer, such as in `outer.somex(...)`
+    ;; 
+    ;; TODO: Fix because there isn't a "self" in every scope. Also, look for "self" in the
+    ;;   type environment rather than looking for #ScopeType# in the type-defs.
     ("#OuterType#"
      (if (< 3 (length type-defs))
          #f

@@ -92,7 +92,7 @@ type T = {
 }
 
 method foo(arg : S) -> String{
-  print(S)
+  print(arg)
   return "Done!"       
 }
 
