@@ -3,11 +3,12 @@
 lang/compiled/
 compiled/
 **/compiled/
+misc/
 ._*
 **/._*
 .DS_Store
 #*
 *#*
 *#
-misc/
-
+**/*.log
+**/errordump

@@ -70,7 +70,7 @@
     (type-declaration
      ((TYPE identifier = LBRACE NEWLINE method-signatures RBRACE)
       (at-src (new grace:type:object%
-                   [parent #f] ; FIXME: this was a guess
+                   [parent #f] ;; TODO: This may be wrong, #f is placeholder
                    [internal-name (grace:identifier-value (syntax->datum $2))]
                    [methods $6]))))
 
@@ -145,7 +145,7 @@
 
     (method-body
      ((statement method-body) (cons $1 $2))
-     ((NEWLINE) (void))
+     ((NEWLINE) (list))
      ((NEWLINE method-body) $2)
      ((statement) (list $1)))
 

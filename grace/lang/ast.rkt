@@ -26,6 +26,9 @@
   (str (value))
   (identifier (value type))
 
+  (type-def (name methods))
+  (method-def (name signature rtype))
+
   (var-decl (name type value))
   (def-decl (name type value))
   (bind (name value))
@@ -39,7 +42,8 @@
   (if-then-else (check tbody ebody))
   (class-decl (name param-name signature body))
 
-  (code-seq (code)))
+  (code-seq (code))
+  (newline ()))
 
 (define number-identifier (grace:identifier "Number" #f))
 (define string-identifier (grace:identifier "String" #f))
@@ -62,7 +66,9 @@
          [all-methods (append new-methods old-methods)])
     (set-field! methods parent all-methods)))
 
-(define (same-other type-identifier) (grace:identifier "_" type-identifier))
+(define (same-other type-identifier)
+  ;FIXME(displayln type-identifier)
+  (grace:identifier "_" type-identifier))
 
 (define grace:type<%>
   (interface () readable-name))

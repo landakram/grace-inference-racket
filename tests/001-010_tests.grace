@@ -17,7 +17,8 @@ print(6 / 2)
 print(2 * 2)
 print(15 % 10)
 print(3 ^ 4)
-//print(4 ^ 0.5)
+print(4 ^ 0.5)
+print(5.2)
 
 
 // Test 4 : OK 
@@ -40,21 +41,21 @@ print(true && false)
 
 // Test 6 : OK
 print(true.not)
-var x := false
+var x2 := false
 print(false || true)
-print(x.not.not)
-x := x.not
+print(x2.not.not)
+x2 := x2.not
 print(x && false.not)
 
 
 // Test 7 : OK
-var x := 4
-print(x / 2 - 1)
-print(x - 2 / 1)
-print(2 * 1 + 4 / x)
-print((x * (6 - 2) - x) /3)
-print(x - 0 + 1)
-print(x * 3 / 2)
+var x3 := 4
+print(x3 / 2 - 1)
+print(x3 - 2 / 1)
+print(2 * 1 + 4 / x3)
+print((x3 * (6 - 2) - x3) /3)
+print(x3 - 0 + 1)
+print(x3 * 3 / 2)
 
 
 // Test 8 : OK
@@ -93,10 +94,10 @@ if (false) then {
 
     
 // Test 10 : FIXME (while not implemented, string concatenation)
-var x := 1
+var x4 := 1
 //while {x < 5} do {
-//    print(x)
-//    x := x + 1
+//    print(x4)
+//    x4 := x4 + 1
 //}
-//print("Last: " ++ x)
+//print("Last: " ++ x4)
 
