@@ -192,7 +192,8 @@
      ((expression && expression) (at-src (grace:expression 'and $1 $3)))
      ((expression OR expression) (at-src (grace:expression 'or $1 $3)))
 
-     ((expression == expression) (at-src (grace:expression 'equal? $1 $3)))
+     ((expression == expression) (at-src (grace:expression 'equal $1 $3)))
+     ((expression != expression) (at-src (grace:expression 'not-equal $1 $3)))
      ((expression < expression) (at-src (grace:expression 'less-than $1 $3)))
      ((expression > expression) (at-src (grace:expression 'greater-than $1 $3)))
      ((expression <= expression) (at-src (grace:expression 'less-than-eq $1 $3)))

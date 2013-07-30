@@ -136,24 +136,45 @@
   (MethodType "mult" (list "Number") "Number")
   (MethodType "div" (list "Number") "Number")
   (MethodType "modulo" (list "Number") "Number")
-  (MethodType "exp" (list "Number") "Number")))
+  (MethodType "exp" (list "Number") "Number")
+  
+  (MethodType "greater-than" (list "Number") "Boolean")
+  (MethodType "less-than" (list "Number") "Boolean")
+  (MethodType "equal" (list "Number") "Boolean")
+  (MethodType "greater-than-eq" (list "Number") "Boolean")
+  (MethodType "less-than-eq" (list "Number") "Boolean")
+  
+  (MethodType "concat" (list "Top") "String")))
 
 (hash-set!
  prelude-type-defs
  "String"
  ;; TODO: Add methods for strings...
- (list))
+ (list
+  (MethodType "concat" (list "Top") "String")
+  (MethodType "size" (list) "Number")))
 
 (hash-set! prelude-type-defs "Done" (list))
 
 (hash-set! prelude-type-defs "List" (list))
 
-(hash-set! prelude-type-defs "Boolean" (list))
+(hash-set! 
+ prelude-type-defs 
+ "Boolean" 
+ (list
+  (MethodType "not" (list) "Boolean")
+  (MethodType "and" (list "Boolean") "Boolean")
+  (MethodType "or" (list "Boolean") "Boolean")))
 
 (hash-set! prelude-type-defs "Dynamic" (list))
 (hash-set! prelude-type-defs "Dynamic*" (hash-ref prelude-type-defs "Dynamic"))
 
-(hash-set! prelude-type-defs "Object" (list))
+(hash-set! 
+ prelude-type-defs 
+ "Object" 
+ (list
+  (MethodType "equal" (list "Object") "Boolean")
+  (MethodType "not-equal" (list "Object") "Boolean")))
 
 (hash-set! prelude-type-defs "Top" (list))
 
@@ -257,18 +278,23 @@
 (: conforms-to? (String String -> Boolean))
 (define (conforms-to? conforming-type conform-to-type)
   (cond
+    ;; If either type is dynamic, it does conform.
     ((equal? conform-to-type "Dynamic") #t)
     ((equal? conform-to-type "Dynamic*") #t)
     ((equal? conforming-type "Dynamic") #t)
-    ((equal? conform-to-type "Dynamic*") #t)
+    ((equal? conforming-type "Dynamic*") #t)
+    
+    ;; If they are the same type, they conform.
     ((equal? conform-to-type conforming-type) #t)
+    
+    ;; Anything conforms to top type.
     ((equal? conform-to-type "Top") #t)
     
-    ;; TODO: Subtyping.
     ;; TODO: Subtyping right now says Number is a subtype of String
     ;; because String has no methods, fix that.
     ({conforming-type . subtype-of? . conform-to-type} #t)
     
+    ;; Everything else does not conform.
     (else #f)))
 
 
@@ -303,12 +329,15 @@
 (: find-method-in (String String -> (U #f MethodType)))
 (define (find-method-in method-name where)
   (match where
+    
+    ;; In the case that the method call was prefixed to self, such as in `self.somex(...)`.
     ("#SelfType#" 
      (let* ([selftype (hash-ref (car type-defs) "#SelfType#")])
        (findf (λ: ([method : MethodType])
                 (equal? method-name (MethodType-name method)))
               selftype)))
     
+    ;; In the case that the method call was prefixed to outer, such as in `outer.somex(...)`
     ("#OuterType#"
      (if (< 3 (length type-defs))
          #f
@@ -317,21 +346,42 @@
                     (equal? method-name (MethodType-name method)))
                   outertype))))
     
+    ;; In the case that the method call wasn't prefixed, such as in `print(...)`.
     ("#All#" 
      (let: ([method-found : (U #f MethodType) #f])
+       
+       ;; Go throuh all the type-defs to look for our type.
        (for ([type-def-env type-defs])
+         
+         ;; Only continue to look if we haven't found the method yet.
          (unless method-found
            (set! method-found
                  (findf (λ: ([method : MethodType])
                           (equal? method-name (MethodType-name method)))
                         (hash-ref type-def-env "#SelfType#")))))
        
+       ;; Return the method we found, or #f if it wasn't found.
        method-found))
     
-    (else (void)))
-  
-  ;; TODO: Fix this.
-  (MethodType "" (list) ""))
+    (else 
+     (let: ([method-found : (U #f MethodType) #f])
+       
+       ;; Go through all the type-defs to look for our type.
+       (for ([type-def-env type-defs])
+         
+         ;; Only continue look if we haven't found the method yet.
+         (unless method-found
+           (let* ([type-found (hash-ref type-def-env where (λ () #f))])
+             
+             ;; If we find the type, look for the method inside of it.
+             (when type-found
+               (set! method-found
+                     (findf (λ: ([method : MethodType])
+                              (equal? method-name (MethodType-name method)))
+                            type-found))))))
+       
+       ;; Return the method we found, or #f if it wasn't found.
+       method-found))))
 
 
 
@@ -405,12 +455,12 @@
     ((grace:method-def name signature rtype)
      (let* ([rtype-string (type-name rtype)]
             [signature-strings (map id-type (unwrap signature))])
-            
+       
        ;; For each element in the signature, look for it in type defs.
        (for ([sigtype-string signature-strings])
          (let* ([sigtype-found (find-type sigtype-string)]) 
            
-         ;; If we can't find it, tc-error.
+           ;; If we can't find it, tc-error.
            (unless sigtype-found
              (tc-error stmt
                        "Type `~a` is not defined in this context."
@@ -516,7 +566,7 @@
                    value-type-string
                    name-string
                    type-string))
-      
+       
        ;; A variable assignment returns done.
        "Done"))
     
@@ -533,7 +583,7 @@
                                (equal? (MethodType-name method) 
                                        (symbol->string op)))
                              lh-methods)])
-            ;[op-found (member (symbol->string op) lh-methods)])
+       ;[op-found (member (symbol->string op) lh-methods)])
        
        ;; If the operator wasn't found, tc-error.  
        (unless op-found
@@ -558,128 +608,142 @@
          
          ;; An expression returns the return type of the operator.
          rtype)))
-       
-       
-       ;; `findf` returns #f if the method wasn't found or the method itself if it is.
-       ;(if op-found
-       ;    
-       ;    ;; If the operator is found. Make sure the type of the right hand side
-       ;    ;; conforms to the expected type.
-       ;    (let* ([op-signature (MethodType-signature op-found)]
-       ;           [second-type (car op-signature)]
-       ;           [rtype (MethodType-rtype op-found)])
-       ;      (unless { rh-type . conforms-to? . second-type }
-       ;      ;(unless (equal? second-type rh-type)
-       ;        (tc-error stmt
-       ;                  "The operator takes something of type `~a` but got `~a` instead."
-       ;                  second-type
-       ;                  rh-type))
-       ;      rtype))
-           
-           ;; If the operator wasn't found, tc-error.
-           ;(begin
-           ;  (tc-error stmt
-           ;            "There is no such operator `~a` in type `~a`."
-           ;            (symbol->string op)
-           ;            lh-type)
-           ;  "#SHOULD_NEVER_SEE_THIS#"))))
-           
     
-    ((grace:method-call name args) 
-     (match (unwrap name)
-       
-       ;; TODO: This might not work and we might have to recursively call typecheck, since
-       ;; we have no idea what parent might be. It could be an expression, or another member
-       ;; call, etc... The problem is that typecheck only returns the return type of a statement,
-       ;; so when we get to typechecking grace:members, etc, we need to figure out some way to
-       ;; actually get the whole method out of it so we can typecheck the signature along with
-       ;; the rtype, etc.
-       ;;
-       ;; It might be okay to do this first check here and any recursive ones outside because
-       ;; this final "name" will be the name of the method whereas any recursive ones will be
-       ;; names of objects that contain another object, etc... and then typecheck for 
-       ;; grace:member can simply return the name of the type of the returned objects.
-       ((grace:member parent name)
-        (let* ([name-string (id-name name)]
-               [parent-type (typecheck parent)]
-               [method-found (find-method-in name-string parent-type)])
-          (unless method-found
-            ;; TODO: Fix the error message on this one because it will print as
-            ;;   "... found in parent of type `#SelfType#`."
-            (tc-error stmt
-                      "No such method `~a` found in parent of type `~a`."
-                      name-string
-                      parent-type))
-          
-          (let* (;; Workaround for Union type as function result.
-                 [method-found (cast method-found MethodType)]
-                 [method-signature (MethodType-signature method-found)]
-                 [method-rtype (MethodType-rtype method-found)]
-                 
-                 ;; Workaround for syntax-e pushing nested syntax structure.
-                 [args (if (not (empty? args))
-                           (cast (syntax-e (cast args (Syntaxof Any))) (Listof (Syntaxof Any)))
-                           (list))]
-                 
-                 ;; Get the types of the expressions in the arguments.
-                 [arg-types (map typecheck args)])
+    
+    ;; `findf` returns #f if the method wasn't found or the method itself if it is.
+    ;(if op-found
+    ;    
+    ;    ;; If the operator is found. Make sure the type of the right hand side
+    ;    ;; conforms to the expected type.
+    ;    (let* ([op-signature (MethodType-signature op-found)]
+    ;           [second-type (car op-signature)]
+    ;           [rtype (MethodType-rtype op-found)])
+    ;      (unless { rh-type . conforms-to? . second-type }
+    ;      ;(unless (equal? second-type rh-type)
+    ;        (tc-error stmt
+    ;                  "The operator takes something of type `~a` but got `~a` instead."
+    ;                  second-type
+    ;                  rh-type))
+    ;      rtype))
+    
+    ;; If the operator wasn't found, tc-error.
+    ;(begin
+    ;  (tc-error stmt
+    ;            "There is no such operator `~a` in type `~a`."
+    ;            (symbol->string op)
+    ;            lh-type)
+    ;  "#SHOULD_NEVER_SEE_THIS#"))))
+    
+    
+    ((grace:method-call name args)
+     
+     (let* (;; Workaround for syntax-e pushing nested syntax structure.
+            [args (if (not (empty? args))
+                      (cast (syntax-e (cast args (Syntaxof Any))) (Listof (Syntaxof Any)))
+                      (list))]
             
-            (unless (andmap conforms-to? arg-types method-signature)
+            ;; Get the types of the expressions in args. Doing this now has the added benefit
+            ;; of catching errors in the arguments and is needed because below, there is a
+            ;; check to see if the parent of a method is of type dynamic and that will allow
+            ;; any call to pass unhindered.
+            [arg-types (map typecheck args)])
+       
+       
+       
+       
+       (match (unwrap name)
+         
+         ;; TODO: This might not work and we might have to recursively call typecheck, since
+         ;; we have no idea what parent might be. It could be an expression, or another member
+         ;; call, etc... The problem is that typecheck only returns the return type of a statement,
+         ;; so when we get to typechecking grace:members, etc, we need to figure out some way to
+         ;; actually get the whole method out of it so we can typecheck the signature along with
+         ;; the rtype, etc.
+         ;;
+         ;; It might be okay to do this first check here and any recursive ones outside because
+         ;; this final "name" will be the name of the method whereas any recursive ones will be
+         ;; names of objects that contain another object, etc... and then typecheck for 
+         ;; grace:member can simply return the name of the type of the returned objects.
+         ((grace:member parent name)
+          (let* ([name-string (id-name name)]
+                 [parent-type (typecheck parent)]
+                 [method-found (find-method-in name-string parent-type)])
+            
+            ;; If the parent is of type dynamic, then we allow any call to pass.
+            (if (or (equal? parent-type "Dynamic") (equal? parent-type "Dynamic*"))
+                "Dynamic*"
+                
+                ;; Else check the method call.
+                (begin
+                  (unless method-found
+                    ;; TODO: Fix the error message on this one because it will print as
+                    ;;   "... found in parent of type `#SelfType#`."
+                    (tc-error stmt
+                              "No such method `~a` found in parent of type `~a`."
+                              name-string
+                              parent-type))
+                  
+                  (let* (;; Workaround for Union type as function result.
+                         [method-found (cast method-found MethodType)]
+                         [method-signature (MethodType-signature method-found)]
+                         [method-rtype (MethodType-rtype method-found)])
+                    
+                    (unless (andmap conforms-to? arg-types method-signature)
+                      (tc-error stmt
+                                "Method `~a` got arguments of the wrong type.\n~aExpected: ~a\n~aArguments: ~a"
+                                name-string
+                                "          "
+                                method-signature
+                                "          "
+                                arg-types))
+                    
+                    method-rtype)))))
+         
+         
+         ((grace:identifier value type) 
+          (let* ([name (cast name IdentifierType)]
+                 [name-string (id-name name)]
+                 [method-found (find-method-in name-string "#All#")])
+            
+            (unless method-found
               (tc-error stmt
-                        "Method `~a` got arguments of the wrong type.\n~aExpected: ~a\n~aArguments: ~a"
-                        name-string
-                        "          "
-                        method-signature
-                        "          "
-                        arg-types))
+                        "No such method `~a` found."
+                        name-string))
             
-            method-rtype)))
-       
-       
-       ((grace:identifier value type) 
-        (let* ([name (cast name IdentifierType)]
-               [name-string (id-name name)]
-               [method-found (find-method-in name-string "#All#")])
-          
-          (unless method-found
-            (tc-error stmt
-                      "No such method `~a` found."
-                      name-string))
-          
-          (let* (;; Workaround for Union type as function result.
-                 [method-found (cast method-found MethodType)]
-                 [method-signature (MethodType-signature method-found)]
-                 [method-rtype (MethodType-rtype method-found)]
-                 
-                 ;; Workaround for syntax-e pushing nested syntax structure.
-                 [args (if (not (empty? args)) 
-                           (cast (syntax-e (cast args (Syntaxof Any))) (Listof (Syntaxof Any)))
-                           (list))]
-                 
-                 ;; Get the types of the expressions in the arguments.
-                 [arg-types (map typecheck args)])
-            
-            (unless (equal? arg-types method-signature)
-              (tc-error stmt
-                        "Method `~a` got arguments of the wrong type.\n~aExpected: ~a\n~aArguments: ~a"
-                        name-string
-                        "          "
-                        method-signature
-                        "          "
-                        arg-types))
-            
-            method-rtype)))))
+            (let* (;; Workaround for Union type as function result.
+                   [method-found (cast method-found MethodType)]
+                   [method-signature (MethodType-signature method-found)]
+                   [method-rtype (MethodType-rtype method-found)]
+                   
+                   ;; Get the types of the expressions in the arguments.
+                   [arg-types (map typecheck args)])
+              
+              (unless (andmap conforms-to? arg-types method-signature)
+                (tc-error stmt
+                          "Method `~a` got arguments of the wrong type.\n~aExpected: ~a\n~aArguments: ~a"
+                          name-string
+                          "          "
+                          method-signature
+                          "          "
+                          arg-types))
+              
+              method-rtype))))))
     
     ;; For an object, typecheck its body then return the type of the object.
     ((grace:object body)
-     (begin
-       (typecheck-body (grace:object-body (cast (unwrap stmt) grace:object)))
+     (let* ([object-name (format "#Object~a#" (syntax-position stmt))]
+            [object-type (typecheck-body 
+                          (grace:object-body (cast (unwrap stmt) grace:object)))])
+       
+       (pop-scope)
+       
+       (hash-set! (car type-defs) object-name object-type)
        
        ;; TODO: Fix this type since the object might be popped off.
        ;;   Also, this doesn't allow for any def a : ObjectX = object { ... }
        ;;   because right now, it is comparing "ObjectX" to "#SelfType". To fix
        ;;   that, probably need to implement subtyping in `conforms-to?`.
-       "#SelfType#"))
+       object-name))
     
     
     ;; At this point, we need to look for return statements in the body. We need
@@ -689,7 +753,30 @@
     ;; Also we need to confirm all the types exist.
     ((grace:method name signature body rtype) "#Void#")
     
-    ((grace:member parent name) "#Void#")
+    ((grace:member parent name) 
+     (let* ([name-string (id-name name)]
+            [parent-type (typecheck parent)]
+            
+            ;; Look for an accessor method in the parent for the memeber access.
+            [method-found (find-method-in name-string parent-type)])
+       
+       ;; If the parent of the member call is of type dynamic, we allow any access to pass.
+       (if (or (equal? parent-type "Dynamic") (equal? parent-type "Dynamic*"))
+           "Dynamic*"
+           
+           ;; Else we check the accessor method.
+           (begin
+             (unless method-found
+               (tc-error stmt
+                         "No such member `~a` in parent of type `~a`."
+                         name-string
+                         parent-type))
+             
+             ;; Workaround for union return type of function.
+             (let* ([method-found (cast method-found MethodType)])
+               
+               ;; The return type of the accessor method is the type of the member access.
+               (MethodType-rtype method-found))))))
     
     ((grace:return value) "#Void#")
     
@@ -702,7 +789,7 @@
     (else 
      (tc-error stmt "Found unknown structure while typechecking") 
      "ERROR")))
-  ;(list))
+;(list))
 
 
 

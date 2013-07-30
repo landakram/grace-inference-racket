@@ -9,7 +9,7 @@
 //2 - 3
 type Object1 = {}                
 def c : Object1 = object {}
-c.foo()                     // Fixed [ ] No such method.
+// c.foo()                     // Fixed [x] No such method.
 
 // object {
 //   def e : Number = "Hello"  // Fixed [x] Invalid assignment.
@@ -37,7 +37,7 @@ c.foo()                     // Fixed [ ] No such method.
 
 class Dog.new(name, size) {
   var name := name
-  var size := size
+  var size : Number := size
   
   method changeName(newName) {
     name := newName
@@ -49,7 +49,16 @@ class Dog.new(name, size) {
   }
 }
 
-def dog = Dog.new("Doug", 10)
+type DogType = {
+  bark() -> Done
+  changeName(newName : String) -> String
+  name() -> String
+  name:=(_ : String) -> Done
+  size() -> Number
+  size:=(_ : Number) -> Done
+}  
+
+def dog : DogType = Dog.new("Doug", 10)
 
 print(dog.size)
 print(dog.name)
@@ -92,3 +101,10 @@ def x : T = object {
 }
 
 foo(x)
+
+//object {
+//  object {    
+//    outer.outer.foo(x)
+//  }
+//}
+
