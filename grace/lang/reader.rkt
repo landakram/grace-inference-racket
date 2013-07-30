@@ -1,7 +1,7 @@
 #lang racket
 ;#lang typed/racket
 (require "parseR.rkt"
-         "astR.rkt"
+         ;"astR.rkt"
          "typecheckR.rkt"
          "output.rkt"
          "evaluator.rkt"
