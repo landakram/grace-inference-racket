@@ -650,12 +650,16 @@
             [type-string (typecheck name)]
             [value-type-string (typecheck value)])
        (unless { value-type-string . conforms-to? . type-string }
-         (tc-error stmt
-                   ;"Can not assign value of type `~a` to variable `~a` of type `~a`."
-                   "Can not assign value of type `~a` to variable of type `~a`."
-                   value-type-string
-                   ;name-string
-                   type-string))
+         (if (regexp-match #rx"#Object([0-9]+)#"  value-type-string)
+               (tc-error stmt
+                         "Given object does not conform to type `~a`."
+                         type-string)
+               (tc-error stmt
+                         ;"Can not assign value of type `~a` to variable `~a` of type `~a`."
+                         "Can not assign value of type `~a` to variable of type `~a`."
+                         value-type-string
+                         ;name-string
+                         type-string)))
        
        ;; A variable assignment returns done.
        "Done"))
