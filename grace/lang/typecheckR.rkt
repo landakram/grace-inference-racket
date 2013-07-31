@@ -258,25 +258,25 @@
 
 
 ;; TODO: REMOVE UNLESS NEEDED
-#|
-(: method-equal? (MethodType MethodType -> Boolean))
-(define (method-equal? m1 m2)
+
+(: method-subtype? (MethodType MethodType -> Boolean))
+(define (method-subtype? m1 m2)
   (let* ([m1-name (MethodType-name m1)]
          [m2-name (MethodType-name m2)]
          [m1-signature (MethodType-signature m1)]
          [m2-signature (MethodType-signature m2)]
          [m1-rtype (MethodType-rtype m1)]
          [m2-rtype (MethodType-rtype m2)])
-    (displayln (equal? m1-name m2-name))
-    (displayln (equal? m1-signature m2-signature))
-    (displayln (equal? m1-rtype m2-rtype))
+    ;(displayln (equal? m1-name m2-name))
+    ;(displayln (equal? m1-signature m2-signature))
+    ;(displayln (equal? m1-rtype m2-rtype))
                
     (if (and (equal? m1-name m2-name)
-             (equal? m1-signature m2-signature)
-             (equal? m1-rtype m2-rtype))
+             (andmap conforms-to? m1-signature m2-signature)
+             { m1-rtype . conforms-to? . m2-rtype })
         #t
         #f)))
-|#
+
 
 
 ;; 
@@ -306,28 +306,35 @@
 ;;
 (: subtype-of? (String String -> Boolean))
 (define (subtype-of? maybe-subtype maybe-supertype)
-  (let* ([subtype-methods (cast (find-type maybe-subtype) GraceType)]
-         [suptype-methods (cast (find-type maybe-supertype) GraceType)])
+  (let* (;[subtype-methods (cast (find-type maybe-subtype) GraceType)]
+         [subtype-methods (find-type maybe-subtype)]
+         ;[suptype-methods (cast (find-type maybe-supertype) GraceType)])
+         [suptype-methods (find-type maybe-supertype)])
     
-    ;; As far as we know, it is a subtype.
-    (define: is-subtype : Boolean #t)
-    
-    ;; Only loop if we haven't already discovered it isn't a subtype.
-    (for ([super-method suptype-methods]
-          #:when is-subtype)
-      
-      ;; We have not yet found a matching method in the maybe-subtype.
-      (define: matching-method-found : Boolean #f)
-      (for ([sub-method subtype-methods])
-        (unless matching-method-found
-          (set! matching-method-found
-                (equal? sub-method super-method))))
-      
-      ;; If we didn't find a matching method we don't have a subtype.
-      (unless matching-method-found
-        (set! is-subtype #f)))
-    
-    is-subtype))
+    ;; If we have issues with undefined types, we just return false.
+    (if (and subtype-methods suptype-methods)
+        
+        ;; Else, we check to see if it is a subtype by looking at methods.
+        (let* ([is-subtype #t])
+          
+          ;; Only loop if we haven't already discovered it isn't a subtype.
+          (for ([super-method suptype-methods]
+                #:when is-subtype)
+            
+            ;; We have not yet found a matching method in the maybe-subtype.
+            (define: matching-method-found : Boolean #f)
+            (for ([sub-method subtype-methods])
+              (unless matching-method-found
+                (set! matching-method-found
+                      (method-subtype? sub-method super-method))))
+            
+            ;; If we didn't find a matching method we don't have a subtype.
+            (unless matching-method-found
+              (set! is-subtype #f)))
+          
+          is-subtype)
+        
+        #f)))
 
 
 
@@ -441,11 +448,22 @@
   (let-values ([(current-type-defs current-type-env)
                 (build-environment stx)])
     
-    ;;
+    ;; Set the type of self in the type-environment.
     (set-type "self" (IDInfo "#ScopeType#" "def") current-type-env)
     
     ;; Push the scope environments onto the stack.
     (push-scope current-type-defs current-type-env)
+    
+    ;; This isn't strictly neccessary, but is useful because it catches errors in
+    ;; user declarations before they are used in the code and other errors come up.
+    (for ([elt (unwrap stx)])
+      (match (unwrap elt)
+        ((grace:type-def name methods) (typecheck elt))       
+        ((grace:method name signature body rtype) (typecheck elt))        
+        ((grace:class-decl name param-name signature body) (typecheck elt))        
+        ((grace:def-decl name type value) (typecheck elt))        
+        ((grace:var-decl name type value) (typecheck elt))        
+        (else 'none)))
     
     ;; Typecheck each element in the body
     (for ([elt (unwrap stx)])
@@ -585,7 +603,8 @@
        ;; expression matches the annotated type.
        (unless (equal? value-type-string "#NoValue#")
          (unless { value-type-string . conforms-to? . type-string }
-           (if (equal? value-type-string "#ScopeType#")
+           ;(if (equal? value-type-string "#ScopeType#")
+           (if (regexp-match #rx"#Object([0-9]+)#"  value-type-string)
                (tc-error stmt
                          "Given object does not conform to type `~a`."
                          type-string)
@@ -613,7 +632,7 @@
        ;; If a value is given in an assignment, make sure the type of the
        ;; expression matches the annotated type.
        (unless { value-type-string . conforms-to? . type-string }
-         (if (equal? value-type-string "#ScopeType#")
+         (if (regexp-match #rx"#Object([0-9]+)#"  value-type-string)
              (tc-error stmt
                        "Given object does not conform to type `~a`."
                        type-string)
@@ -889,24 +908,33 @@
                                         type-string)
                             current-type-defs)))
          
+         ;; Set the return type of the method in the environment so return statements
+         ;; can be typechecked.
+         (set-type "$ReturnType$" (IDInfo declared-rtype "def") current-type-env)
+         
          
          ;; Push the scope environments onto the stack.
          (push-scope current-type-defs current-type-env)
          
          ;; Typecheck each element in the body
-         (for ([statement body-list])
-           (match (unwrap statement)
-             ((grace:return value)
-              (let* ([returned-type (typecheck (cast value (Syntaxof Any)))])
-                (unless { returned-type . conforms-to? . declared-rtype }
-                  (tc-error stmt
-                            "Method of return type `~a` returned incompatible type `~a`."
-                            declared-rtype
-                            returned-type))))
-             
-             (else (typecheck statement))))
+         (map typecheck body-list)
+         ;(for ([statement body-list])
+         ;  (match (unwrap statement)
+         ;    ((grace:return value)
+         ;     (let* ([returned-type (typecheck (cast value (Syntaxof Any)))])
+         ;       (unless { returned-type . conforms-to? . declared-rtype }
+         ;         (tc-error stmt
+         ;                   "Method of return type `~a` returned incompatible type `~a`."
+         ;                   declared-rtype
+         ;                   returned-type))))
+         ;    
+         ;    (else (typecheck statement))))
+         
+         ;; Make sure the type of the last statement in the method body matches the
+         ;; declared return type.
          
          
+         ;; Pop off the method-scope after typechecking.
          (pop-scope)))
      
      "Done")
@@ -939,7 +967,25 @@
     
     ((grace:return value)
      ;; Workaround for syntax-e.
-     (typecheck (cast value (Syntaxof Any))))
+     (let* ([value-type (typecheck (cast value (Syntaxof Any)))]
+            [current-return-type (find-id "$ReturnType$")])
+       
+       ;; Make sure that we are inside of a method.
+       (unless current-return-type
+         (tc-error stmt
+                   "A return statement was given outside of the scope of a method"))
+       
+       ;; Make sure the value type matches the return type of the method we are in.
+       (unless { value-type . conforms-to? . current-return-type }
+         (tc-error stmt
+                   "Method returned a value of the wrong type.\n~aExpected: ~a\n~aGiven: ~a"
+                   "          "
+                   current-return-type
+                   "          "
+                   value-type))
+       
+       ;; Return the type of the value.
+       value-type))
     
     ((grace:if-then-else check tbody ebody) "#Void#")
     
@@ -1086,7 +1132,6 @@
   
   ;; TODO: Remove, for debugging.
   ;(display-type-env current-type-defs current-type-env)
-  
   
   (values current-type-defs current-type-env))
 

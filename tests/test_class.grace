@@ -105,11 +105,29 @@ type T = {
   a:=(_ : Number) -> Done
 }
 
+
+
+
+
+
+var cc : String := foo(x)
+
+
 method foo(arg : S) -> String {
-  print(arg)
-  return "Done!"
-  self.x()
+  def c : B = object {
+    method boo() {
+      "Hello"
+    }
+  }
+  return self.cc
 }
+type B = {
+  boo() -> String
+}     
+
+
+
+
 
 def x : T = object {
   var a : Number := 2
