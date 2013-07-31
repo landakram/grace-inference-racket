@@ -863,6 +863,11 @@
      (let* ([body-list (unwrap body)]
             [declared-rtype (typecheck rtype)])
        
+       (unless (find-type declared-rtype)
+         (tc-error stmt
+                   "Type `~a` is not defined in this context."
+                   declared-rtype))
+       
        (let-values ([(current-type-defs current-type-env)
                      (build-environment body)])
          
@@ -870,6 +875,11 @@
          (for ([arg (unwrap signature)])
            (let* ([name-string (id-name arg)]
                   [type-string (id-type arg)])
+             
+             (unless (find-type type-string)
+               (tc-error stmt
+                         "Type `~a` is not defined in this context."
+                         type-string))
              
              ;; Add the identifier to the type environment and add an accessor method.
              (set-type name-string (IDInfo type-string "def") current-type-env)

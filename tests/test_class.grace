@@ -105,7 +105,7 @@ type T = {
   a:=(_ : Number) -> Done
 }
 
-method foo(arg : S) -> String{
+method foo(arg : S) -> String {
   print(arg)
   return "Done!"
   self.x()
