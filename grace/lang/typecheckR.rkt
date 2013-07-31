@@ -346,14 +346,14 @@
          
          ;; Guard statement to save the type of id "self" when we find it.
          (when (equal? identifier-type-string "#NoTypeFound#")
-           
+                                 
            ;; Look for the identifier in the current type-env and save it.
            (set! identifier-type-string
                  (IDInfo-type
                   (hash-ref type-env
                             "self"
                             (λ () (IDInfo "#NoTypeFound#" "")))))
-           
+                      
            ;; Look for the actual type of self in the current type-defs and save it.
            (set! identifier-type 
                  (hash-ref type-def-env
@@ -362,7 +362,7 @@
        
        ;; This should never come up, but is being put here as a check. "self" 
        ;; should always be defined in every scope.
-       (unless (equal? identifier-type-string "#NoTypeFound#")
+       (when (equal? identifier-type-string "#NoTypeFound#")
          (error 'Typechecker "This should never come up and means that `self` was not found in the function `find-method-in`."))
        
        (set! method-found
@@ -440,6 +440,9 @@
   ;; Get the type environment for the current scope by calling build-environment.
   (let-values ([(current-type-defs current-type-env)
                 (build-environment stx)])
+    
+    ;;
+    (set-type "self" (IDInfo "#ScopeType#" "def") current-type-env)
     
     ;; Push the scope environments onto the stack.
     (push-scope current-type-defs current-type-env)
@@ -763,6 +766,18 @@
                          [method-signature (MethodType-signature method-found)]
                          [method-rtype (MethodType-rtype method-found)])
                     
+                    (let* ([arg-length (length arg-types)]
+                           [sig-length (length method-signature)])
+                      (unless (equal? arg-length sig-length)
+                        (tc-error stmt
+                                  "Method `~a` got the wrong number of arguments.\n~aExpected: ~a\n~aReceived: ~a"
+                                  name-string
+                                  "          "
+                                  sig-length
+                                  "          "
+                                  arg-length)))
+                                  
+                    
                     (unless (andmap conforms-to? arg-types method-signature)
                       (tc-error stmt
                                 "Method `~a` got arguments of the wrong type.\n~aExpected: ~a\n~aArguments: ~a"
@@ -793,6 +808,17 @@
                    ;; Get the types of the expressions in the arguments.
                    [arg-types (map typecheck args)])
               
+              (let* ([arg-length (length arg-types)]
+                     [sig-length (length method-signature)])
+                (unless (equal? arg-length sig-length)
+                  (tc-error stmt
+                            "Method `~a` got the wrong number of arguments.\n~aExpected: ~a\n~aReceived: ~a"
+                            name-string
+                            "          "
+                            sig-length
+                            "          "
+                            arg-length)))
+              
               (unless (andmap conforms-to? arg-types method-signature)
                 (tc-error stmt
                           "Method `~a` got arguments of the wrong type.\n~aExpected: ~a\n~aArguments: ~a"
@@ -811,7 +837,7 @@
                           (grace:object-body (cast (unwrap stmt) grace:object)))])
        
        ;; Set the type of the identifier self.
-       (set-type "self" (IDInfo "#ScopeType#" "def") (car type-envs))
+       ;(set-type "self" (IDInfo "#ScopeType#" "def") (car type-envs))
        
        (pop-scope)
        
@@ -868,7 +894,10 @@
                             declared-rtype
                             returned-type))))
              
-             (else (typecheck statement))))))
+             (else (typecheck statement))))
+         
+         
+         (pop-scope)))
      
      "Done")
     
@@ -1046,7 +1075,7 @@
       (else 'none)))
   
   ;; TODO: Remove, for debugging.
-  (display-type-env current-type-defs current-type-env)
+  ;(display-type-env current-type-defs current-type-env)
   
   
   (values current-type-defs current-type-env))
