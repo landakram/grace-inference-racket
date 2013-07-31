@@ -335,15 +335,42 @@
 (define (find-method-in method-name where)
   (match where
     
-    ;; TODO: This needs to go because self is an identifer that is placed into the type
-    ;; environment and that should be checked in the else case.
-    ;;
     ;; In the case that the method call was prefixed to self, such as in `self.somex(...)`.
     ("#ScopeType#" 
-     (let* ([selftype (hash-ref (car type-defs) "#ScopeType#")])
-       (findf (λ: ([method : MethodType])
-                (equal? method-name (MethodType-name method)))
-              selftype)))
+     (let: ([method-found : (U #f MethodType) #f]
+            [identifier-type-string : String "#NoTypeFound#"]
+            [identifier-type : GraceType (list)])
+       
+       (for ([type-env type-envs]
+             [type-def-env type-defs])
+         
+         ;; Guard statement to save the type of id "self" when we find it.
+         (when (equal? identifier-type-string "#NoTypeFound#")
+           
+           ;; Look for the identifier in the current type-env and save it.
+           (set! identifier-type-string
+                 (IDInfo-type
+                  (hash-ref type-env
+                            "self"
+                            (λ () (IDInfo "#NoTypeFound#" "")))))
+           
+           ;; Look for the actual type of self in the current type-defs and save it.
+           (set! identifier-type 
+                 (hash-ref type-def-env
+                           identifier-type-string
+                           (λ () (list))))))
+       
+       ;; This should never come up, but is being put here as a check. "self" 
+       ;; should always be defined in every scope.
+       (unless (equal? identifier-type-string "#NoTypeFound#")
+         (error 'Typechecker "This should never come up and means that `self` was not found in the function `find-method-in`."))
+       
+       (set! method-found
+             (findf (λ: ([method : MethodType])
+                      (equal? method-name (MethodType-name method)))
+                    identifier-type))
+       
+       method-found))
     
     ;; In the case that the method call was prefixed to outer, such as in `outer.somex(...)`
     ;; 
