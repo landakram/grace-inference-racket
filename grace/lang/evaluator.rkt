@@ -58,8 +58,8 @@
     ;They allow me to replace a hash with a new one and keep pointers into it.
     [`(myif ,ec ,et ,ef) (if 
                           (apply-proc (eval-send3 (eval ec env) '(bval) env) '())
-                          (eval et env) 
-                          (eval ef env))]
+                          (eval-send3 et '(apply) env) 
+                          (eval-send3 ef '(apply) env))]
     [`(if ,ec ,et ,ef) (if (eval ec env) (eval et env) (eval ef env))]
     ;Forms of let take a list of pairs and a method to bind those pairs over.
     [`(letrec ,binds ,eb) (eval-letrec binds eb env)] 
@@ -85,7 +85,7 @@
                    (begin (eval-send3 body '(apply) env)
                           (loop)) (void)))]
        (loop))]
-    [`(liststopairs ,first ,second) (changeliststopairs first second)]
+    ;[`(liststopairs ,first ,second) (changeliststopairs first second)]
     ;concatenate two strings together
     [`(++ ,e1 ,e2)    
      (let ([ex1 (eval e1 env)])
@@ -105,8 +105,10 @@
      (eval `(myif (equal? (eval ,e1 ,env) (eval ,e2 ,env)) (true) (false)) env)] 
     [`(!= ,e1 ,e2) 
      (eval `(myif (equal? (eval ,e1 ,env) (eval ,e2 ,env)) (false) (true)) env)] 
-    [`(or ,e1 ,e2)  (eval `(myif (eval ,e1 ,env) (true) (eval ,e2 ,env)) env)]
-    [`(and ,e1 ,e2)  (eval `(myif (eval ,e1 ,env) (eval ,e2 ,env) (false)) env)]
+    [`(or ,e1 ,e2)  (eval `(myif (eval ,e1 ,env) (block () (true))
+                                 (block () (eval ,e2 ,env))) env)]
+    [`(and ,e1 ,e2)  (eval `(myif (eval ,e1 ,env) (block () (eval ,e2 ,env)) 
+                                  (block () (false))) env)]
     ;different constructors for classes depending on #of arguments 
     [`(class ,constructor ,initargs ,methods ,body)
      (eval-newclassC constructor initargs methods body env)]
@@ -170,15 +172,15 @@
 ;Practical use is to take a list of instance variables and a list of arguments 
 ;and change them to a list of bindings that can then be used in a let statement
 ;or as part of an object's constructor.
-(define (changeliststopairs first second)
-  (match `(,first ,second)
-    [`((,f . ,first) (,s . ,second))
-     ;=>
-     (cons (list f s) (changeliststopairs first second))]
-    
-    [`(() ())
-     ;=>
-     (list)]))
+;(define (changeliststopairs first second)
+;  (match `(,first ,second)
+;    [`((,f . ,first) (,s . ,second))
+;     ;=>
+;     (cons (list f s) (changeliststopairs first second))]
+;    
+;    [`(() ())
+;     ;=>
+;     (list)]))
 
 
 ;preferred format for object declarations

@@ -43,7 +43,7 @@ var x2 := false
 print(false || true)
 print(x2.not.not)
 x2 := x2.not
-print(x && false.not)
+print(x2 && false.not)
 
 
 // Test 7 : OK

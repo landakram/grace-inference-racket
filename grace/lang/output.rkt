@@ -68,8 +68,10 @@
                             "(begin (list " 
                             (foldr string-append "" (all-but-methods body))
                             ")))"))
-            ((grace:block-decl body)
-             (string-append "(block () (begin (list "
+            ((grace:block-decl signature body)
+             (string-append "(block (" (foldr string-append
+                     ") " (map (lambda (x) (string-append " " x)) 
+                               (dont-wrap signature))) " (begin (list "
                             (string-append* (AST-to-RG body)) ")))")) 
                             
             ((grace:method name signature body type)
@@ -117,9 +119,9 @@
                                ":= " (AST-to-RG value) ")"))))
             ((grace:if-then-else cond tbody ebody) 
              (string-append "(myif " (AST-to-RG cond)  
-                            "(begin (list" (string-append* (AST-to-RG tbody)) 
-                            ")) (begin (list" (string-append* (AST-to-RG ebody))
-                            ")))"))
+                           (AST-to-RG tbody) 
+                           (AST-to-RG ebody)
+                            ")"))
             ((grace:while check body)
              (string-append "(while " (AST-to-RG check) (AST-to-RG body) ")"))
                             
@@ -172,6 +174,17 @@
 (define (p in) (parse (object-name in) in))
 
 (define a (p (open-input-string "
+// Test 8 : OK
+if (true) then {
+    print(\"OK 1 then\")
+} else {
+    print(\"Fail 1 then\")
+}
+if (false) then {
+    print(\"Fail 2 else\")
+} else {
+    print(\"OK 2 else\")
+}
 ")))
 ;(displayln (grace:object a))
 ;(displayln (syntax->datum a))

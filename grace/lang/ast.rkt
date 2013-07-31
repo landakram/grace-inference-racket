@@ -42,7 +42,7 @@
   (if-then-else (check tbody ebody))
   (while (check body))
   (class-decl (name param-name signature body))
-  (block-decl (body))
+  (block-decl (signature body))
 
   (code-seq (code))
   (newline ()))

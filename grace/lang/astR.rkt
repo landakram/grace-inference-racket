@@ -117,9 +117,9 @@
                (Syntaxof grace:member) (Syntaxof grace:method-call))]
    ;[tbody : (Listof (Syntaxof Any))]
    ;[ebody : (Listof (Syntaxof Any))])
-   [tbody : BodyType]
+   [tbody : (Syntaxof grace:block-decl)]
    ;[tbody : (Syntaxof (Listof (Syntaxof Any)))]
-   [ebody : BodyType])
+   [ebody : (Syntaxof grace:block-decl)])
   #:prefab)
 
 (struct: grace:while
@@ -136,7 +136,8 @@
   #:prefab)
 
 (struct: grace:block-decl
-  ([body : BodyType])
+  ([signature : SignatureType]
+   [body : BodyType])
   #:prefab)
 
 ;(struct: grace:code-seq

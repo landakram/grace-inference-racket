@@ -36,7 +36,7 @@
     ;(display sp)
     (define-values (in out) (make-pipe))
     (display sp out)
-    (let* ((toeval (read in))) (begin ;(displayln toeval) 
+    (let* ((toeval (read in))) (begin (write toeval) 
                                       ((eval-with (env-initial)) toeval)))
     ;(display (list? env))
 ;    (display stx)
