@@ -69,6 +69,7 @@
      ((expression NEWLINE) $1)
      ((return NEWLINE) $1)
      ((if-then-else NEWLINE) $1)
+     ((while-loop NEWLINE) $1)
      ((any := expression NEWLINE) (at-src (grace:bind $1 $3))))
      ;((NEWLINE) (at-src (grace:newline))))
 
@@ -263,7 +264,11 @@
       (at-src (grace:if-then-else $3 (at-src $7) (at-src $11))))
      ((IF LPAREN expression RPAREN THEN LBRACE if-body RBRACE)
       (at-src (grace:if-then-else $3 (at-src $7) (at-src (list))))))
-
+    
+    (while-loop
+     ((WHILE block-declaration DO block-declaration)
+      (at-src (grace:while (at-src $2) (at-src $4)))))
+    
     ; TODO: Should take multipart constructor (see: method-declaration)
     (class-declaration
      ((CLASS identifier DOT identifier method-signature LBRACE object-body RBRACE)

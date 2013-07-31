@@ -120,6 +120,9 @@
                             "(begin (list" (string-append* (AST-to-RG tbody)) 
                             ")) (begin (list" (string-append* (AST-to-RG ebody))
                             ")))"))
+            ((grace:while check body)
+             (string-append "(while " (AST-to-RG check) (AST-to-RG body) ")"))
+                            
             (void "")
             (else (print "ERROR1") (print elt))))))
 
@@ -169,15 +172,6 @@
 (define (p in) (parse (object-name in) in))
 
 (define a (p (open-input-string "
-var z := 1
-def x = { print(3)
-z := z+1
-}
-
-if (z < 5) then {x
-}
-
-
 ")))
 ;(displayln (grace:object a))
 ;(displayln (syntax->datum a))

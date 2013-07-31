@@ -24,7 +24,7 @@
    SEMICOLON
    NEWLINE
    OBJECT METHOD VAR TYPE IMPORT CLASS
-   RETURN DEF INHERITS IS DIALECT IF THEN ELSE
+   RETURN DEF INHERITS IS DIALECT IF THEN ELSE WHILE DO
    UNARY METHODCALL))
 
 
@@ -83,7 +83,7 @@
   
   (keyword
    (:or "object" "method" "var" "type" "import" "class"
-        "return" "def" "inherits" "is" "dialect"
+        "return" "def" "inherits" "is" "dialect" "while" "do"
         "if" "then" "elseif" "else")))
 
 

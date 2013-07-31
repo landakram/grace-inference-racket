@@ -117,9 +117,14 @@
                (Syntaxof grace:member) (Syntaxof grace:method-call))]
    ;[tbody : (Listof (Syntaxof Any))]
    ;[ebody : (Listof (Syntaxof Any))])
-   ;[tbody : BodyType]
-   [tbody : (Syntaxof (Listof (Syntaxof Any)))]
+   [tbody : BodyType]
+   ;[tbody : (Syntaxof (Listof (Syntaxof Any)))]
    [ebody : BodyType])
+  #:prefab)
+
+(struct: grace:while
+  ([check : (Syntaxof grace:block-decl)]
+   [body : (Syntaxof grace:block-decl)])
   #:prefab)
 
 (struct: grace:class-decl

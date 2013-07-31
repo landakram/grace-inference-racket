@@ -78,11 +78,13 @@
     [`(begin ,e1 ,e2)     (begin (eval e1 env)
                                  (eval e2 env))]
     [`(begin ,es)         (last (map (eval-with env) es))] 
-    [`(while ,test ,body) (local [(define (loop)
-                                    (if ((eval-with env) test)
-                                        (begin (eval body env)
-                                               (loop)) (void)))]
-                            (loop))]
+    [`(while ,test ,body) ;(displayln body)
+     (local [(define (loop)
+               (if (apply-proc (eval-send3 
+                                (eval-send3 test '(apply) env)'(bval) env) '())
+                   (begin (eval-send3 body '(apply) env)
+                          (loop)) (void)))]
+       (loop))]
     [`(liststopairs ,first ,second) (changeliststopairs first second)]
     ;concatenate two strings together
     [`(++ ,e1 ,e2)    
@@ -622,5 +624,4 @@ print(1)
 
 
 ; read in a program, and evaluate:
-(eval-program (read-all))
-
+;(eval-program (read-all))
