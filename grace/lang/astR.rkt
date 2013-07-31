@@ -25,7 +25,8 @@
   (Syntaxof grace:type-annot))
 
 (struct: grace:type-annot
-  ([value : String]))
+  ([value : String])
+  #:prefab)
 
 (struct: grace:number
   ([value : (Syntaxof Number)])
@@ -68,7 +69,7 @@
   #:prefab)
 
 (struct: grace:bind
-  ([name  : IdentifierType]
+  ([name  : (U (Syntaxof grace:member) IdentifierType)]
    ;; TODO: possibly fix type of value
    [value : (Syntaxof Any)])
   #:prefab)
@@ -100,7 +101,7 @@
   #:prefab)
 
 (struct: grace:member
-  ([parent : (U IdentifierType (Syntaxof grace:member))]
+  ([parent : (U IdentifierType (Syntaxof grace:member) (Syntaxof grace:method-call))]
    [name   : IdentifierType])
   #:prefab)
 

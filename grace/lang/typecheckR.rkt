@@ -140,7 +140,8 @@
   
   (MethodType "greater-than" (list "Number") "Boolean")
   (MethodType "less-than" (list "Number") "Boolean")
-  (MethodType "equal" (list "Number") "Boolean")
+  (MethodType "equal" (list "Top") "Boolean")
+  (MethodType "not-equal" (list "Top") "Boolean")
   (MethodType "greater-than-eq" (list "Number") "Boolean")
   (MethodType "less-than-eq" (list "Number") "Boolean")
   
@@ -152,7 +153,9 @@
  ;; TODO: Add methods for strings...
  (list
   (MethodType "concat" (list "Top") "String")
-  (MethodType "size" (list) "Number")))
+  (MethodType "size" (list) "Number")
+  (MethodType "equal" (list "Top") "Boolean")
+  (MethodType "not-equal" (list "Top") "Boolean")))
 
 (hash-set! prelude-type-defs "Done" (list))
 
@@ -164,7 +167,9 @@
  (list
   (MethodType "not" (list) "Boolean")
   (MethodType "and" (list "Boolean") "Boolean")
-  (MethodType "or" (list "Boolean") "Boolean")))
+  (MethodType "or" (list "Boolean") "Boolean")
+  (MethodType "equal" (list "Top") "Boolean")
+  (MethodType "not-equal" (list "Top") "Boolean")))
 
 (hash-set! prelude-type-defs "Dynamic" (list))
 (hash-set! prelude-type-defs "Dynamic*" (hash-ref prelude-type-defs "Dynamic"))
@@ -181,7 +186,7 @@
 ;; Builtin methods
 (hash-set!
  prelude-type-defs
- "#SelfType#"
+ "#ScopeType#"
  (list
   (MethodType "print" (list "Top") "Done")))
 
@@ -189,9 +194,9 @@
 ;; Add builtin identifiers.
 (hash-set! prelude-type-env "true" (IDInfo "Boolean" "builtin"))
 (hash-set! prelude-type-env "false" (IDInfo "Boolean" "builtin"))
-(hash-set! prelude-type-env "self" (IDInfo "#SelfType#" "builtin"))
+(hash-set! prelude-type-env "self" (IDInfo "#ScopeType#" "builtin"))
 
-;; TODO: Maybe fix type of outer type to #SelfType# and figure out how to
+;; TODO: Maybe fix type of outer type to #ScopeType# and figure out how to
 ;;   look up outer scopes in typechecking logic.
 (hash-set! prelude-type-env "outer" (IDInfo "#OuterType#" "builtin"))
 
@@ -253,25 +258,25 @@
 
 
 ;; TODO: REMOVE UNLESS NEEDED
-#|
-(: method-equal? (MethodType MethodType -> Boolean))
-(define (method-equal? m1 m2)
+
+(: method-subtype? (MethodType MethodType -> Boolean))
+(define (method-subtype? m1 m2)
   (let* ([m1-name (MethodType-name m1)]
          [m2-name (MethodType-name m2)]
          [m1-signature (MethodType-signature m1)]
          [m2-signature (MethodType-signature m2)]
          [m1-rtype (MethodType-rtype m1)]
          [m2-rtype (MethodType-rtype m2)])
-    (displayln (equal? m1-name m2-name))
-    (displayln (equal? m1-signature m2-signature))
-    (displayln (equal? m1-rtype m2-rtype))
+    ;(displayln (equal? m1-name m2-name))
+    ;(displayln (equal? m1-signature m2-signature))
+    ;(displayln (equal? m1-rtype m2-rtype))
                
     (if (and (equal? m1-name m2-name)
-             (equal? m1-signature m2-signature)
-             (equal? m1-rtype m2-rtype))
+             (andmap conforms-to? m1-signature m2-signature)
+             { m1-rtype . conforms-to? . m2-rtype })
         #t
         #f)))
-|#
+
 
 
 ;; 
@@ -301,28 +306,35 @@
 ;;
 (: subtype-of? (String String -> Boolean))
 (define (subtype-of? maybe-subtype maybe-supertype)
-  (let* ([subtype-methods (cast (find-type maybe-subtype) GraceType)]
-         [suptype-methods (cast (find-type maybe-supertype) GraceType)])
+  (let* (;[subtype-methods (cast (find-type maybe-subtype) GraceType)]
+         [subtype-methods (find-type maybe-subtype)]
+         ;[suptype-methods (cast (find-type maybe-supertype) GraceType)])
+         [suptype-methods (find-type maybe-supertype)])
     
-    ;; As far as we know, it is a subtype.
-    (define: is-subtype : Boolean #t)
-    
-    ;; Only loop if we haven't already discovered it isn't a subtype.
-    (for ([super-method suptype-methods]
-          #:when is-subtype)
-      
-      ;; We have not yet found a matching method in the maybe-subtype.
-      (define: matching-method-found : Boolean #f)
-      (for ([sub-method subtype-methods])
-        (unless matching-method-found
-          (set! matching-method-found
-                (equal? sub-method super-method))))
-      
-      ;; If we didn't find a matching method we don't have a subtype.
-      (unless matching-method-found
-        (set! is-subtype #f)))
-    
-    is-subtype))
+    ;; If we have issues with undefined types, we just return false.
+    (if (and subtype-methods suptype-methods)
+        
+        ;; Else, we check to see if it is a subtype by looking at methods.
+        (let* ([is-subtype #t])
+          
+          ;; Only loop if we haven't already discovered it isn't a subtype.
+          (for ([super-method suptype-methods]
+                #:when is-subtype)
+            
+            ;; We have not yet found a matching method in the maybe-subtype.
+            (define: matching-method-found : Boolean #f)
+            (for ([sub-method subtype-methods])
+              (unless matching-method-found
+                (set! matching-method-found
+                      (method-subtype? sub-method super-method))))
+            
+            ;; If we didn't find a matching method we don't have a subtype.
+            (unless matching-method-found
+              (set! is-subtype #f)))
+          
+          is-subtype)
+        
+        #f)))
 
 
 
@@ -331,17 +343,50 @@
   (match where
     
     ;; In the case that the method call was prefixed to self, such as in `self.somex(...)`.
-    ("#SelfType#" 
-     (let* ([selftype (hash-ref (car type-defs) "#SelfType#")])
-       (findf (λ: ([method : MethodType])
-                (equal? method-name (MethodType-name method)))
-              selftype)))
+    ("#ScopeType#" 
+     (let: ([method-found : (U #f MethodType) #f]
+            [identifier-type-string : String "#NoTypeFound#"]
+            [identifier-type : GraceType (list)])
+       
+       (for ([type-env type-envs]
+             [type-def-env type-defs])
+         
+         ;; Guard statement to save the type of id "self" when we find it.
+         (when (equal? identifier-type-string "#NoTypeFound#")
+                                 
+           ;; Look for the identifier in the current type-env and save it.
+           (set! identifier-type-string
+                 (IDInfo-type
+                  (hash-ref type-env
+                            "self"
+                            (λ () (IDInfo "#NoTypeFound#" "")))))
+                      
+           ;; Look for the actual type of self in the current type-defs and save it.
+           (set! identifier-type 
+                 (hash-ref type-def-env
+                           identifier-type-string
+                           (λ () (list))))))
+       
+       ;; This should never come up, but is being put here as a check. "self" 
+       ;; should always be defined in every scope.
+       (when (equal? identifier-type-string "#NoTypeFound#")
+         (error 'Typechecker "This should never come up and means that `self` was not found in the function `find-method-in`."))
+       
+       (set! method-found
+             (findf (λ: ([method : MethodType])
+                      (equal? method-name (MethodType-name method)))
+                    identifier-type))
+       
+       method-found))
     
     ;; In the case that the method call was prefixed to outer, such as in `outer.somex(...)`
+    ;; 
+    ;; TODO: Fix because there isn't a "self" in every scope. Also, look for "self" in the
+    ;;   type environment rather than looking for #ScopeType# in the type-defs.
     ("#OuterType#"
      (if (< 3 (length type-defs))
          #f
-         (let* ([outertype (hash-ref (cadr type-defs) "#SelfType#")])
+         (let* ([outertype (hash-ref (cadr type-defs) "#ScopeType#")])
            (findf (λ: ([method : MethodType])
                     (equal? method-name (MethodType-name method)))
                   outertype))))
@@ -358,7 +403,7 @@
            (set! method-found
                  (findf (λ: ([method : MethodType])
                           (equal? method-name (MethodType-name method)))
-                        (hash-ref type-def-env "#SelfType#")))))
+                        (hash-ref type-def-env "#ScopeType#")))))
        
        ;; Return the method we found, or #f if it wasn't found.
        method-found))
@@ -403,8 +448,22 @@
   (let-values ([(current-type-defs current-type-env)
                 (build-environment stx)])
     
+    ;; Set the type of self in the type-environment.
+    (set-type "self" (IDInfo "#ScopeType#" "def") current-type-env)
+    
     ;; Push the scope environments onto the stack.
     (push-scope current-type-defs current-type-env)
+    
+    ;; This isn't strictly neccessary, but is useful because it catches errors in
+    ;; user declarations before they are used in the code and other errors come up.
+    (for ([elt (unwrap stx)])
+      (match (unwrap elt)
+        ((grace:type-def name methods) (typecheck elt))       
+        ((grace:method name signature body rtype) (typecheck elt))        
+        ((grace:class-decl name param-name signature body) (typecheck elt))        
+        ((grace:def-decl name type value) (typecheck elt))        
+        ((grace:var-decl name type value) (typecheck elt))        
+        (else 'none)))
     
     ;; Typecheck each element in the body
     (for ([elt (unwrap stx)])
@@ -414,7 +473,7 @@
     ;;   pop inner-scope ones after we return from the recursive call.
     
     ;; TODO: Fix return
-    (hash-ref current-type-defs "#SelfType#")))
+    (hash-ref current-type-defs "#ScopeType#")))
 
 
 ;; NOTES: This function dispatches all typecheck calls to smaller ones.
@@ -425,7 +484,10 @@
 (: typecheck ((Syntaxof Any) -> String))
 (define (typecheck stmt)
   (match (unwrap stmt)
-    ((grace:type-annot value) value)
+    
+    ;; For a type-annotation, simply return the type listed in the annotation.
+    ((grace:type-annot value)
+     (type-name (cast stmt TypeType)))
     
     ((grace:number value) "Number")
     
@@ -440,13 +502,38 @@
             ;; Work around for `unwrap` (using `syntax-e`) nesting syntax structure.
             [value (cast (syntax->datum (cast value (Syntaxof Any))) String)])
        
+       ;; Look for the identifier in our type environments.
        (set! identifier-type (find-id value))
        
        ;; If the identifier is not found in any of them, tc-error.
+       ;(when (equal? identifier-type "#NoTypeFound#")
+       ;  (tc-error stmt 
+       ;            "Identifier `~a` is not defined in this context."
+       ;            value))
+       
+       ;; If the identifier isn't found, look for a method of the same name.
        (when (equal? identifier-type "#NoTypeFound#")
-         (tc-error stmt 
-                   "Identifier `~a` is not defined in this context."
-                   value))
+         (let* ([method-found (find-method-in value "#All#")])
+           
+           ;; If there is no such method, then the identifier isn't defined.
+           (unless method-found
+             (tc-error stmt 
+                       "Identifier `~a` is not defined in this context."
+                       value))
+           
+           ;; If we do find the method, make sure its signature is empty.
+           (let* ([method-found (cast method-found MethodType)]
+                  [method-signature (MethodType-signature method-found)]
+                  [method-rtype (MethodType-rtype method-found)])
+             (unless (empty? method-signature)
+               (tc-error stmt
+                         "Method `~a` takes arguments `~a` but got none."
+                         value
+                         method-signature))
+             
+             ;; Set the identifier type to the return type of the method if it is found.
+             (set! identifier-type method-rtype))))
+       
        
        ;; Return the type of the identifier.
        identifier-type))
@@ -490,7 +577,7 @@
     
     ;; ----- TODO -----
     ;; When an object and a var or def's type do not match up, do not error
-    ;; with type "#SelfType#", but rather something more useful.
+    ;; with type "#ScopeType#", but rather something more useful.
     ;;  1. Possibility : Somehow get the method that could not be found in the
     ;;       value-type and pretty-print it to show what could not be found.
     ;; ----------------
@@ -516,7 +603,8 @@
        ;; expression matches the annotated type.
        (unless (equal? value-type-string "#NoValue#")
          (unless { value-type-string . conforms-to? . type-string }
-           (if (equal? value-type-string "#SelfType#")
+           ;(if (equal? value-type-string "#ScopeType#")
+           (if (regexp-match #rx"#Object([0-9]+)#"  value-type-string)
                (tc-error stmt
                          "Given object does not conform to type `~a`."
                          type-string)
@@ -544,7 +632,7 @@
        ;; If a value is given in an assignment, make sure the type of the
        ;; expression matches the annotated type.
        (unless { value-type-string . conforms-to? . type-string }
-         (if (equal? value-type-string "#SelfType#")
+         (if (regexp-match #rx"#Object([0-9]+)#"  value-type-string)
              (tc-error stmt
                        "Given object does not conform to type `~a`."
                        type-string)
@@ -557,14 +645,16 @@
     
     ;; Make sure the type in the env and the type of the value match.
     ((grace:bind name value) 
-     (let* ([name-string (id-name name)]
+     ;; TODO: Fix this so if name is a grace:member, we can pretty print it to the error.
+     (let* (;[name-string (id-name name)]
             [type-string (typecheck name)]
             [value-type-string (typecheck value)])
-       (unless (equal? type-string value-type-string)
+       (unless { value-type-string . conforms-to? . type-string }
          (tc-error stmt
-                   "Can not assign value of type `~a` to variable `~a` of type `~a`."
+                   ;"Can not assign value of type `~a` to variable `~a` of type `~a`."
+                   "Can not assign value of type `~a` to variable of type `~a`."
                    value-type-string
-                   name-string
+                   ;name-string
                    type-string))
        
        ;; A variable assignment returns done.
@@ -684,7 +774,7 @@
                 (begin
                   (unless method-found
                     ;; TODO: Fix the error message on this one because it will print as
-                    ;;   "... found in parent of type `#SelfType#`."
+                    ;;   "... found in parent of type `#ScopeType#`."
                     (tc-error stmt
                               "No such method `~a` found in parent of type `~a`."
                               name-string
@@ -694,6 +784,18 @@
                          [method-found (cast method-found MethodType)]
                          [method-signature (MethodType-signature method-found)]
                          [method-rtype (MethodType-rtype method-found)])
+                    
+                    (let* ([arg-length (length arg-types)]
+                           [sig-length (length method-signature)])
+                      (unless (equal? arg-length sig-length)
+                        (tc-error stmt
+                                  "Method `~a` got the wrong number of arguments.\n~aExpected: ~a\n~aReceived: ~a"
+                                  name-string
+                                  "          "
+                                  sig-length
+                                  "          "
+                                  arg-length)))
+                                  
                     
                     (unless (andmap conforms-to? arg-types method-signature)
                       (tc-error stmt
@@ -725,6 +827,17 @@
                    ;; Get the types of the expressions in the arguments.
                    [arg-types (map typecheck args)])
               
+              (let* ([arg-length (length arg-types)]
+                     [sig-length (length method-signature)])
+                (unless (equal? arg-length sig-length)
+                  (tc-error stmt
+                            "Method `~a` got the wrong number of arguments.\n~aExpected: ~a\n~aReceived: ~a"
+                            name-string
+                            "          "
+                            sig-length
+                            "          "
+                            arg-length)))
+              
               (unless (andmap conforms-to? arg-types method-signature)
                 (tc-error stmt
                           "Method `~a` got arguments of the wrong type.\n~aExpected: ~a\n~aArguments: ~a"
@@ -742,9 +855,16 @@
             [object-type (typecheck-body 
                           (grace:object-body (cast (unwrap stmt) grace:object)))])
        
+       ;; Set the type of the identifier self.
+       ;(set-type "self" (IDInfo "#ScopeType#" "def") (car type-envs))
+       
        (pop-scope)
        
+       ;; Set the type of the object in the outer scope.
        (hash-set! (car type-defs) object-name object-type)
+       
+       ;; TODO: Remove.
+       (display-type-env (car type-defs) (car type-envs))
        
        ;; TODO: Fix this type since the object might be popped off.
        ;;   Also, this doesn't allow for any def a : ObjectX = object { ... }
@@ -758,7 +878,67 @@
     ;; QUESTION: If a methods rtype is not specified, do we treat it as Dynamic*? Or
     ;; do we infer it from the return types?
     ;; Also we need to confirm all the types exist.
-    ((grace:method name signature body rtype) "#Void#")
+    ((grace:method name signature body rtype) 
+     (let* ([body-list (unwrap body)]
+            [declared-rtype (typecheck rtype)])
+       
+       (unless (find-type declared-rtype)
+         (tc-error stmt
+                   "Type `~a` is not defined in this context."
+                   declared-rtype))
+       
+       (let-values ([(current-type-defs current-type-env)
+                     (build-environment body)])
+         
+         ;; Set the type of each of the identifiers in the signature.
+         (for ([arg (unwrap signature)])
+           (let* ([name-string (id-name arg)]
+                  [type-string (id-type arg)])
+             
+             (unless (find-type type-string)
+               (tc-error stmt
+                         "Type `~a` is not defined in this context."
+                         type-string))
+             
+             ;; Add the identifier to the type environment and add an accessor method.
+             (set-type name-string (IDInfo type-string "def") current-type-env)
+             (add-method-to "#ScopeType#"
+                            (MethodType name-string
+                                        (list)
+                                        type-string)
+                            current-type-defs)))
+         
+         ;; Set the return type of the method in the environment so return statements
+         ;; can be typechecked.
+         (set-type "$ReturnType$" (IDInfo declared-rtype "def") current-type-env)
+         
+         
+         ;; Push the scope environments onto the stack.
+         (push-scope current-type-defs current-type-env)
+         
+         ;; Typecheck each element in the body
+         (map typecheck body-list)
+         ;(for ([statement body-list])
+         ;  (match (unwrap statement)
+         ;    ((grace:return value)
+         ;     (let* ([returned-type (typecheck (cast value (Syntaxof Any)))])
+         ;       (unless { returned-type . conforms-to? . declared-rtype }
+         ;         (tc-error stmt
+         ;                   "Method of return type `~a` returned incompatible type `~a`."
+         ;                   declared-rtype
+         ;                   returned-type))))
+         ;    
+         ;    (else (typecheck statement))))
+         
+         ;; Make sure the type of the last statement in the method body matches the
+         ;; declared return type.
+         
+         
+         ;; Pop off the method-scope after typechecking.
+         (pop-scope)))
+     
+     "Done")
+    
     
     ((grace:member parent name) 
      (let* ([name-string (id-name name)]
@@ -785,7 +965,27 @@
                ;; The return type of the accessor method is the type of the member access.
                (MethodType-rtype method-found))))))
     
-    ((grace:return value) "#Void#")
+    ((grace:return value)
+     ;; Workaround for syntax-e.
+     (let* ([value-type (typecheck (cast value (Syntaxof Any)))]
+            [current-return-type (find-id "$ReturnType$")])
+       
+       ;; Make sure that we are inside of a method.
+       (unless current-return-type
+         (tc-error stmt
+                   "A return statement was given outside of the scope of a method"))
+       
+       ;; Make sure the value type matches the return type of the method we are in.
+       (unless { value-type . conforms-to? . current-return-type }
+         (tc-error stmt
+                   "Method returned a value of the wrong type.\n~aExpected: ~a\n~aGiven: ~a"
+                   "          "
+                   current-return-type
+                   "          "
+                   value-type))
+       
+       ;; Return the type of the value.
+       value-type))
     
     ((grace:if-then-else check tbody ebody) "#Void#")
     
@@ -795,7 +995,7 @@
     
     (else 
      (tc-error stmt "Found unknown structure while typechecking") 
-     "ERROR")))
+     "#ERROR#")))
 ;(list))
 
 
@@ -817,7 +1017,7 @@
   
   
   ;; Add selftype to typedefs
-  (hash-set! current-type-defs "#SelfType#" (list))
+  (hash-set! current-type-defs "#ScopeType#" (list))
   
   
   ;; Add any type defs to the hash.
@@ -846,12 +1046,12 @@
                      "The identifier `~a` has already been declared and cannot be declared again."
                      name-string))
          
-         (add-method-to "#SelfType#"
+         (add-method-to "#ScopeType#"
                         (MethodType name-string
                                     (list)
                                     type-string)
                         current-type-defs)
-         (add-method-to "#SelfType#"
+         (add-method-to "#ScopeType#"
                         (MethodType (format "~a:=" name-string)
                                     (list type-string)
                                     "Done")
@@ -868,7 +1068,7 @@
                      "The identifier `~a` has already been declared and cannot be declared again."
                      name-string))
          
-         (add-method-to "#SelfType#"
+         (add-method-to "#ScopeType#"
                         (MethodType name-string
                                     (list)
                                     type-string)
@@ -878,7 +1078,7 @@
       ;; Might maybe have to do this later after the environment has been built up.
       ;; So probably do this in the typecheck function.
       ((grace:method name signature body rtype)
-       (add-method-to "#SelfType#"
+       (add-method-to "#ScopeType#"
                       (get-method-impl-type
                        (grace:method name signature body rtype))
                       ;(get-method-def-type 
@@ -932,7 +1132,6 @@
   
   ;; TODO: Remove, for debugging.
   ;(display-type-env current-type-defs current-type-env)
-  
   
   (values current-type-defs current-type-env))
 
@@ -991,19 +1190,24 @@
         "Dynamic*")))
 
 
-;; TODO: Remove.
-;;(define no-type "#MissingType#")
+
 (: type-name (TypeType -> String))
 (define (type-name type)
-  (let* ([type-string (grace:type-annot-value (unwrap type))])
+  ;; Workaround for unwrap and syntax-e pushing down nested syntax structure.
+  ;;
+  ;; eg. [Syntaxof (grace:type-annot value)]
+  ;;                   |
+  ;;           unwrap/syntax-e
+  ;;                   |
+  ;;                   V
+  ;;     (grace:type-annot [Syntaxof value])
+  ;;
+  ;; Note: This will happen several more times in the code.
+  (let* ([type-string (grace:type-annot-value (cast (syntax->datum type) grace:type-annot))])
     (if (equal? type-string "#MissingType#")
         "Dynamic*"
         type-string)))
-;(define (type-name type)
-;  (let* ([type-exists (unwrap type)])
-;    (if type-exists
-;        (id-name (cast type IdentifierType))
-;        "Dynamic*")))
+
 
 
 (: add-method-to (String MethodType ScopeTypeDefs -> Any))

@@ -49,6 +49,20 @@ class Dog.new(name, size) {
   }
 }
 
+object {
+  def name = "Hello"
+   
+  method sayName() {
+    print(self.name)
+  }
+   
+  self.sayName()
+   
+  def c = object {
+    def d = 4
+  }     
+}   
+
 type DogType = {
   bark() -> Done
   changeName(newName : String) -> String
@@ -91,10 +105,29 @@ type T = {
   a:=(_ : Number) -> Done
 }
 
-method foo(arg : S) -> String{
-  print(S)
-  return "Done!"       
+
+
+
+
+
+var cc : String := foo(x)
+
+
+method foo(arg : S) -> String {
+  def c : B = object {
+    method boo() {
+      "Hello"
+    }
+  }
+  return self.cc
 }
+type B = {
+  boo() -> String
+}     
+
+
+
+
 
 def x : T = object {
   var a : Number := 2
