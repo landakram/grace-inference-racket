@@ -985,8 +985,70 @@
        ;; Return the type of the value.
        value-type))
     
-    ((grace:if-then-else check tbody ebody) "#Void#")
-    
+    ((grace:if-then-else check tbody ebody) 
+     (let* ([check-type (typecheck check)]
+            [tbody-list (unwrap tbody)]
+            [ebody-list (unwrap ebody)]
+            [tbody-type "#NoTypeFound#"]
+            [ebody-type "#NoTypeFound#"])
+       
+       ;; NOTE: This may or may not be needed. Minigrace seems to allow anything through
+       ;; in the check, but for some reason finds anything except keyword `true` to be
+       ;; false. Not sure if this is intentional, or just has yet to be implemented, but
+       ;; I'm leaving this in here commented just in case the check is supposed to be of
+       ;; type boolean.
+       ;;
+       ;; Make sure the check conforms to boolean type.
+       ;(unless { check-type . conforms-to? . "Boolean" }
+       ;  (tc-error stmt
+       ;            "The expression resulted in a type that could not be used as a boolean."))
+       
+       ;; Typecheck the then body.
+       (let-values ([(tbody-type-defs tbody-type-env)
+                     (build-environment tbody)])
+         (push-scope tbody-type-defs tbody-type-env)
+         
+         ;; Make sure there aren't errors in the body.
+         (map typecheck tbody-list)
+         
+         ;; Get the type of the last statement in the body.
+         (set! tbody-type (typecheck (car (reverse tbody-list))))
+         
+         ;; Get rid of the scope.
+         (pop-scope))
+       
+       ;; We only want to typecheck the else body if it isn't empty.
+       (if (empty? ebody-list)
+           ;; If the else body was empty, just return the type of the then body.
+           tbody-type
+           
+           ;; Else, we typecheck the else body.
+           (begin
+             (let-values ([(ebody-type-defs ebody-type-env)
+                           (build-environment ebody)])
+               (push-scope ebody-type-defs ebody-type-env)
+               
+               ;; Check the body for errors.
+               (map typecheck ebody-list)
+               
+               ;; Get the type of the last statement in the body.
+               (set! ebody-type (typecheck (car (reverse ebody-list))))
+               
+               ; ;We don't need the scope anymore.
+               (pop-scope))
+             
+             ;; Make sure the type of the then and else blocks match up.
+             (let* ([tbody-type-is-subtype? { tbody-type . conforms-to? . ebody-type }]
+                    [ebody-type-is-subtype? { ebody-type . conforms-to? . tbody-type }])
+               (unless (or tbody-type-is-subtype? ebody-type-is-subtype?)                     
+                 (tc-error stmt
+                           "The result of the `if` block did not match the type of the result of the `else` block."))
+               
+               ;; Return the type of the more general block.
+               (if tbody-type-is-subtype?
+                   ebody-type
+                   tbody-type))))))
+           
     ((grace:class-decl name param-name signature body) "#Void#")
     
     ((grace:newline) "#Void#")

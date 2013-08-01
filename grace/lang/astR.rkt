@@ -112,7 +112,8 @@
 
 (struct: grace:if-then-else
   ;; TODO: Type of check definitely needs fixing.
-  ([check : (U IdentifierType (Syntaxof grace:expression) (Syntaxof grace:member) (Syntaxof grace:method-call))]
+  (;[check : (U IdentifierType (Syntaxof grace:expression) (Syntaxof grace:member) (Syntaxof grace:method-call))]
+   [check : (Syntaxof Any)]
    ;[tbody : (Listof (Syntaxof Any))]
    ;[ebody : (Listof (Syntaxof Any))])
    [tbody : BodyType]
