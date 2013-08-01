@@ -922,21 +922,15 @@
          
          ;; Typecheck each element in the body
          (map typecheck body-list)
-         ;(for ([statement body-list])
-         ;  (match (unwrap statement)
-         ;    ((grace:return value)
-         ;     (let* ([returned-type (typecheck (cast value (Syntaxof Any)))])
-         ;       (unless { returned-type . conforms-to? . declared-rtype }
-         ;         (tc-error stmt
-         ;                   "Method of return type `~a` returned incompatible type `~a`."
-         ;                   declared-rtype
-         ;                   returned-type))))
-         ;    
-         ;    (else (typecheck statement))))
          
          ;; Make sure the type of the last statement in the method body matches the
          ;; declared return type.
-         
+         (let* ([last-statement (car (reverse body-list))]
+                [last-statement-type (typecheck last-statement)])
+           (unless { last-statement-type . conforms-to? . declared-rtype }
+             (tc-error stmt
+                       "The type of the last statement in method `~a` does not conform to declared return type."
+                       (id-name name))))
          
          ;; Pop off the method-scope after typechecking.
          (pop-scope)))
