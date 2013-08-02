@@ -999,9 +999,9 @@
        ;; type boolean.
        ;;
        ;; Make sure the check conforms to boolean type.
-       ;(unless { check-type . conforms-to? . "Boolean" }
-       ;  (tc-error stmt
-       ;            "The expression resulted in a type that could not be used as a boolean."))
+       (unless { check-type . conforms-to? . "Boolean" }
+         (tc-error stmt
+                   "The expression resulted in a type that could not be used as a boolean."))
        
        ;; Typecheck the then body.
        (let-values ([(tbody-type-defs tbody-type-env)
