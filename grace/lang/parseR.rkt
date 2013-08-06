@@ -69,6 +69,7 @@
      ((expression NEWLINE) $1)
      ((return NEWLINE) $1)
      ((if-then-else NEWLINE) $1)
+     ((while-loop NEWLINE) $1)
      ((any := expression NEWLINE) (at-src (grace:bind $1 $3))))
      ;((NEWLINE) (at-src (grace:newline))))
 
@@ -135,7 +136,8 @@
     (method-declaration
      ((METHOD method-name method-return-type LBRACE method-body RBRACE NEWLINE)
       (at-src (grace:method $2 (at-src empty) (at-src $5) $3)))
-     ((METHOD method-name method-signature method-return-type LBRACE method-body RBRACE NEWLINE)
+     ((METHOD method-name method-signature 
+              method-return-type LBRACE method-body RBRACE NEWLINE)
       (at-src (grace:method $2 $3 (at-src $6) $4))))
 
     (method-name
@@ -160,7 +162,6 @@
       (append (list $1) $3))
      ((IDENTIFIER : type-annot COMMA signature-list)
        (append (list (at-src (grace:identifier (symbol->string $1) $3))) $5)))
-       ;(append (list (at-src (grace:identifier (symbol->string (quote $1)) $3))) $5)))
 
     (type-annot
      ((IDENTIFIER)
@@ -263,7 +264,8 @@
      ((+ term)
       (prec UNARY)
       (at-src (grace:method-call (at-src (grace:member $2 +)) empty)))
-     ((object-decl) $1))
+     ((object-decl) $1)
+     ((block-declaration)  $1))
 
     (identifier
      ((IDENTIFIER) 
@@ -273,27 +275,36 @@
 
     ; TODO: elseif. Recursive else-list?
     (if-then-else
-     ((IF LPAREN expression RPAREN THEN LBRACE if-body RBRACE ELSE LBRACE if-body RBRACE)
-      (at-src (grace:if-then-else $3 (at-src $7) (at-src $11))))
-     ((IF LPAREN expression RPAREN THEN LBRACE if-body RBRACE)
-      (at-src (grace:if-then-else $3 (at-src $7) (at-src (list))))))
-
+     ((IF LPAREN expression RPAREN THEN
+          block-declaration ELSE block-declaration)
+      (at-src (grace:if-then-else $3 (at-src $6) (at-src $8))))
+     ((IF LPAREN expression RPAREN THEN block-declaration)
+      (at-src (grace:if-then-else $3 (at-src $6) 
+                                  (at-src (grace:block-decl (at-src empty) (at-src empty)))))))
+    
+    (while-loop
+     ((WHILE block-declaration DO block-declaration)
+      (at-src (grace:while (at-src $2) (at-src $4)))))
+    
     ; TODO: Should take multipart constructor (see: method-declaration)
     (class-declaration
-     ((CLASS identifier DOT identifier method-signature LBRACE class-body RBRACE)
+     ((CLASS identifier DOT identifier method-signature LBRACE object-body RBRACE)
       (at-src (grace:class-decl $2 $4 $5 $7))))
 
-    (class-body
-     ((_code-sequence) (at-src $1)))
+    (block-declaration
+     ((LBRACE object-body RBRACE)
+      (at-src (grace:block-decl (at-src empty) $2)))
+     ((LBRACE signature-list ARROW object-body RBRACE)
+      (at-src (grace:block-decl (at-src $2) $4))))
+    
+    ;(class-body
+    ; ((_code-sequence) (at-src $1)))
 
     (object-decl
      ((OBJECT LBRACE object-body RBRACE)
       (at-src (grace:object $3)))
      ((OBJECT LBRACE RBRACE)
       (at-src (grace:object (at-src (list))))))
-
-    (if-body
-     ((_code-sequence) $1))
 
     (object-body
      ((_code-sequence) (at-src $1)))

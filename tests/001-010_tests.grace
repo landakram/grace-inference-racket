@@ -10,7 +10,7 @@ print("Line " ++ 2)
 print(3 ++ "rd line")
 
 
-// Test 3 : FIXME (decimals/floats are not in)
+// Test 3 : OK
 print(2 - 1)
 print(1 + 1)
 print(6 / 2)
@@ -19,7 +19,6 @@ print(15 % 10)
 print(3 ^ 4)
 print(4 ^ 0.5)
 print(5.2)
-
 
 // Test 4 : OK 
 var x := "Hello"
@@ -30,7 +29,6 @@ var y := 3
 print(y)
 y := y + 1
 print(y)
-
 
 // Test 5 : OK
 print(true)
@@ -45,7 +43,7 @@ var x2 := false
 print(false || true)
 print(x2.not.not)
 x2 := x2.not
-print(x && false.not)
+print(x2 && false.not)
 
 
 // Test 7 : OK
@@ -93,11 +91,12 @@ if (false) then {
 //}
 
     
-// Test 10 : FIXME (while not implemented, string concatenation)
+// Test 10 : OK
 var x4 := 1
-//while {x < 5} do {
-//    print(x4)
-//    x4 := x4 + 1
-//}
-//print("Last: " ++ x4)
+while {x4 < 5
+         } do {
+    print(x4)
+    x4 := x4 + 1
+}
+print("Last: " ++ x4)
 

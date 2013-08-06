@@ -21,10 +21,6 @@
 ;;      places where the syntax structure might be left out and add it in the parser.
 
 
-
-
-
-
 ;; The list of methods that defines a type in grace.
 (define-type GraceType
   (Listof MethodType))
@@ -645,6 +641,7 @@
     
     ;; Make sure the type in the env and the type of the value match.
     ((grace:bind name value) 
+
      ;; TODO: Fix this so if name is a grace:member, we can pretty print it to the error.
      (let* (;[name-string (id-name name)]
             [type-string (typecheck name)]

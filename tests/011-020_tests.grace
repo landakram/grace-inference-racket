@@ -22,69 +22,76 @@ bar(2)
 bar(3)
 
 //Test 14: OK
-var x := object {
+var x2 := object {
     var v := 1
 }
-print(x.v)
+print(x2.v)
 
 //Test 15: OK
-var x2 := object {
+var x3 := object {
     def c = "Hello"
 }
-print(x2.c)
+print(x3.c)
 
 //Test 16 : OK
-var x3 := object {
+var x4 := object {
     method foo {
         print("Hello")
     }
 }
-x3.foo
-x3 := object {
+
+x4.foo
+var x4sv := object {
     method bar {
         "World"
     }
 }
-print(x3.bar)
+
+print(x4sv.bar)
 
 
 //Test 17: OK
-var x4 := object {
+var x5 := object {
     var val := 1
     //val := 2
 }
-print(x4.val)
-x4.val := 2
-print(x4.val)
+print(x5.val)
+x5.val := 2
+print(x5.val)
 
 //Test 18: OK
-var x5 := object {
+var x6 := object {
     var val := 1
     method foo {
         print(self.val)
         self.val := self.val + 1
     }
 }
-x5.foo
-x5.foo
-x5.foo
+
+x6.foo
+x6.foo
+x6.foo
+
 
 //Test 19: OK
 print(1 == 1)
 print(1 == 2)
 print (2 == (1 + 1))
+print(true == false)
+print(true == true)
 print(false == true)
 print(false == false)
 print("Hello" == "world")
 print("Hello" == "Hello")
-var x6 := object {
+var x7 := object {
     var v := 1
 }
-var y := object {
+var y1 := object {
     var v := 1
 }
-print(x == y)
-print(x6 == x6)
+print(x7 == y1)
+print(x7 == x7)
+
 
 //Test 20: OK
 print(1 != 1)
@@ -96,15 +103,14 @@ print(false != true)
 print(false != false)
 print("Hello" != "world")
 print("Hello" != "Hello")
-var x7 := object {
+var x8 := object {
     var v := 1
 }
 var y2 := object {
     var v := 1
 }
-print(x7 != y2)
-print(x7 != x7)
-
+print(x8 != y2)
+print(x8 != x8)
 
 
 

@@ -1,0 +1,2 @@
+#lang racket
+(objectC () ()(begin (list (initvar  z  1 )(initvar  x (block ()(begin (list ( z:= (+ (z)  1 ))( print (z))))))(while (< (z)  5 )(begin (list(block ()(begin (list (send2 (x) (apply)))))))))))
