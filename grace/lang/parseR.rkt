@@ -262,7 +262,8 @@
           block-declaration ELSE block-declaration)
       (at-src (grace:if-then-else $3 (at-src $6) (at-src $8))))
      ((IF LPAREN expression RPAREN THEN block-declaration)
-      (at-src (grace:if-then-else $3 (at-src $6) (grace:block-decl (list))))))
+      (at-src (grace:if-then-else $3 (at-src $6) 
+                                  (at-src (grace:block-decl (at-src empty) (at-src empty)))))))
     
     (while-loop
      ((WHILE block-declaration DO block-declaration)
@@ -287,9 +288,6 @@
       (at-src (grace:object $3)))
      ((OBJECT LBRACE RBRACE)
       (at-src (grace:object (at-src (list))))))
-
-    (if-body
-     ((_code-sequence) $1))
 
     (object-body
      ((_code-sequence) (at-src $1)))

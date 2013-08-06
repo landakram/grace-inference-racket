@@ -1,8 +1,7 @@
 #lang racket
 
-(require "ast.rkt"
-         "parseR.rkt"
-         )
+(require "parseR.rkt")
+
 (provide AST-to-RG)
 
 (define stx (make-parameter #f))
@@ -10,6 +9,50 @@
 ;; Environments map variables to mutable cells 
 ;; containing values.  Also have list of objects.
 (define-struct cell ([value #:mutable]))
+
+(define-for-syntax (grace-struct-syntax prefix stx)
+  (syntax-case stx ()
+    [(_ (struct-name (field ...) struct-option ...) ...)
+     (with-syntax
+       ([(grace:struct ...)
+         (map (λ (id)
+                 (datum->syntax
+                   id
+                   (string->symbol (format "~a:~a" prefix (syntax-e id)))))
+              (syntax->list (syntax (struct-name ...))))])
+       (syntax
+         (begin
+           (define-struct grace:struct (field ...) struct-option ... #:prefab)
+           ...)))]))
+
+(define-syntax (define-grace-structs stx)
+  (grace-struct-syntax "grace" stx))
+
+(define-grace-structs
+  (number (value))
+  (str (value))
+  (identifier (value type))
+
+  (type-def (name methods))
+  (method-def (name signature rtype))
+
+  (var-decl (name type value))
+  (def-decl (name type value))
+  (bind (name value))
+
+  (expression (op e1 e2))
+  (method-call (name args))
+  (object (body))
+  (method (name signature body type))
+  (member (parent name))
+  (return (value))
+  (if-then-else (check tbody ebody))
+  (while (check body))
+  (class-decl (name param-name signature body))
+  (block-decl (signature body))
+
+  (code-seq (code))
+  (newline ()))
 
 ; empty environment:
 (define (env-empty) (hash))
@@ -40,9 +83,9 @@
    ;(many of these will need to be replaced:
    ;all the math ones will need to extract values out of new number objects
    ;and then call primitive version rather than being in current form)
-   `(,'plus ,'minus ,'div ,'mult ,'modulo 
-            ,<= ,>= ,'greater-than ,'less-than ,'equal ,'not-equal 
-            ,eq? concat ,'exp or and)
+   `(,'plus ,'minus ,'div ,'mult ,'modulo ,'less-than-eq ,'greater-than-eq
+            ,'greater-than ,'less-than ,'equal ,'not-equal ,eq? concat ,'exp
+            or and)
    (map (lambda (s) (list 'primitive s))
         '(+ -  /  *  %   <= >= > < == != eq? ++ expt or and))))
 
@@ -60,8 +103,6 @@
               "(begin (list " 
               (foldr string-append "" (all-but-methods code)) 
               ")))"))
-            ;(if (list? num) '("") 
-            ;(string-append* (map AST-to-RG (syntax->datum num)))))
             ((grace:object body)
              (string-append "(objectC () (" 
                             (string-append* (extract-methods body)) ")" 
@@ -87,8 +128,11 @@
                             (string-append* (AST-to-RG args)) ")"))
             ((grace:identifier value type) (string-append "(" value ")"))
             ((grace:var-decl name type value) 
-             (string-append "(initvar " (dont-wrap name) 
-                            " " (AST-to-RG value) ")"))
+             (if (eq? value #f) 
+                 (string-append "(initvar " (dont-wrap name) 
+                            " " "(void)" ")")
+                 (string-append "(initvar " (dont-wrap name)
+                            " " (AST-to-RG value) ")")))
             ((grace:def-decl name type value)
              (string-append "(initdef " (dont-wrap name)
                             " " (AST-to-RG value) ")"))
@@ -124,7 +168,6 @@
                             ")"))
             ((grace:while check body)
              (string-append "(while " (AST-to-RG check) (AST-to-RG body) ")"))
-                            
             (void "")
             (else (print "ERROR1") (print elt))))))
 
@@ -186,6 +229,4 @@ if (false) then {
     print(\"OK 2 else\")
 }
 ")))
-;(displayln (grace:object a))
-;(displayln (syntax->datum a))
 ;(display (AST-to-RG (syntax-e a)))

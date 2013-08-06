@@ -1,8 +1,7 @@
 #lang racket
 
 (require racket/match
-         "output.rkt"
-         "parse.rkt")
+         "output.rkt")
 (provide env-initial eval-with)
 
 ;; Evaluation toggles between eval and apply.
@@ -22,8 +21,6 @@
 ;Each object should have all methods listed in typechecker.grace
 
 ;Added Classes: classes are just an object with a method to return a new object.  
-;Dealing with initargs and using the right environment is important.  
-;Correct quasiquoting for object definition is tricky.
 
 ;Allow vars to be declared without being set to a value immediately 
 ;(Can set to void, but that doesn't really match Minigrace functionality.  
@@ -63,8 +60,6 @@
     [`(if ,ec ,et ,ef) (if (eval ec env) (eval et env) (eval ef env))]
     ;Forms of let take a list of pairs and a method to bind those pairs over.
     [`(letrec ,binds ,eb) (eval-letrec binds eb env)] 
-    ;[`(let    ,binds ,eb) (eval-let    binds eb env)]
-    ;[`(letC   ,binds ,eb) (eval-letC    binds eb env)]
     [`(lambda ,vs ,e)    `(closure ,exp ,env)]
     [`(set! ,v ,e)   (begin (match v
                               [(? symbol?) (env-set! env v (eval e env))]
@@ -78,14 +73,13 @@
     [`(begin ,e1 ,e2)     (begin (eval e1 env)
                                  (eval e2 env))]
     [`(begin ,es)         (last (map (eval-with env) es))] 
-    [`(while ,test ,body) ;(displayln body)
+    [`(while ,test ,body)
      (local [(define (loop)
                (if (apply-proc (eval-send3 
                                 (eval-send3 test '(apply) env)'(bval) env) '())
                    (begin (eval-send3 body '(apply) env)
                           (loop)) (void)))]
        (loop))]
-    ;[`(liststopairs ,first ,second) (changeliststopairs first second)]
     ;concatenate two strings together
     [`(++ ,e1 ,e2)    
      (let ([ex1 (eval e1 env)])
@@ -102,9 +96,11 @@
               [(? string?) (string-append ex1 ex2)])])))]
     ;versions of ==, !=, or, and and that match my booleans
     [`(== ,e1 ,e2) 
-     (eval `(myif (equal? (eval ,e1 ,env) (eval ,e2 ,env)) (true) (false)) env)] 
+     (eval `(myif (equal? (eval ,e1 ,env) (eval ,e2 ,env)) 
+                  (block () (true)) (block () (false))) env)] 
     [`(!= ,e1 ,e2) 
-     (eval `(myif (equal? (eval ,e1 ,env) (eval ,e2 ,env)) (false) (true)) env)] 
+     (eval `(myif (equal? (eval ,e1 ,env) (eval ,e2 ,env)) 
+                  (block () (false)) (block () (true))) env)] 
     [`(or ,e1 ,e2)  (eval `(myif (eval ,e1 ,env) (block () (true))
                                  (block () (eval ,e2 ,env))) env)]
     [`(and ,e1 ,e2)  (eval `(myif (eval ,e1 ,env) (block () (eval ,e2 ,env)) 
@@ -131,33 +127,8 @@
 (define (eval-with env) 
   (lambda (exp) (eval exp env)))
 
-;This code needs work: the instance variables are not being properly passed in
-;(define (eval-newclass constructor initargs fields methods env)
-;  ;This is having trouble getting x to keep its value
-;  (eval-newobj3 
-;   '() 
-;   (list (list constructor 
-;               `(lambda (x) (let ((newinits 
-;                                   (liststopairs ,initargs ((eval x ,env)))))
-;                              (object newinits ,fields ,methods))))) env))
-
-;(define (eval-newclass3 constructor initargs fields methods body env)
-;  (eval-newobj3 '() (list (list constructor `(lambda (x) 
-; (let ((newinits (liststopairs ,initargs ((eval x ,env))))) 
-;(object newinits ,fields ,methods ,body))))) env)
-;  )
-;
-;(define (eval-newclass2 constructor fields methods env)
-;  (eval-newobj3 '() (list (list constructor 
-;`(lambda () (object ,fields ,methods)))) env)
-;  )
 
 (define (eval-newclassC constructor initargs methods body env)
-  ;(eval-newobjC (list) (list (list constructor 
-  ;`(lambda (list) (object (list) ,methods ,body)))) (begin (list)) env))
-  ;(eval-newobjC '() (list (list constructor `(lambda (x) (let ((newinits
-  ;(liststopairs ,initargs ((eval (x) ,env))))) (objectC () ,methods ,body)))))
-  ;'() env)
   (eval-newobjC 
    '() (list (list constructor 
                    `(lambda ,initargs (objectC ,initargs ,methods ,body)))) 
@@ -168,24 +139,9 @@
   (eval-newobjC
    '() (list (list 'apply `(lambda ,initargs ,body))) '() env))
 
-;Used in class declarations. Takes two lists and returns a list of pairs.  
-;Practical use is to take a list of instance variables and a list of arguments 
-;and change them to a list of bindings that can then be used in a let statement
-;or as part of an object's constructor.
-;(define (changeliststopairs first second)
-;  (match `(,first ,second)
-;    [`((,f . ,first) (,s . ,second))
-;     ;=>
-;     (cons (list f s) (changeliststopairs first second))]
-;    
-;    [`(() ())
-;     ;=>
-;     (list)]))
-
 
 ;preferred format for object declarations
 (define (eval-newobjC fields methods body env)
-  ;add bindings for outer and self
   (define env1 (box (env-empty)))
   (set-box! env1      
             (unbox (env-extend*
@@ -194,39 +150,14 @@
             (unbox (env-extend* 
                     env1 (list 'self) (list (eval `(lambda () ,env1) env)))))
   (set-box! env1    (unbox (env-extend* env1 (list 'dynam) (list env))))
-  ;(displayln env1)
-  ;map all fields to false to avoid errors when they're accessed later
-  ;(define fieldvars (map car fields))
-  ;(define fieldexps (map cadr fields))
-  ;(define falses    (map (lambda _ #f) fields))
-  ;(set-box! env1    (unbox (eval-initvar* fieldvars falses env1)))
-  ;(newline)
-  ;(if (eq? fieldvars '(x)) 
-  ;(displayln (env-lookup (env-lookup env1 'outer) 'z)) (displayln "here"))
-  ;(displayln (env-lookup env1 'self))
   ;define and bind methods in standard letrec fashion, allowing mutual recursion
   (define methvars  (map car methods))
   (define methexps  (map cadr methods))
   (define ffs       (map (lambda _ #f) methods))
   (set-box! env1    (unbox (env-extend* env1 methvars ffs))) 
-  ;(define env4      (env-extend* env1 methvars ffs))
   (define methvals  (map (eval-with env1) methexps))
   (env-set!* env1 methvars methvals)
-  ;(set-box! env1 (unbox env4))
-  ;(print fieldexps)
-  ;(print (map (eval-with env4) fieldexps))
-  ;now, with methods defined, bind to proper values for fields
-  ;(define fieldvals (map (eval-with env4) fieldexps))
-  ;(env-Cset!* env4 fieldvars fieldvals)
-  ;(print fieldvals)
-  ;then eval the body term
-  ;(set-box! env1 (unbox env4))
   (eval body env1)
-  ;(displayln env1)
-  ;(env-remove* env1 fields)
-  ;(displayln env1)
-  ;finally, return that environment as the representation of the given object
-  ;TODO: remove fields from objects?
   env1)
 
 ;Equivalent of dot-calling in Grace: 
@@ -282,6 +213,7 @@
      ; =>
      env]))
 
+;Same as code for var, but leaves out modify method.
 (define (eval-initdef var val env)
   (let* ((hiddenvar (string->symbol (string-append "$" (symbol->string var))))
          (readmethod var)
@@ -290,8 +222,7 @@
           (env-extend* 
            env0 (list readmethod) (list (eval `(lambda () ,hiddenvar) env0)))))
     (set-box! env (unbox env1))
-    env
-    ))
+    env))
 
 ;Initializes list of def to list of initial values.
 (define (eval-initdef* objs vals env)
@@ -302,39 +233,6 @@
     [`(() ())
      ; =>
      env]))
-
-;(define (eval-enddef var env)
-;  (let* ((hiddenvar (string->symbol (string-append "$" (symbol->string var))))
-;         (readmethod var)
-;         (env0 (env-remove* env (list hiddenvar)))
-;         (env1 (env-remove* env0 (list readmethod))))
-;    (set-box! env (unbox env1))
-;    env1
-;    ))
-;
-;(define (eval-enddef* objs env)
-;  (match `(,objs)
-;    [`((,o . ,objs))
-;     ;=>
-;     (eval-enddef* objs (eval-enddef o env))]        
-;    [`(())
-;     ; =>
-;     env]))
-
-;let a list of bindings be set over a body
-;(define (eval-letC bindings body env)
-;  (let* ((vars (map car bindings))
-;         (exps (map cadr bindings))
-;         (vals (map (eval-with env) exps))
-;         (env* (eval-initvar* vars vals env)))
-;    (eval body env*)))
-;
-;(define (eval-let bindings body env)
-;  (let* ((vars (map car bindings))
-;         (exps (map cadr bindings))
-;         (vals (map (eval-with env) exps))
-;         (env* (env-extend* env vars vals)))
-;    (eval body env*)))
 
 ; applies a procedure to arguments:
 (define (apply-proc f values)
@@ -361,8 +259,7 @@
 (define (env-empty) (hash))
 
 ; initial environment, with bindings for primitives:
-(define (env-initial)
-  ;(env-extend* 
+(define (env-initial) 
   (eval-newobjC 
    '() '() '(initdef* (true false)
                       ((send2 (boolean) (gtrue))(send2 (boolean) (gfalse))))
@@ -387,23 +284,7 @@
                                                     (begin (list "False"))))))))
                         (begin (list (initdef bval v)))))))))
        (begin (list (initdef gtrue (new #t))(initdef gfalse (new #f))))))
-    (env-start)))
-  ;next, extends environment further to add tru and fals objects
-  ;naming is intentional to avoid any confusion with primitive 
-  ;true and false but should be changeable without causing any issues.
-  ;The only thing users should see is the asString method
-  ;so it may be fine as-is.
-  ;   '(tru fals 
-  ;         ;<
-  ;         )
-  ;   (let* ((env0 (env-extend* (box (env-empty)) '(asString) `("true"))) 
-  ;          (env1 (env-extend* (box (env-empty)) '(asString) `("false")))) 
-  ;     (begin (set-box! env0 (unbox (env-extend* env0 '(not prefix!) 
-  ;`((closure (lambda () ,env1) ,env1) (closure (lambda () ,env1) ,env1)))))
-  ;            (set-box! env1 (unbox (env-extend* env1 '(not prefix!) 
-  ;`((closure (lambda () ,env0) ,env0) (closure (lambda () ,env0) ,env0)))))
-  ;            `(,env0 ,env1))))
-  )
+    (env-start))))
 
 (define (env-contains env var)
   (if (primitive? var) ((lambda (s) (list 'primitive s)) var)
@@ -419,19 +300,22 @@
 ; looks up a value:
 (define (env-lookup env var)
   (if (primitive? var) ((lambda (s) (list 'primitive s)) var)
+      ;First, check for variable in the current scope.
       (if (hash-has-key? (unbox env) var)
           (begin 
-            ;(displayln var)
-            ;(displayln env)
             (match (hash-ref (unbox env) var)
               [(? cell?)  
                (cell-value (hash-ref (unbox env) var))]
               [x
                (hash-ref (unbox env) var)]))
+          ;'dynam is equivalent of dynamic link.  If we can't find the variable
+          ;in the current scope, follow dynamic link outward and try again.
+          ;If it's not there and we're at the last dynamic link, raise an error.
           (if (hash-has-key? (unbox env) 'dynam)                      
               (let ((temp (env-lookup env 'dynam)))                              
                 (env-lookup temp var)) 
-              (begin (print "there") (displayln var) env)))))
+              (error (string-append "Evaluation error: Could not find \""
+                                    (symbol->string var) "\" in scope"))))))
 
 
 ; sets a value in an environment:
@@ -447,49 +331,6 @@
     [`(() ())
      ; =>
      env]))
-
-;(define (env-remove* env varbls)
-;  (match `(,varbls)
-;    [`((,v . ,varbls))
-;     ; =>
-;     ;(displayln v)
-;     (set-box! env (hash-remove (unbox env) v))
-;     (env-remove* env varbls)]
-;    [`(())
-;     ; =>
-;     env]))
-
-
-;extends environment, but instead of mapping to a mutable cell containing 
-;the value, just maps it directly to the value
-;eventually, set! method will change, and then we should change this so it
-;looks like initvar, but without the var:= method.
-
-;TODO: consider removing this.
-;(define (env-extdef* env invarbls values)
-;  (match `(,invarbls ,values)
-;    [`((,i . ,invarbls) (,val . ,values))
-;     ; =>
-;     (set-box! env (box (env-extend* (hash-set (unbox env) i val)
-;                                     invarbls values)))]
-;    [`(() ())
-;     ; =>
-;     env]))
-
-;;extend an environment mapping a list of values to void.
-;;Doesn't entirely match grace behavior
-;;racket will allow you to call something like print on void
-;;while grace sends an error if you try to call a method on an unitialized var.
-;(define (env-extempty env varbls)
-;  (match `(,varbls)
-;    [`((,v . ,varbls))
-;     ; =>
-;     (set-box! env (box (env-extempty (hash-set (unbox env) v 
-;                                                (make-cell (void))) varbls)))]
-;    
-;    [`(())
-;     ; =>
-;     env]))
 
 
 ; mutates an environment with several assignments:
@@ -532,50 +373,6 @@
                             [any (begin (display x) (newline))]))))))
 
 
-;; Evaluation tests.
-
-; define new syntax to make tests look prettier:
-(define-syntax 
-  test-eval 
-  (syntax-rules (====)
-    [(_ program ==== value)
-     (let ((result (eval (quote program) (env-initial))))
-       (when (not (equal? program value))
-         (error "test failed!")))]))
-
-;(test-eval
-;  ((lambda (x) (+ 3 4)) 20)
-;  ====
-;  7)
-
-;Commented out because it relies on <=, which returns a racket #t or #f.  
-;Trying to phase that out, replace with one that returns my tru or false.
-;(test-eval
-;  (letrec ((f (lambda (n) 
-;                 (if (<= n 1)
-;                     1
-;                     (* n (f (- n 1)))))))
-;     (f 5))
-;  ====
-;  120)
-
-;(test-eval
-;  (let ((x 100))
-;    (begin
-;      (set! x 20)
-;      x))
-;  ====
-;  20)
-
-;(test-eval
-;  (let ((x 1000))
-;    (begin (let ((x 10))
-;             20)
-;           x))
-;  ====
-;  1000)
-
-
 ;; Programs are translated into a single letrec expression.
 
 (define (define->binding define)
@@ -604,26 +401,6 @@
     (if (eof-object? next)
         '()
         (cons next (read-all)))))
-
-(define (p in) (parse (object-name in) in))
-
-;(define inp (open-input-file 
-;"/home/ryannow/BRUCE-TOTRANSFER2/donetests/t016_objectmeth_test.grace"))
-;(define a (p inp))
-;(display (AST-to-RG (syntax-e a)))
-(define a (p (open-input-string "object{
-print(1)
-}
-"
-                                )))
-;(define-values (in out) (make-pipe))
-;(display (AST-to-RG (syntax-e a)))
-;(display (AST-to-RG (syntax-e a)) out)
-;(let* ((temp (read in))
-;       (test (print (cdr temp)))
-; (out (eval temp (env-initial))))
-; (void))
-
 
 ; read in a program, and evaluate:
 ;(eval-program (read-all))

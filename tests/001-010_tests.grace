@@ -91,11 +91,12 @@ if (false) then {
 //}
 
     
-// Test 10 : FIXME (while not implemented, string concatenation)
+// Test 10 : OK
 var x4 := 1
-//while {x < 5} do {
-//    print(x4)
-//    x4 := x4 + 1
-//}
-//print("Last: " ++ x4)
+while {x4 < 5
+         } do {
+    print(x4)
+    x4 := x4 + 1
+}
+print("Last: " ++ x4)
 

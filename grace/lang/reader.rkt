@@ -1,7 +1,6 @@
 #lang racket
 ;#lang typed/racket
 (require "parseR.rkt"
-         "typecheckR.rkt"
          "output.rkt"
          "evaluator.rkt"
          parser-tools/lex)
@@ -10,7 +9,6 @@
 ;         [parse (Any Any -> (Syntaxof grace:code-seq))])
 
 (provide read-syntax
-         read
          get-info)
 
 ;; Parses the grace syntax for a module
@@ -29,17 +27,11 @@
                       (path->string (path-replace-suffix name #""))))
                    'anonymous)])
     (define datum (syntax->datum stx))
-    ;(display (syntax->datum stx))
-    ;(define env3 (typechecker stx))
-    ;(displayln datum)
     (define sp (AST-to-RG (syntax-e stx)))
-    ;(display sp)
     (define-values (in out) (make-pipe))
     (display sp out)
-    (let* ((toeval (read in))) (begin (write toeval) 
-                                      ((eval-with (env-initial)) toeval)))
-    ;(display (list? env))
-;    (display stx)
+    (let* ((toeval (read in))) ;(begin (write toeval) (newline) 
+                                      ((eval-with (env-initial)) toeval));)
     (datum->syntax #f `(module ,name racket
 ;                         (provide st env)
                          (require grace/lang/ast)
@@ -51,9 +43,6 @@
 
 (define (p in) (parse (object-name in) in))
 
-;; In case `read' is used, instead of `read-syntax':
-;(define (read in)
-;  (syntax->datum (read-syntax (object-name in) in)))
 
 ;; To get info about the language's environment support:
 (define (get-info in mod line col pos)
